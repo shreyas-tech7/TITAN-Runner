@@ -33,28 +33,32 @@ export const config = Object.freeze({
 
   groq: {
     apiKey: credential(process.env.GROQ_API_KEY),
-    model: process.env.GROQ_MODEL?.trim() || 'llama-3.3-70b-versatile',
+    // Empty unless a human explicitly pins one — see DEFAULT_MODELS/resolveModel()
+    // below for what actually gets used when this is unset.
+    model: process.env.GROQ_MODEL?.trim() || '',
   },
   together: {
     apiKey: credential(process.env.TOGETHER_API_KEY),
-    model: process.env.TOGETHER_MODEL?.trim() || 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+    model: process.env.TOGETHER_MODEL?.trim() || '',
   },
   openrouter: {
     apiKey: credential(process.env.OPENROUTER_API_KEY),
-    model: process.env.OPENROUTER_MODEL?.trim() || 'openai/gpt-oss-20b:free',
+    model: process.env.OPENROUTER_MODEL?.trim() || '',
   },
   gemini: {
     apiKey: credential(process.env.GEMINI_API_KEY),
-    model: process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash',
+    model: process.env.GEMINI_MODEL?.trim() || '',
   },
   huggingface: {
     // The real env var is HF_API_KEY, not HUGGINGFACE_API_KEY — see README.
     apiKey: credential(process.env.HF_API_KEY),
-    model: process.env.HF_MODEL?.trim() || 'meta-llama/Llama-3.1-8B-Instruct',
+    model: process.env.HF_MODEL?.trim() || '',
   },
   freebuff: {
+    // No baseUrl: Freebuff has no official public API to point one at — see
+    // agents/freebuffAgent.js. The key is still read (and reported as
+    // configured-but-unused, never "misconfigured") in case that changes.
     apiKey: credential(process.env.FREEBUFF_API_KEY),
-    baseUrl: (process.env.FREEBUFF_BASE_URL?.trim() || 'https://api.freebuff.dev/v1').replace(/\/+$/, ''),
   },
   opencode: {
     apiKey: credential(process.env.OPENCODE_API_KEY),
@@ -101,6 +105,38 @@ export function isProviderConfigured(id) {
     default:
       return false;
   }
+}
+
+/**
+ * Last-resort model ids — used only when a human has not pinned one via
+ * `*_MODEL` AND `state/providers.json` carries no live-discovered model yet
+ * (a fresh checkout, or every discovery attempt has failed). See
+ * `resolveModel()`; kept here rather than baked into each `*_MODEL` default
+ * above so a churned free-tier id never requires an env var change to fix —
+ * task instructions, section 6: "a hardcoded ID is a silent outage later."
+ * @type {Record<string, string>}
+ */
+export const DEFAULT_MODELS = Object.freeze({
+  groq: 'llama-3.3-70b-versatile',
+  together: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+  openrouter: 'openai/gpt-oss-20b:free',
+  gemini: 'gemini-2.5-flash',
+  huggingface: 'meta-llama/Llama-3.1-8B-Instruct',
+});
+
+/**
+ * Precedence: an explicit `*_MODEL` env var (a human pinned this on
+ * purpose) > the model `scripts/provider-selftest.mjs` last discovered and
+ * cached in `state/providers.json` > the hardcoded last-resort above.
+ * @param {'groq'|'together'|'openrouter'|'gemini'|'huggingface'} id
+ * @param {string|null|undefined} cachedModel From `providerHealth.get(id).model`.
+ * @returns {string}
+ */
+export function resolveModel(id, cachedModel) {
+  const pinned = config[id]?.model;
+  if (pinned) return pinned;
+  if (cachedModel) return cachedModel;
+  return DEFAULT_MODELS[id] ?? '';
 }
 
 export default config;

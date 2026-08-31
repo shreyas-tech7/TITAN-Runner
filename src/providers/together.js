@@ -2,8 +2,9 @@
  * Together AI — free tier, OpenAI-compatible wire format. Second in the
  * failover chain.
  */
-import { config } from '../config.js';
+import { config, resolveModel } from '../config.js';
 import { guardedFetch } from '../lib/net.js';
+import { providerHealth } from './health.js';
 import { BaseProvider, networkErrorFrom, openAiChatBody, parseOpenAiChat, readJsonResponse, upstreamErrorFrom } from './base.js';
 
 const API_BASE = 'https://api.together.xyz/v1';
@@ -14,7 +15,7 @@ export class TogetherProvider extends BaseProvider {
       id: 'together',
       label: 'Together AI',
       apiKey: overrides.apiKey ?? config.together.apiKey,
-      model: overrides.model ?? config.together.model,
+      model: overrides.model ?? resolveModel('together', providerHealth.get('together').model),
     });
     this.baseUrl = (overrides.baseUrl ?? API_BASE).replace(/\/+$/, '');
   }

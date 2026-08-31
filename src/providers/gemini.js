@@ -8,8 +8,9 @@
  * query parameter: a header is never logged by accident the way a full
  * request URL can be.
  */
-import { config } from '../config.js';
+import { config, resolveModel } from '../config.js';
 import { guardedFetch } from '../lib/net.js';
+import { providerHealth } from './health.js';
 import { BaseProvider, ProviderError, networkErrorFrom, readJsonResponse, upstreamErrorFrom } from './base.js';
 
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
@@ -48,7 +49,7 @@ export class GeminiProvider extends BaseProvider {
       id: 'gemini',
       label: 'Gemini',
       apiKey: overrides.apiKey ?? config.gemini.apiKey,
-      model: overrides.model ?? config.gemini.model,
+      model: overrides.model ?? resolveModel('gemini', providerHealth.get('gemini').model),
     });
     this.baseUrl = (overrides.baseUrl ?? API_BASE).replace(/\/+$/, '');
   }

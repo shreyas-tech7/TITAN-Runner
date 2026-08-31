@@ -20,6 +20,15 @@
 
 import { Semaphore } from '../lib/semaphore.js';
 import { redactString } from '../lib/redact.js';
+import { providerHealth } from '../providers/health.js';
+
+/**
+ * Pools tracked in `state/providers.json` health/dashboard terms. `phase2`
+ * is deliberately excluded: it fans out to the five registry providers,
+ * each already tracked individually by `providers/base.js#chat()` — a
+ * top-level "phase2" health record would just duplicate and blur that.
+ */
+const HEALTH_TRACKED_POOLS = new Set(['freebuff', 'opencode']);
 
 /**
  * @typedef {object} AdapterTask
@@ -96,24 +105,38 @@ export class AgentAdapter {
    */
   async execute(task, sharedContext, options = {}) {
     const started = performance.now();
+    const trackHealth = HEALTH_TRACKED_POOLS.has(this.pool);
     await this.#gate.acquire();
     try {
       const raw = await this._doExecute(task, sharedContext, options);
+      const ms = Math.round(performance.now() - started);
+      if (trackHealth) {
+        providerHealth.recordOutcome(this.pool, { ok: true, latencyMs: ms, model: raw?.modelId ?? null });
+      }
       return {
         ok: true,
         output: typeof raw?.output === 'string' ? raw.output : '',
         modelId: raw?.modelId ?? options.modelId ?? null,
         tokensUsed: Number.isFinite(raw?.tokensUsed) ? raw.tokensUsed : null,
-        ms: Math.round(performance.now() - started),
+        ms,
         error: null,
       };
     } catch (err) {
+      const ms = Math.round(performance.now() - started);
+      if (trackHealth) {
+        providerHealth.recordOutcome(this.pool, {
+          ok: false,
+          code: err?.code,
+          status: err?.status ?? null,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
       return {
         ok: false,
         output: null,
         modelId: options.modelId ?? null,
         tokensUsed: null,
-        ms: Math.round(performance.now() - started),
+        ms,
         error: {
           code: err?.code ?? 'UPSTREAM_ERROR',
           message: String(redactString(err instanceof Error ? err.message : String(err))),

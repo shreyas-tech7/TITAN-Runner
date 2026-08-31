@@ -2,8 +2,9 @@
  * Groq — free tier, OpenAI-compatible wire format. First in the failover
  * chain: its LPU inference is consistently the fastest of the five.
  */
-import { config } from '../config.js';
+import { config, resolveModel } from '../config.js';
 import { guardedFetch } from '../lib/net.js';
+import { providerHealth } from './health.js';
 import { BaseProvider, networkErrorFrom, openAiChatBody, parseOpenAiChat, readJsonResponse, upstreamErrorFrom } from './base.js';
 
 const API_BASE = 'https://api.groq.com/openai/v1';
@@ -14,7 +15,7 @@ export class GroqProvider extends BaseProvider {
       id: 'groq',
       label: 'Groq',
       apiKey: overrides.apiKey ?? config.groq.apiKey,
-      model: overrides.model ?? config.groq.model,
+      model: overrides.model ?? resolveModel('groq', providerHealth.get('groq').model),
     });
     this.baseUrl = (overrides.baseUrl ?? API_BASE).replace(/\/+$/, '');
   }

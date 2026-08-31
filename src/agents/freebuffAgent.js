@@ -1,14 +1,28 @@
-// UNVERIFIED CONTRACT
+// RESEARCHED, NOT A LIVE INTEGRATION — see the file header below.
 //
-// Freebuff's real HTTP request/response shape could not be confirmed against
-// documentation, source, or a live credential at build time. This adapter is
-// built against the AgentAdapter interface with a plausible OpenAI-compatible
-// chat-completions request shape (the same wire format Groq/OpenRouter/Together
-// already use in this codebase — see services/groq.js) as a best-effort
-// placeholder. The ENTIRE live HTTP call is isolated in the single
-// `#callFreebuffApi()` method below so correcting it against a real API is a
-// one-function fix, not a rewrite. Offline/fixture mode (the default — see
-// config.dryRun) never calls this method and needs no real credential.
+// This was shipped as a placeholder wired to a guessed OpenAI-compatible
+// shape at `https://api.freebuff.dev/v1`, because Freebuff's real contract
+// could not be confirmed at build time. Task instructions (section 6) asked
+// for every provider to be re-confirmed against its current docs before
+// being wired up live. Checked now: "Freebuff" (freebuff.com) is a
+// consumer coding-agent product (CLI/desktop/web), ad-supported, that
+// explicitly requires **no API key at all** for its own product — there is
+// no official `FREEBUFF_API_KEY`-shaped developer API. The only things
+// online matching an OpenAI-compatible `/v1/chat/completions` shape for
+// "Freebuff" are third-party, unofficial reverse-engineering proxies of
+// that consumer product's session internals (e.g. community "-2API" /
+// "-proxy" GitHub repos) — not something this repo will depend on: it is
+// almost certainly against Freebuff's terms of service, has no stability
+// guarantee, and "free forever, zero maintenance" cannot be built on
+// someone else's unofficial scraper going down without notice.
+//
+// So this adapter's live path is intentionally disabled rather than wired
+// to any of that — see `_doExecute`/`_doProbeCapabilities` below. It fails
+// immediately and honestly (`NO_PUBLIC_API`, never attempted, never
+// retried) instead of pretending a real call was tried. `providers/health.js`
+// reports this same status to the dashboard, distinct from "not configured"
+// and from "misconfigured" — nothing is wrong with a key here, because
+// there is no key that would ever make this work.
 
 /**
  * @file Freebuff adapter — the scarce resource in the orchestrator.
@@ -24,20 +38,15 @@
  * so an unconfigured Phase 2 provider reports "not configured" even offline.
  * Here, `config.dryRun` is checked FIRST in every hook — a fresh clone
  * with zero API keys must still be able to run a full orchestration end to
- * end against fixtures. `isConfigured()` still gates the live path and is
- * still meaningful for health/reporting purposes; it just is not a gate on
- * offline fixture behaviour.
+ * end against fixtures. `isConfigured()` still gates real reporting and is
+ * still meaningful for that purpose; it just is not a gate on offline
+ * fixture behaviour.
  */
 
 import { readFileSync } from 'node:fs';
 
 import { config } from '../config.js';
 import { AdapterError, AgentAdapter } from './AgentAdapter.js';
-import { guardedFetch } from '../lib/net.js';
-import { buildProbePrompt } from '../orchestrator/capabilityRegistry.js';
-
-/** UNVERIFIED placeholder base URL — see the file header. */
-const API_BASE = 'https://api.freebuff.dev/v1';
 
 /** Fallback model id used whenever a caller does not specify one. */
 const DEFAULT_MODEL_ID = 'freebuff:default';
@@ -106,56 +115,18 @@ export class FreebuffAgent extends AgentAdapter {
    * @param {{ modelId?: string, signal?: AbortSignal }} options
    * @returns {Promise<{output: string, modelId?: string, tokensUsed?: number|null}>}
    */
-  async _doExecute(task, sharedContext, options = {}) {
+  async _doExecute(_task, _sharedContext, _options = {}) {
     if (config.dryRun) return this.#offlineExecute();
-
-    if (!this.isConfigured()) {
-      throw new AdapterError('Freebuff is not configured (missing FREEBUFF_API_KEY)', {
-        code: 'NOT_CONFIGURED',
-        retryable: false,
-      });
-    }
-
-    const modelId = options.modelId ?? DEFAULT_MODEL_ID;
-    const prompt = this._buildTaskPrompt(task, sharedContext);
-    const json = await this.#callFreebuffApi(
-      {
-        model: modelId,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-        max_tokens: 1024,
-        stream: false,
-      },
-      options.signal,
-    );
-
-    const text = json?.choices?.[0]?.message?.content;
-    if (typeof text !== 'string') {
-      // A 200 with no recognisable content means the placeholder shape this
-      // file was built against does not match the real API. Not retryable —
-      // replaying the same request would produce the same unusable shape.
-      throw new AdapterError('Freebuff returned no message content', {
-        code: 'UPSTREAM_ERROR',
-        retryable: false,
-      });
-    }
-
-    const tokens = json?.usage?.total_tokens;
-    return {
-      output: text,
-      modelId: typeof json?.model === 'string' ? json.model : modelId,
-      tokensUsed: Number.isFinite(tokens) ? Number(tokens) : null,
-    };
+    throw noPublicApiError();
   }
 
   /** @returns {Promise<Array<{modelId: string, pool: string, contextWindow: number}>>} */
   async _doListModels() {
     if (config.dryRun) return loadFixture().models ?? [];
-    // Live mode: Freebuff has no known models-list endpoint (UNVERIFIED — see
-    // the file header). Until that is discovered, report the same single-entry
-    // placeholder a live deployment would otherwise have no way to enumerate.
-    // This is NOT a real catalog call.
-    return loadFixture().models ?? [];
+    // Live mode: no real catalog to enumerate — see the file header. Return
+    // nothing rather than the offline fixture, so a live scheduler never
+    // mistakes it for a real, callable model.
+    return [];
   }
 
   /**
@@ -163,33 +134,9 @@ export class FreebuffAgent extends AgentAdapter {
    * @param {{ strict?: boolean }} [opts]
    * @returns {Promise<string>}
    */
-  async _doProbeCapabilities(modelId, opts = {}) {
+  async _doProbeCapabilities(_modelId, _opts = {}) {
     if (config.dryRun) return loadFixture().probe?.text ?? '';
-
-    if (!this.isConfigured()) {
-      throw new AdapterError('Freebuff is not configured (missing FREEBUFF_API_KEY)', {
-        code: 'NOT_CONFIGURED',
-        retryable: false,
-      });
-    }
-
-    const prompt = buildProbePrompt(modelId, opts);
-    const json = await this.#callFreebuffApi({
-      model: modelId,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
-      max_tokens: 512,
-      stream: false,
-    });
-
-    const text = json?.choices?.[0]?.message?.content;
-    if (typeof text !== 'string') {
-      throw new AdapterError('Freebuff returned no message content', {
-        code: 'UPSTREAM_ERROR',
-        retryable: false,
-      });
-    }
-    return text;
+    throw noPublicApiError();
   }
 
   /* ---- offline paths --------------------------------------------------------- */
@@ -206,65 +153,14 @@ export class FreebuffAgent extends AgentAdapter {
       tokensUsed: Number.isFinite(sample.tokensUsed) ? sample.tokensUsed : null,
     };
   }
+}
 
-  /* ---- the one isolated live HTTP call --------------------------------------- */
-
-  /**
-   * The entire live-mode network surface of this adapter. Isolated in one
-   * method, on purpose, per the file-header note: fixing this adapter against
-   * a real Freebuff API means changing this function and nothing else.
-   *
-   * Never called in offline mode — every caller above branches on
-   * `config.dryRun` first.
-   *
-   * @param {Record<string, unknown>} payload OpenAI-shaped chat body (UNVERIFIED).
-   * @param {AbortSignal} [signal]
-   * @returns {Promise<any>} Parsed JSON response body.
-   */
-  async #callFreebuffApi(payload, signal) {
-    let res;
-    try {
-      res = await guardedFetch(`${API_BASE}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${this.apiKey}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal,
-      });
-    } catch (err) {
-      // Transport-level failure (DNS, TLS, connection reset, offline-guard
-      // violation). The request provably never produced an answer, so it is
-      // safe to mark retryable.
-      throw new AdapterError(
-        `Freebuff unreachable: ${err instanceof Error ? err.message : String(err)}`,
-        { code: 'UPSTREAM_ERROR', retryable: true, cause: err },
-      );
-    }
-
-    if (!res.ok) {
-      // Deliberately not echoing the response body: upstream 4xx bodies
-      // routinely echo the request back (including the prompt), and this
-      // codebase's privacy rules say that text must never reach a log or the
-      // dashboard (see services/base.js's safeUpstreamMessage). The status
-      // code alone is enough to classify the failure.
-      throw new AdapterError(`Freebuff rejected the request (${res.status})`, {
-        code: 'UPSTREAM_ERROR',
-        retryable: res.status === 429 || res.status >= 500,
-      });
-    }
-
-    try {
-      return await res.json();
-    } catch (err) {
-      throw new AdapterError('Freebuff returned unparseable JSON', {
-        code: 'UPSTREAM_ERROR',
-        retryable: false,
-        cause: err,
-      });
-    }
-  }
+/** @returns {AdapterError} */
+function noPublicApiError() {
+  return new AdapterError(
+    'Freebuff has no official public API for third-party integration — this pool is never attempted live. See src/agents/freebuffAgent.js.',
+    { code: 'NO_PUBLIC_API', retryable: false },
+  );
 }
 
 export default FreebuffAgent;

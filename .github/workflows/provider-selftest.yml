@@ -1,0 +1,72 @@
+name: Provider self-test
+
+# Manual + weekly (task instructions, section 6): re-discovers each
+# provider's current free-tier model catalog and sends one tiny (5-token)
+# completion to every configured provider, so a churned model id or an
+# expired key shows up in state/providers.json and the dashboard's
+# provider-health strip within a week at most, and immediately on demand.
+# Deliberately its own workflow, separate from titan-pulse.yml — a live
+# provider probe has no place adding latency or failure risk to the
+# 15-minute cron's own job (same reasoning as pages-deploy.yml being split
+# out from the pulse).
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Monday, 07:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # commit state/providers.json
+
+concurrency:
+  group: provider-selftest
+  cancel-in-progress: false
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run the provider self-test
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          TOGETHER_MODEL: ${{ secrets.TOGETHER_MODEL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+          HF_API_KEY: ${{ secrets.HF_API_KEY }}
+          HF_MODEL: ${{ secrets.HF_MODEL }}
+          FREEBUFF_API_KEY: ${{ secrets.FREEBUFF_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_BASE_URL: ${{ secrets.OPENCODE_BASE_URL }}
+        run: node scripts/provider-selftest.mjs
+
+      - name: Scrub and verify state before committing
+        run: node scripts/check-secrets-in-state.mjs
+
+      - name: Commit and push the result
+        run: |
+          git config user.name "titan-runner-bot"
+          git config user.email "titan-runner@users.noreply.github.com"
+          git add state/providers.json
+          if git diff --cached --quiet; then
+            echo "No provider health changes this run."
+          else
+            git commit -m "chore(providers): self-test $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            # A concurrent titan-pulse commit can land between this job's
+            # checkout and this push — rebase onto whatever is now on main
+            # rather than fail the whole run over an ordinary race.
+            git pull --rebase origin main
+            git push
+          fi

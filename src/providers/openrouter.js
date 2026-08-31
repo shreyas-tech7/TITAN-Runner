@@ -2,8 +2,9 @@
  * OpenRouter — free tier via the ":free"-suffixed model catalog,
  * OpenAI-compatible wire format. Third in the failover chain.
  */
-import { config } from '../config.js';
+import { config, resolveModel } from '../config.js';
 import { guardedFetch } from '../lib/net.js';
+import { providerHealth } from './health.js';
 import { BaseProvider, networkErrorFrom, openAiChatBody, parseOpenAiChat, readJsonResponse, upstreamErrorFrom } from './base.js';
 
 const API_BASE = 'https://openrouter.ai/api/v1';
@@ -14,7 +15,7 @@ export class OpenRouterProvider extends BaseProvider {
       id: 'openrouter',
       label: 'OpenRouter',
       apiKey: overrides.apiKey ?? config.openrouter.apiKey,
-      model: overrides.model ?? config.openrouter.model,
+      model: overrides.model ?? resolveModel('openrouter', providerHealth.get('openrouter').model),
     });
     this.baseUrl = (overrides.baseUrl ?? API_BASE).replace(/\/+$/, '');
   }

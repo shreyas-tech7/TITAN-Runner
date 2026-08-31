@@ -66,7 +66,6 @@ jobs:
           HF_API_KEY: ${{ secrets.HF_API_KEY }}
           HF_MODEL: ${{ secrets.HF_MODEL }}
           FREEBUFF_API_KEY: ${{ secrets.FREEBUFF_API_KEY }}
-          FREEBUFF_BASE_URL: ${{ secrets.FREEBUFF_BASE_URL }}
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           OPENCODE_BASE_URL: ${{ secrets.OPENCODE_BASE_URL }}
         run: |
@@ -87,6 +86,10 @@ jobs:
             echo "No state changes this pulse."
           else
             git commit -m "chore(state): pulse $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            # A concurrent provider-selftest/keepalive commit can land between
+            # this job's checkout and this push — rebase onto whatever is now
+            # on main rather than fail the whole pulse over an ordinary race.
+            git pull --rebase origin main
             git push
           fi
 
