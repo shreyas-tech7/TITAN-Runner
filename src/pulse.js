@@ -19,13 +19,13 @@
  * (see section F of the design brief / docs/RUNTIME.md's "Self-improvement"
  * section).
  */
-import { config } from './config.js';
-import { ensureStateFiles, loadTasksState, saveTasksState, loadHeartbeat, saveHeartbeat, RUNS_DIR } from './state/io.js';
+import { config, isProviderConfigured } from './config.js';
+import { ensureStateFiles, loadTasksState, saveTasksState, loadHeartbeat, saveHeartbeat, appendPulseHistory, RUNS_DIR } from './state/io.js';
 import { writeJsonAtomic } from './state/io.js';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-import { syncIssuesIntoTasks, addManualTask } from './issueSync.js';
+import { syncIssuesIntoTasks, reconcileIssueState, addManualTask } from './issueSync.js';
 import { commentOnIssue, closeIssue } from './github.js';
 import { proposeSelfImprovement, checkSelfImprovePrStatus } from './selfImprove.js';
 import { reviewAction } from './reviewer/reviewer.js';
@@ -37,6 +37,7 @@ import { FreebuffAgent } from './agents/freebuffAgent.js';
 import { OpenCodeAgent } from './agents/opencodeAgent.js';
 import { Phase2Agent } from './agents/phase2Agent.js';
 import { registry as providerRegistry } from './providers/registry.js';
+import { providerHealth } from './providers/health.js';
 import { pruneRuns } from './state/prune.js';
 import { scrubForState } from './lib/secretScrub.js';
 import { redactString } from './lib/redact.js';
@@ -59,6 +60,17 @@ async function runOrchestration(task) {
   const runId = randomUUID();
   const pool = pools();
   const graph = await decompose(task.prompt, { pools: pool, maxTasks: config.orchestrator.maxSubtasksPerRun });
+  // Propagate the filer's routing hint (dashboard task-filing modal —
+  // task instructions, sections 1 and 6) onto every subtask the decomposer
+  // produced. router.js's scoreCandidate() reads `task.routingHint` off
+  // whatever object scheduler.js hands it; scheduler.js builds that object
+  // by spreading each graph.tasks entry (`...task` in Scheduler#run), so
+  // setting it here is sufficient — no scheduler/router signature change
+  // needed for a hint that is 'any' or absent, which scores identically to
+  // today's behavior (see router.js's normalizeHint()).
+  if (task.routingHint && task.routingHint !== 'any') {
+    for (const t of graph.tasks) t.routingHint = task.routingHint;
+  }
   const scheduler = new Scheduler({ pools: pool, capabilityRegistry, onEvent: () => {} });
   const tasksById = await scheduler.run(graph);
   const synthesis = await synthesize(graph, tasksById);
@@ -71,6 +83,14 @@ async function runOrchestration(task) {
  * @param {{ runId: string, graph: object, synthesis: object, tasksById: Map<string, object>, ok: boolean }} result
  * @param {number} durationMs
  */
+/** The exact Actions run this pulse executed under, for the dashboard's task
+ *  detail drawer (task instructions, section 3) — `null` locally / in
+ *  dry-run, where there is no such run. */
+function actionsRunUrl() {
+  if (!config.github.runId || !config.github.repository) return null;
+  return `https://github.com/${config.github.repository}/actions/runs/${config.github.runId}`;
+}
+
 function writeRunRecord(task, result, durationMs) {
   const record = scrubForState({
     runId: result.runId,
@@ -80,6 +100,7 @@ function writeRunRecord(task, result, durationMs) {
     createdAt: new Date().toISOString(),
     durationMs,
     state: result.ok ? 'complete' : 'failed',
+    actionsRunUrl: actionsRunUrl(),
     sharedContext: String(result.graph.sharedContext ?? '').slice(0, MAX_RUN_FILE_CHARS),
     tasks: [...result.tasksById.values()].map((t) => ({
       id: t.id,
@@ -87,7 +108,9 @@ function writeRunRecord(task, result, durationMs) {
       aspect: t.aspect,
       state: t.state,
       assignment: t.assignment,
-      attempts: (t.attempts ?? []).map((a) => ({ modelId: a.modelId, pool: a.pool, ok: a.ok, ms: a.ms })),
+      attempts: (t.attempts ?? []).map((a) => ({
+        modelId: a.modelId, pool: a.pool, ok: a.ok, ms: a.ms, tokensUsed: a.tokensUsed ?? null,
+      })),
       outputPreview: typeof t.output === 'string' ? t.output.slice(0, MAX_FILE_PREVIEW_CHARS) : null,
       error: t.error,
     })),
@@ -203,9 +226,33 @@ async function revisitSelfImprovePr(task) {
   // 'still-open'/'unknown': leave as-is, checked again next pulse.
 }
 
+/** Every provider id this repo knows about, registry-backed or agent-pool-backed. */
+const ALL_PROVIDER_IDS = ['groq', 'together', 'openrouter', 'gemini', 'huggingface', 'freebuff', 'opencode'];
+
+/**
+ * Stamp `not_configured`/`no_public_api` for every provider that will not be
+ * attempted this pulse, so `state/providers.json` (and the dashboard's
+ * health strip) reflects the truth even for a provider no task ever routes
+ * to this run — never left at a stale or misleading status from days ago.
+ */
+function primeProviderHealth() {
+  for (const id of ALL_PROVIDER_IDS) {
+    if (id === 'freebuff') {
+      // No legitimate public API exists for Freebuff — see docs/RUNTIME.md's
+      // provider section. Distinct from "not configured": a key changes
+      // nothing here, so this is stamped unconditionally.
+      providerHealth.markNoPublicApi('freebuff', 'Freebuff has no official public HTTP API for third-party integration.');
+      continue;
+    }
+    if (isProviderConfigured(id)) providerHealth.markConfigured(id);
+    else providerHealth.markNotConfigured(id);
+  }
+}
+
 async function main() {
   const pulseStartedAt = Date.now();
   ensureStateFiles();
+  primeProviderHealth();
 
   const tasksState = loadTasksState();
   const heartbeat = loadHeartbeat();
@@ -217,8 +264,14 @@ async function main() {
 
   try {
     if (!config.dryRun) {
-      const { added } = await syncIssuesIntoTasks(tasksState);
+      const { added, issues } = await syncIssuesIntoTasks(tasksState);
       if (added > 0) log.info('synced issues into task queue', { added });
+      // Dashboard cancel/retry (task instructions, section 1) act on the
+      // GitHub issue directly from the browser — this is what makes those
+      // actions take effect here rather than being purely cosmetic.
+      const { cancelled, retried } = reconcileIssueState(tasksState, issues);
+      if (cancelled > 0) log.info('cancelled tasks whose issue was closed from the dashboard', { cancelled });
+      if (retried > 0) log.info('reset tasks to pending after a dashboard retry', { retried });
     }
 
     if (process.env.TITAN_MANUAL_TASK && process.env.TITAN_MANUAL_TASK.trim().length > 0) {
@@ -248,6 +301,7 @@ async function main() {
     // so state/agents.json always reflects the current seed/observed table.
     capabilityRegistry.list();
     capabilityRegistry.save();
+    providerHealth.save();
 
     const pruneResult = pruneRuns({ maxFiles: 60 });
     if (pruneResult.prunedCount > 0) log.info('pruned old run records into a digest', pruneResult);
@@ -257,10 +311,11 @@ async function main() {
   }
 
   const durationMs = Date.now() - pulseStartedAt;
+  const finishedAt = new Date().toISOString();
   saveTasksState(tasksState);
   saveHeartbeat({
     version: 1,
-    lastPulseAt: new Date().toISOString(),
+    lastPulseAt: finishedAt,
     lastPulseStatus: pulseError ? 'error' : 'ok',
     lastPulseDurationMs: durationMs,
     lastPulseTasksClaimed: tasksClaimed,
@@ -270,6 +325,17 @@ async function main() {
     consecutivePulseFailures: pulseError ? (heartbeat.consecutivePulseFailures ?? 0) + 1 : 0,
     totalPulses: (heartbeat.totalPulses ?? 0) + 1,
     cadenceMinutes: heartbeat.cadenceMinutes ?? 15,
+  });
+  // Pulse timeline strip (dashboard, task instructions section 3) — real
+  // committed data only, one entry per pulse, oldest dropped past
+  // MAX_PULSE_HISTORY.
+  appendPulseHistory({
+    at: finishedAt,
+    durationMs,
+    status: pulseError ? 'error' : 'ok',
+    tasksClaimed,
+    tasksCompleted,
+    tasksFailed,
   });
 
   console.log(

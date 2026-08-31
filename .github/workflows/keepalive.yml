@@ -6,7 +6,8 @@ name: Weekly keep-alive
 # meaningful commit every week (a rollup of the week's pulses and runs —
 # see scripts/weekly-rollup.mjs), which both keeps the repo active and is
 # useful in its own right, rather than an empty commit that exists only to
-# reset a timer.
+# reset a timer. It also opens a summary issue with the same numbers (task
+# instructions, section 3) — `issues: write` below is for that.
 on:
   schedule:
     - cron: "0 12 * * 1" # Monday, 12:00 UTC
@@ -14,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   rollup:
@@ -26,7 +28,11 @@ jobs:
         with:
           node-version: "20"
 
-      - run: node scripts/weekly-rollup.mjs
+      - name: Write the digest and open the weekly summary issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/weekly-rollup.mjs
 
       - name: Commit the weekly summary
         run: |

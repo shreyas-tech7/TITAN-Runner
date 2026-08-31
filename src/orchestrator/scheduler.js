@@ -482,6 +482,7 @@ export class Scheduler {
         pool: current.pool,
         ok: result.ok,
         ms: result.ms,
+        tokensUsed: result.tokensUsed ?? null,
         error: result.error,
       });
       this.capabilityRegistry.recordObservation(current.modelId, task.aspect, {
