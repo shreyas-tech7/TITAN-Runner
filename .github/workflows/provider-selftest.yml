@@ -65,8 +65,16 @@ jobs:
           else
             git commit -m "chore(providers): self-test $(date -u +%Y-%m-%dT%H:%M:%SZ)"
             # A concurrent titan-pulse commit can land between this job's
-            # checkout and this push — rebase onto whatever is now on main
-            # rather than fail the whole run over an ordinary race.
-            git pull --rebase origin main
+            # checkout and this push — rebase onto whatever is now on THIS
+            # SAME branch (GITHUB_REF_NAME, never a hardcoded "main" — see
+            # titan-pulse.yml's identical fix) rather than fail the whole
+            # run over an ordinary race. A real same-branch conflict aborts
+            # the rebase and skips this run's push; the next scheduled run
+            # recomputes fresh health data regardless.
+            if ! git pull --rebase origin "${GITHUB_REF_NAME}"; then
+              echo "::warning::Rebase conflict against origin/${GITHUB_REF_NAME} — skipping this run's push; the next self-test will recompute fresh data."
+              git rebase --abort
+              exit 0
+            fi
             git push
           fi
