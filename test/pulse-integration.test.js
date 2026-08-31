@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, cpSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, cpSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,17 +10,38 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
 
 /**
+ * A pristine, empty state/ tree — NOT a copy of this checkout's real
+ * committed state/. That used to be `cpSync(join(REPO_ROOT, 'state'), ...)`,
+ * which quietly assumed the real repo's `state/tasks.json` always starts
+ * empty; once this repo had genuine committed task history (a real pulse
+ * having actually run), that assumption broke and this test started
+ * asserting `tasksState.tasks.length === 1` against a scratch copy that
+ * secretly inherited every real task too. This test is about pulse.js's
+ * logic in isolation, so it builds its own empty fixture instead of
+ * depending on the ambient state of the real repo at test time.
+ * @param {string} scratchStateDir
+ */
+function seedEmptyState(scratchStateDir) {
+  mkdirSync(join(scratchStateDir, 'runs'), { recursive: true });
+  mkdirSync(join(scratchStateDir, 'digests'), { recursive: true });
+  mkdirSync(join(scratchStateDir, 'reviews'), { recursive: true });
+  writeFileSync(join(scratchStateDir, 'tasks.json'), JSON.stringify({ version: 1, updatedAt: new Date(0).toISOString(), tasks: [] }));
+  writeFileSync(join(scratchStateDir, 'agents.json'), '{}');
+}
+
+/**
  * End-to-end smoke test: a full `node src/pulse.js` run, in dry-run mode
- * (zero network, zero GitHub credentials), against a scratch copy of the
- * repo so it never touches this checkout's own committed state/. Exercises
- * exactly the path GitHub Actions runs on cron: manual-task intake ->
- * reviewer gate -> decompose -> schedule -> synthesize -> write state.
+ * (zero network, zero GitHub credentials), against an isolated scratch
+ * state/ tree so it never touches (or depends on) this checkout's own
+ * committed state/. Exercises exactly the path GitHub Actions runs on
+ * cron: manual-task intake -> reviewer gate -> decompose -> schedule ->
+ * synthesize -> write state.
  */
 test('a full dry-run pulse claims a manual task and completes it end to end', () => {
   const scratch = mkdtempSync(join(tmpdir(), 'titan-pulse-e2e-'));
   try {
     cpSync(join(REPO_ROOT, 'src'), join(scratch, 'src'), { recursive: true });
-    cpSync(join(REPO_ROOT, 'state'), join(scratch, 'state'), { recursive: true });
+    seedEmptyState(join(scratch, 'state'));
 
     const out = execFileSync(process.execPath, ['src/pulse.js'], {
       cwd: scratch,
@@ -59,7 +80,7 @@ test('a pulse with nothing pending and no manual task is a clean no-op', () => {
   const scratch = mkdtempSync(join(tmpdir(), 'titan-pulse-noop-'));
   try {
     cpSync(join(REPO_ROOT, 'src'), join(scratch, 'src'), { recursive: true });
-    cpSync(join(REPO_ROOT, 'state'), join(scratch, 'state'), { recursive: true });
+    seedEmptyState(join(scratch, 'state'));
 
     const out = execFileSync(process.execPath, ['src/pulse.js'], {
       cwd: scratch,
