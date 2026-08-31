@@ -1,1 +1,83 @@
-{}
+{
+  "phase2:groq": {
+    "modelId": "phase2:groq",
+    "pool": "phase2",
+    "strengths": [
+      "code-generation",
+      "debugging",
+      "refactoring",
+      "performance"
+    ],
+    "weaknesses": [
+      "documentation"
+    ],
+    "latencyClass": "fast",
+    "contextWindow": 32768,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "phase2:openrouter": {
+    "modelId": "phase2:openrouter",
+    "pool": "phase2",
+    "strengths": [
+      "architecture",
+      "research",
+      "documentation"
+    ],
+    "weaknesses": [],
+    "latencyClass": "medium",
+    "contextWindow": 32768,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "phase2:together": {
+    "modelId": "phase2:together",
+    "pool": "phase2",
+    "strengths": [
+      "code-generation",
+      "testing",
+      "data-modeling"
+    ],
+    "weaknesses": [],
+    "latencyClass": "medium",
+    "contextWindow": 32768,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "phase2:gemini": {
+    "modelId": "phase2:gemini",
+    "pool": "phase2",
+    "strengths": [
+      "architecture",
+      "research",
+      "security-review",
+      "documentation"
+    ],
+    "weaknesses": [],
+    "latencyClass": "medium",
+    "contextWindow": 1048576,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "phase2:huggingface": {
+    "modelId": "phase2:huggingface",
+    "pool": "phase2",
+    "strengths": [
+      "code-generation",
+      "ui-implementation"
+    ],
+    "weaknesses": [
+      "architecture",
+      "security-review"
+    ],
+    "latencyClass": "slow",
+    "contextWindow": 8192,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  }
+}
