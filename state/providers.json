@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-31T23:07:02.881Z",
+  "updatedAt": "2026-08-31T23:08:54.720Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -96,13 +96,13 @@
       "id": "freebuff",
       "configured": true,
       "status": "no_public_api",
-      "lastCheckedAt": "2026-08-31T23:07:02.068Z",
+      "lastCheckedAt": "2026-08-31T23:08:54.187Z",
       "lastSuccessAt": null,
       "latencyMs": null,
       "p50LatencyMs": null,
-      "samples": 2,
-      "errorRate": 0.51,
-      "consecutiveFailures": 2,
+      "samples": 4,
+      "errorRate": 0.76,
+      "consecutiveFailures": 4,
       "cooldownUntil": null,
       "lastError": "Freebuff has no official public API for third-party integration — this pool is never attempted live. See src/agents/freebuffAgent.js.",
       "model": null,

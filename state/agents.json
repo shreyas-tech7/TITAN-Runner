@@ -32,7 +32,7 @@
     "probedAt": null,
     "observed": {
       "architecture": {
-        "runs": 2,
+        "runs": 4,
         "successRate": 0,
         "avgMs": 0
       }
@@ -69,7 +69,7 @@
     "probedAt": null,
     "observed": {
       "architecture": {
-        "runs": 1,
+        "runs": 2,
         "successRate": 0,
         "avgMs": 0
       }

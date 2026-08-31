@@ -16,6 +16,14 @@
       "tasksClaimed": 1,
       "tasksCompleted": 0,
       "tasksFailed": 1
+    },
+    {
+      "at": "2026-08-31T23:08:54.721Z",
+      "durationMs": 915,
+      "status": "ok",
+      "tasksClaimed": 1,
+      "tasksCompleted": 0,
+      "tasksFailed": 1
     }
   ]
 }
