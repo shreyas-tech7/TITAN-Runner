@@ -1,0 +1,234 @@
+/*
+ * The eight color tokens and three type roles below are copied verbatim
+ * from the private TITAN dashboard's app/globals.css — the "Iron Man
+ * cyan-on-gunmetal" system the task brief asks this dashboard to reuse
+ * rather than reinvent. This is the one file in this app allowed to carry
+ * a hex value; everything else references a var(--color-*) or a .type-*
+ * class, same rule as the original.
+ *
+ * What's NOT reused: Tailwind. The original app builds these tokens into a
+ * Tailwind v4 @theme block and generates utility classes from them; this
+ * static dashboard has no build-time need for a utility framework, so the
+ * same tokens are plain CSS custom properties and a handful of hand-written
+ * classes instead — fewer dependencies for a page that has to keep working
+ * with zero maintenance.
+ */
+:root {
+  --color-void: #05070a; /* page canvas */
+  --color-hull: #0e141b; /* panel fill */
+  --color-plate: #18212b; /* raised surface, dividers */
+  --color-arc: #4fd1e8; /* primary data and live state */
+  --color-gold: #e8a33d; /* attention state */
+  --color-crimson: #ff4d4d; /* errors only */
+  --color-mist: #8ca0ae; /* secondary text */
+  --color-ivory: #e6edf3; /* primary text */
+
+  --font-display: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-void);
+  color: var(--color-ivory);
+  font-family: var(--font-body);
+}
+
+a {
+  color: var(--color-arc);
+}
+
+.type-display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.type-data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-plate);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.header .sub {
+  color: var(--color-mist);
+  font-size: 12px;
+}
+
+.panel {
+  background: var(--color-hull);
+  border: 1px solid var(--color-plate);
+  border-radius: 4px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.panel-title {
+  font-size: 11px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-plate);
+  color: var(--color-mist);
+}
+
+.panel-body {
+  padding: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  background: var(--color-plate);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.stat .label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-mist);
+  margin-bottom: 4px;
+}
+
+.stat .value {
+  font-size: 18px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 0;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.bg-arc {
+  background: var(--color-arc);
+}
+.bg-gold {
+  background: var(--color-gold);
+}
+.bg-crimson {
+  background: var(--color-crimson);
+}
+.bg-mist {
+  background: var(--color-mist);
+}
+
+.text-arc {
+  color: var(--color-arc);
+}
+.text-gold {
+  color: var(--color-gold);
+}
+.text-crimson {
+  color: var(--color-crimson);
+}
+.text-mist {
+  color: var(--color-mist);
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-plate);
+  font-size: 12px;
+}
+
+.task-row:last-child {
+  border-bottom: none;
+}
+
+.task-row .title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  color: var(--color-mist);
+  font-size: 12px;
+  padding: 8px 0;
+}
+
+.footer-note {
+  color: var(--color-mist);
+  font-size: 11px;
+  margin-top: 32px;
+  line-height: 1.6;
+}
+
+.new-task-button {
+  display: inline-block;
+  background: var(--color-arc);
+  color: var(--color-void);
+  font-family: var(--font-data);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 14px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-live {
+    animation: titan-breathe 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes titan-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}

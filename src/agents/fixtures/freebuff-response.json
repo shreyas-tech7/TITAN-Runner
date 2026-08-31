@@ -1,0 +1,14 @@
+{
+  "chat": {
+    "text": "[offline fixture] Freebuff response placeholder. Reviewed the task against the shared context provided by earlier agents in this run and drafted an approach: identify the architectural boundaries first, note where the existing conventions in this codebase already answer the question, and only introduce new structure where the task genuinely requires it. This is canned fixture text — no live Freebuff credential or network call was used to produce it. In live mode this pool tends to be assigned architecture, research, security-review, and data-modeling work.",
+    "modelId": "freebuff:default",
+    "tokensUsed": 512,
+    "latencyMs": 1400
+  },
+  "models": [
+    { "modelId": "freebuff:default", "pool": "freebuff", "contextWindow": 128000 }
+  ],
+  "probe": {
+    "text": "{\"strengths\":[\"architecture\",\"research\",\"security-review\",\"data-modeling\"],\"weaknesses\":[],\"latencyClass\":\"slow\",\"contextWindow\":128000}"
+  }
+}

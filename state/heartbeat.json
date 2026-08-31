@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "lastPulseAt": null,
+  "lastPulseStatus": null,
+  "lastPulseDurationMs": null,
+  "lastPulseTasksClaimed": 0,
+  "lastPulseTasksCompleted": 0,
+  "lastPulseTasksFailed": 0,
+  "lastPulseError": null,
+  "consecutivePulseFailures": 0,
+  "totalPulses": 0,
+  "cadenceMinutes": 15
+}

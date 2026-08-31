@@ -1,0 +1,35 @@
+name: TITAN task
+description: Give TITAN-Runner a task to pick up on its next pulse (within ~15 minutes).
+title: "[task] "
+labels: ["titan-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This repository is public.** Everything you write here, and everything
+        TITAN-Runner posts back as a comment, is world-readable forever — do not
+        paste a secret, a credential, or anything you would not want indexed by a
+        search engine. See the README's Security section.
+
+        Want a code change to TITAN-Runner itself, opened as a pull request
+        instead of run as a one-off task? Add the `titan-self-improve` label
+        after filing.
+  - type: textarea
+    id: task
+    attributes:
+      label: What should TITAN-Runner do?
+      description: One task, described clearly enough to hand to an engineer who has never seen this repo before.
+      placeholder: |
+        Example: "Write a small CLI tool in Node.js that converts a CSV file to
+        JSON, with a couple of unit tests."
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before you submit
+      options:
+        - label: This does not contain any password, API key, token, or other secret.
+          required: true
+        - label: I understand this issue and TITAN-Runner's response will be public.
+          required: true

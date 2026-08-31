@@ -1,0 +1,98 @@
+name: TITAN Pulse
+
+# Every 15 minutes: GitHub's minimum cron interval is 5 minutes, and
+# schedules are best-effort (delayed under platform load) — 15 minutes is
+# frequent enough that a task never waits long, and infrequent enough that
+# a stray delay is never worth alarming about. See docs/RUNTIME.md's minute
+# budget math for why this cadence is free forever on a public repo.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      task-text:
+        description: "Task text to run immediately, without waiting for an issue or the next cron tick"
+        required: false
+        type: string
+
+# Never two pulses at once — a second pulse racing the first would read a
+# stale state/ snapshot and could overwrite the first pulse's own commit.
+# cancel-in-progress is deliberately false: a queued pulse still runs once
+# the current one finishes, it is never dropped.
+concurrency:
+  group: titan-pulse
+  cancel-in-progress: false
+
+permissions:
+  contents: write # commit state/, and push a self-improve branch
+  issues: write # comment on / close titan-task issues
+  pull-requests: write # open a self-improve PR
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    # A single job hard-kills at 6 hours regardless of this setting — this
+    # is a much tighter, deliberate ceiling: a pulse that is still running
+    # after 10 minutes is not "doing more work", it is stuck, and should
+    # fail loudly (surfaced by the dead-man's-switch workflow) rather than
+    # block the next scheduled pulse from ever starting.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run the pulse
+        id: run_pulse
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          TITAN_MANUAL_TASK: ${{ inputs.task-text }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          TOGETHER_MODEL: ${{ secrets.TOGETHER_MODEL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+          HF_API_KEY: ${{ secrets.HF_API_KEY }}
+          HF_MODEL: ${{ secrets.HF_MODEL }}
+          FREEBUFF_API_KEY: ${{ secrets.FREEBUFF_API_KEY }}
+          FREEBUFF_BASE_URL: ${{ secrets.FREEBUFF_BASE_URL }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_BASE_URL: ${{ secrets.OPENCODE_BASE_URL }}
+        run: |
+          START=$(date +%s%3N)
+          node src/pulse.js || echo "PULSE_FAILED=1" >> "$GITHUB_ENV"
+          END=$(date +%s%3N)
+          echo "duration_ms=$((END-START))" >> "$GITHUB_OUTPUT"
+
+      - name: Scrub and verify state before committing
+        run: node scripts/check-secrets-in-state.mjs
+
+      - name: Commit and push state changes
+        run: |
+          git config user.name "titan-runner-bot"
+          git config user.email "titan-runner@users.noreply.github.com"
+          git add state/
+          if git diff --cached --quiet; then
+            echo "No state changes this pulse."
+          else
+            git commit -m "chore(state): pulse $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+          fi
+
+      - name: Report real run duration
+        run: echo "Pulse took ${{ steps.run_pulse.outputs.duration_ms }}ms"
+
+      - name: Fail the job if the pulse itself errored
+        if: env.PULSE_FAILED == '1'
+        run: exit 1

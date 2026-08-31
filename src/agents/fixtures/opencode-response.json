@@ -1,0 +1,16 @@
+{
+  "chat": {
+    "text": "[offline fixture] OpenCode response placeholder — simulating a code-generation pass over the assigned task.\n\nI read the task description and the shared context provided by the orchestrator, then implemented the requested change:\n\n- Added the function/module described in the deliverable.\n- Wired it into the existing call site without touching unrelated code.\n- Kept the change small and added inline comments only where the reasoning wasn't obvious from the code itself.\n\n```js\n// file: src/handleTask.js\n// Illustrative only — not a real OpenCode response, no live call was made.\nexport function handleTask(task) {\n  // ...apply the deliverable described in task.description...\n  return { ok: true, taskId: task.id };\n}\n```\n\nNo tests were run as part of this offline fixture. In live mode, OpenCode would report its actual model id and token usage in place of the values below.",
+    "modelId": "opencode:qwen-2.5-coder",
+    "tokensUsed": 780,
+    "latencyMs": 900
+  },
+  "models": [
+    { "modelId": "opencode:qwen-2.5-coder", "pool": "opencode", "contextWindow": 32768 },
+    { "modelId": "opencode:deepseek-coder-v2", "pool": "opencode", "contextWindow": 65536 },
+    { "modelId": "opencode:default", "pool": "opencode", "contextWindow": 32768 }
+  ],
+  "probe": {
+    "text": "{\"strengths\":[\"code-generation\",\"refactoring\",\"testing\",\"ui-implementation\",\"devops\"],\"weaknesses\":[\"research\"],\"latencyClass\":\"medium\",\"contextWindow\":32768}"
+  }
+}

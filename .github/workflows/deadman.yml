@@ -1,0 +1,76 @@
+name: Dead-man's switch
+
+# Runs on its OWN daily schedule, deliberately independent of titan-pulse.yml
+# — if the pulse's own cron has been silently paused or every recent run has
+# crashed before writing state, this is what notices and says so loudly,
+# rather than the pulse being the only thing that could ever report its own
+# failure.
+on:
+  schedule:
+    - cron: "0 13 * * *" # once a day
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check heartbeat freshness
+        id: check
+        run: node scripts/check-heartbeat.mjs || echo "TRIPPED=1" >> "$GITHUB_ENV"
+
+      - name: Open an alert issue
+        if: env.TRIPPED == '1'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('node:child_process');
+            let detail = '';
+            try {
+              detail = execSync('node scripts/check-heartbeat.mjs').toString();
+            } catch (err) {
+              detail = err.stdout?.toString() || err.stderr?.toString() || String(err);
+            }
+            const title = 'TITAN-Runner: no successful pulse in 24h';
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'titan-alert',
+            });
+            if (existing.some((i) => i.title === title)) {
+              console.log('Alert issue already open — not filing a duplicate.');
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              labels: ['titan-alert'],
+              body: [
+                'The dead-man\'s switch tripped — no pulse has succeeded in the last 24 hours.',
+                '',
+                '```',
+                detail,
+                '```',
+                '',
+                'Check the Actions tab for `TITAN Pulse` run history. Common causes: the cron ' +
+                  'schedule was auto-disabled (GitHub pauses scheduled workflows after 60 days ' +
+                  'with no commit activity on the repo — see docs/RUNTIME.md), a bug in a recent ' +
+                  'change to `src/pulse.js`, or every configured provider key having expired at once.',
+              ].join('\n'),
+            });
+
+      - name: Fail the job so this is visible in the Actions tab too
+        if: env.TRIPPED == '1'
+        run: exit 1

@@ -1,0 +1,41 @@
+name: Weekly keep-alive
+
+# GitHub auto-disables a scheduled workflow after 60 days with no commit
+# activity on the repo. A queue that's genuinely empty for a while would
+# otherwise let that clock run out silently. This makes one real,
+# meaningful commit every week (a rollup of the week's pulses and runs —
+# see scripts/weekly-rollup.mjs), which both keeps the repo active and is
+# useful in its own right, rather than an empty commit that exists only to
+# reset a timer.
+on:
+  schedule:
+    - cron: "0 12 * * 1" # Monday, 12:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  rollup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: node scripts/weekly-rollup.mjs
+
+      - name: Commit the weekly summary
+        run: |
+          git config user.name "titan-runner-bot"
+          git config user.email "titan-runner@users.noreply.github.com"
+          git add state/digests/
+          if git diff --cached --quiet; then
+            echo "Nothing to commit (unexpected — weekly-rollup.mjs always writes a file)."
+          else
+            git commit -m "chore(digest): weekly rollup $(date -u +%Y-%m-%d)"
+            git push
+          fi

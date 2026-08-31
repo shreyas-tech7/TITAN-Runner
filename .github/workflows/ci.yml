@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Unit tests (dry-run, zero network/credentials required)
+        run: npm test
+
+      - name: Secret scan of state/
+        run: node scripts/check-secrets-in-state.mjs
+
+      # Every self-authored pull request (and every other one) runs the
+      # full test suite above, plus this denylist gate — a PR that touches
+      # .github/workflows/, the reviewer gate, the secret-handling code, or
+      # the denylist itself fails CI outright, whether or not it came from
+      # the self-improve flow (see src/denylist.js, src/selfImprove.js).
+      - name: Denylist gate (pull requests only)
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-denylist.mjs "origin/${{ github.event.pull_request.base.ref }}" "HEAD"
