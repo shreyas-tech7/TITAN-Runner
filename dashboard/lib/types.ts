@@ -12,6 +12,20 @@ export interface HeartbeatState {
   cadenceMinutes: number;
 }
 
+export interface PulseHistoryEntry {
+  at: string;
+  durationMs: number;
+  status: "ok" | "error";
+  tasksClaimed: number;
+  tasksCompleted: number;
+  tasksFailed: number;
+}
+
+export interface PulseHistoryState {
+  version: number;
+  pulses: PulseHistoryEntry[];
+}
+
 export type TaskStatus =
   | "pending"
   | "claimed"
@@ -19,7 +33,11 @@ export type TaskStatus =
   | "complete"
   | "failed"
   | "blocked"
+  | "cancelled"
   | "pr-open";
+
+export type TaskPriority = "low" | "normal" | "high";
+export type RoutingHint = "fast" | "cheap" | "careful" | "any";
 
 export interface TaskRecord {
   id: string;
@@ -28,6 +46,8 @@ export interface TaskRecord {
   issueUrl: string | null;
   title: string;
   prompt: string;
+  priority?: TaskPriority | null;
+  routingHint?: RoutingHint | null;
   status: TaskStatus;
   createdAt: string;
   claimedAt: string | null;
@@ -65,7 +85,7 @@ export interface RunTaskSummary {
   aspect: string;
   state: string;
   assignment: { modelId: string; pool: string; reason: string } | null;
-  attempts: Array<{ modelId: string; pool: string; ok: boolean; ms: number }>;
+  attempts: Array<{ modelId: string; pool: string; ok: boolean; ms: number; tokensUsed: number | null }>;
   outputPreview: string | null;
   error: { code: string; message: string } | null;
 }
@@ -78,8 +98,46 @@ export interface RunRecord {
   createdAt: string;
   durationMs: number;
   state: "complete" | "failed";
+  actionsRunUrl: string | null;
   sharedContext: string;
   tasks: RunTaskSummary[];
   files: Array<{ path: string; sourceTaskId: string; conflict: boolean }>;
   markdownSummary: string;
+}
+
+/** Mirrors src/providers/health.js's ProviderHealthStore record shape exactly. */
+export type ProviderStatus =
+  | "not_configured"
+  | "ok"
+  | "misconfigured"
+  | "rate_limited"
+  | "exhausted"
+  | "model_invalid"
+  | "no_public_api"
+  | "error"
+  | "unknown";
+
+export interface ProviderHealthRecord {
+  id: string;
+  configured: boolean;
+  status: ProviderStatus;
+  lastCheckedAt: string | null;
+  lastSuccessAt: string | null;
+  latencyMs: number | null;
+  p50LatencyMs: number | null;
+  samples: number;
+  errorRate: number;
+  consecutiveFailures: number;
+  cooldownUntil: string | null;
+  lastError: string | null;
+  model: string | null;
+  discoveredModels: string[];
+  modelsDiscoveredAt: string | null;
+  note: string | null;
+}
+
+export interface ProvidersState {
+  version: number;
+  updatedAt: string;
+  providers: Record<string, ProviderHealthRecord>;
 }

@@ -1,0 +1,54 @@
+{
+  "runId": "10181d1d-8d5d-4f9b-98b2-978e68747234",
+  "taskId": "issue-2",
+  "taskTitle": "Confirm the dashboard task-filing pipeline end to end",
+  "issueUrl": "https://github.com/shreyas-tech7/TITAN-Runner/issues/2",
+  "createdAt": "2026-08-31T23:07:02.132Z",
+  "durationMs": 82,
+  "state": "failed",
+  "actionsRunUrl": "https://github.com/shreyas-tech7/TITAN-Runner/actions/runs/33449267891",
+  "sharedContext": "Decomposition was not available (no reasoning model could produce a valid task graph). This run has a single task carrying the entire master prompt verbatim.",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Complete the master prompt as a single task",
+      "aspect": "architecture",
+      "state": "failed",
+      "assignment": {
+        "modelId": "phase2:openrouter",
+        "pool": "phase2",
+        "reason": "strength match on \"architecture\""
+      },
+      "attempts": [
+        {
+          "modelId": "phase2:openrouter",
+          "pool": "phase2",
+          "ok": false,
+          "ms": 0,
+          "tokensUsed": null
+        },
+        {
+          "modelId": "phase2:openrouter",
+          "pool": "phase2",
+          "ok": false,
+          "ms": 0,
+          "tokensUsed": null
+        },
+        {
+          "modelId": "phase2:gemini",
+          "pool": "phase2",
+          "ok": false,
+          "ms": 0,
+          "tokensUsed": null
+        }
+      ],
+      "outputPreview": null,
+      "error": {
+        "code": "ALL_PROVIDERS_FAILED",
+        "message": "All providers failed for this request (tried: none configured or healthy)"
+      }
+    }
+  ],
+  "files": [],
+  "markdownSummary": "# Orchestration Summary\n\n0/1 tasks completed.\n\n## Tasks\n\n- **Complete the master prompt as a single task** (`task-1`) — failed, no output.\n\n## Shared context used for this run\n\nDecomposition was not available (no reasoning model could produce a valid task graph). This run has a single task carrying the entire master prompt verbatim."
+}

@@ -19,9 +19,16 @@ export const STATE_DIR = join(process.cwd(), 'state');
 export const TASKS_PATH = join(STATE_DIR, 'tasks.json');
 export const AGENTS_PATH = join(STATE_DIR, 'agents.json');
 export const HEARTBEAT_PATH = join(STATE_DIR, 'heartbeat.json');
+export const PULSE_HISTORY_PATH = join(STATE_DIR, 'pulse-history.json');
 export const RUNS_DIR = join(STATE_DIR, 'runs');
 export const DIGESTS_DIR = join(STATE_DIR, 'digests');
 export const REVIEWS_DIR = join(STATE_DIR, 'reviews');
+
+/** How many recent pulses the timeline strip (dashboard, task instructions
+ *  section 3) keeps — enough to show a slow drift or a run of failures at a
+ *  glance without the file growing without bound (roughly a day and a half
+ *  of pulses at the default 15-minute cadence). */
+export const MAX_PULSE_HISTORY = 60;
 
 /**
  * @param {string} path
@@ -94,4 +101,24 @@ export function loadHeartbeat() {
 
 export function saveHeartbeat(state) {
   writeJsonAtomic(HEARTBEAT_PATH, state);
+}
+
+/** @param {string} [path] Injectable for tests; defaults to the real state file. */
+export function loadPulseHistory(path = PULSE_HISTORY_PATH) {
+  const state = readJson(path, { version: 1, pulses: [] });
+  return Array.isArray(state?.pulses) ? state.pulses : [];
+}
+
+/**
+ * Append one pulse's outcome and cap at `MAX_PULSE_HISTORY` (oldest
+ * dropped, no digest — this is a rolling telemetry strip, not a durable
+ * record the way `state/runs/` is; a pulse's own run records already cover
+ * "what happened" in durable form).
+ * @param {{at: string, durationMs: number, status: 'ok'|'error',
+ *   tasksClaimed: number, tasksCompleted: number, tasksFailed: number}} entry
+ * @param {string} [path] Injectable for tests; defaults to the real state file.
+ */
+export function appendPulseHistory(entry, path = PULSE_HISTORY_PATH) {
+  const pulses = [...loadPulseHistory(path), entry].slice(-MAX_PULSE_HISTORY);
+  writeJsonAtomic(path, { version: 1, pulses });
 }

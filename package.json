@@ -10,7 +10,7 @@
   "scripts": {
     "pulse": "node src/pulse.js",
     "pulse:dry": "TITAN_DRY_RUN=1 node src/pulse.js",
-    "test": "node --test test/",
+    "test": "node --test",
     "check:denylist": "node scripts/check-denylist.mjs",
     "check:secrets": "node scripts/check-secrets-in-state.mjs"
   },

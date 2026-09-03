@@ -44,7 +44,7 @@ async function call(method, path, body) {
   return res.json();
 }
 
-/** @returns {Promise<Array<{number:number, title:string, body:string, html_url:string, labels: Array<{name:string}>}>>} */
+/** @returns {Promise<Array<{number:number, title:string, body:string, html_url:string, updated_at:string, labels: Array<{name:string}>}>>} */
 export async function listOpenTaskIssues(label = 'titan-task') {
   if (!ready()) return [];
   const { owner, repo } = repoParts();
@@ -112,13 +112,18 @@ export async function getCombinedStatus(ref) {
   }
 }
 
-export async function createIssueForDeadman(title, body, label = 'titan-alert') {
+/** @param {string} title @param {string} body @param {string[]} labels */
+export async function createIssue(title, body, labels) {
   if (!ready()) return null;
   const { owner, repo } = repoParts();
-  return call('POST', `/repos/${owner}/${repo}/issues`, { title, body, labels: [label] });
+  return call('POST', `/repos/${owner}/${repo}/issues`, { title, body, labels });
+}
+
+export async function createIssueForDeadman(title, body, label = 'titan-alert') {
+  return createIssue(title, body, [label]);
 }
 
 export default {
   listOpenTaskIssues, commentOnIssue, closeIssue, createPullRequest, closePullRequest,
-  getPullRequest, getCombinedStatus, createIssueForDeadman,
+  getPullRequest, getCombinedStatus, createIssue, createIssueForDeadman,
 };

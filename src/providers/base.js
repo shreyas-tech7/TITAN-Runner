@@ -19,6 +19,7 @@ import { RetryableError, isRetryableError, withRetry } from '../lib/retry.js';
 import { redactString } from '../lib/redact.js';
 import { Semaphore } from '../lib/semaphore.js';
 import { createLogger } from '../lib/logger.js';
+import { providerHealth } from './health.js';
 
 const log = createLogger('providers:base');
 
@@ -170,6 +171,7 @@ export class BaseProvider {
    */
   async chat(messages, opts = {}) {
     if (!this.isConfigured()) {
+      providerHealth.markNotConfigured(this.id);
       throw new ProviderError(`${this.label} is not configured (missing API key)`, {
         code: 'NOT_CONFIGURED', service: this.id, retryable: false,
       });
@@ -202,14 +204,25 @@ export class BaseProvider {
       }
 
       const latencyMs = Math.round(performance.now() - started);
+      const model = raw.model || this.model;
+      providerHealth.recordOutcome(this.id, { ok: true, latencyMs, model });
       return {
         text: raw.text,
         service: this.id,
-        model: raw.model || this.model,
+        model,
         latencyMs,
         tokensUsed: raw.tokensUsed ?? null,
         attempts,
       };
+    } catch (err) {
+      providerHealth.recordOutcome(this.id, {
+        ok: false,
+        code: err?.code,
+        status: err?.status ?? null,
+        retryAfterMs: err?.retryAfterMs ?? null,
+        message: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
     } finally {
       this.#gate.release();
     }

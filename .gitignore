@@ -6,5 +6,6 @@ dashboard/out/
 dashboard/node_modules/
 dashboard/public/state/
 dashboard/next-env.d.ts
+dashboard/tsconfig.tsbuildinfo
 *.log
 .DS_Store

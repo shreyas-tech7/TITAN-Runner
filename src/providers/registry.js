@@ -12,6 +12,7 @@ import { TogetherProvider } from './together.js';
 import { OpenRouterProvider } from './openrouter.js';
 import { GeminiProvider } from './gemini.js';
 import { HuggingFaceProvider } from './huggingface.js';
+import { providerHealth } from './health.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('providers:registry');
@@ -21,8 +22,20 @@ export const FAILOVER_ORDER = ['groq', 'together', 'openrouter', 'gemini', 'hugg
 
 export class Registry {
   #providers = new Map();
+  #health;
 
-  constructor() {
+  /**
+   * @param {{providers?: Map<string, object>, healthStore?: import('./health.js').ProviderHealthStore}} [deps]
+   *   Both injectable for tests only — production code always uses the
+   *   defaults (the five real provider instances, the shared `providerHealth`
+   *   singleton). See `test/registry-health.test.js`.
+   */
+  constructor({ providers, healthStore = providerHealth } = {}) {
+    this.#health = healthStore;
+    if (providers) {
+      this.#providers = providers;
+      return;
+    }
     this.#providers.set('groq', new GroqProvider());
     this.#providers.set('together', new TogetherProvider());
     this.#providers.set('openrouter', new OpenRouterProvider());
@@ -54,9 +67,21 @@ export class Registry {
       : [...FAILOVER_ORDER];
 
     const tried = [];
+    const skipped = [];
     for (const id of order) {
       const provider = this.#providers.get(id);
       if (!provider || !provider.isConfigured()) continue;
+      // A provider mid-cooldown (rate-limited, exhausted, a just-invalidated
+      // model) or flagged misconfigured (bad key) is skipped outright rather
+      // than retried into a failure this pulse already knows is coming —
+      // task instructions, section 6: "a dead or exhausted provider is
+      // skipped, not retried into a failed pulse." `service !== 'auto'`
+      // (an explicit routing hint) still gets one honest attempt even
+      // mid-cooldown, since the caller asked for this provider by name.
+      if (service === 'auto' && !this.#health.isHealthy(id)) {
+        skipped.push(id);
+        continue;
+      }
       tried.push(id);
       try {
         return await provider.chat(messages, { temperature, maxTokens, signal });
@@ -66,8 +91,9 @@ export class Registry {
       }
     }
 
-    const triedDesc = tried.length > 0 ? tried.join(', ') : 'none configured';
-    throw new ProviderError(`All providers failed for this request (tried: ${triedDesc})`, {
+    const triedDesc = tried.length > 0 ? tried.join(', ') : 'none configured or healthy';
+    const skippedDesc = skipped.length > 0 ? ` (skipped, unhealthy: ${skipped.join(', ')})` : '';
+    throw new ProviderError(`All providers failed for this request (tried: ${triedDesc})${skippedDesc}`, {
       code: 'ALL_PROVIDERS_FAILED', retryable: false,
     });
   }

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "pulses": [
+    {
+      "at": "2026-08-31T23:04:40.733Z",
+      "durationMs": 416,
+      "status": "ok",
+      "tasksClaimed": 0,
+      "tasksCompleted": 0,
+      "tasksFailed": 0
+    },
+    {
+      "at": "2026-08-31T23:07:02.882Z",
+      "durationMs": 1245,
+      "status": "ok",
+      "tasksClaimed": 1,
+      "tasksCompleted": 0,
+      "tasksFailed": 1
+    },
+    {
+      "at": "2026-08-31T23:08:54.721Z",
+      "durationMs": 915,
+      "status": "ok",
+      "tasksClaimed": 1,
+      "tasksCompleted": 0,
+      "tasksFailed": 1
+    }
+  ]
+}

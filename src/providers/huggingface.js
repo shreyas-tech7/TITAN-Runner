@@ -4,8 +4,9 @@
  * evicted from the serving pool, and the first request that wakes it gets a
  * 503 instead of an answer.
  */
-import { config } from '../config.js';
+import { config, resolveModel } from '../config.js';
 import { guardedFetch } from '../lib/net.js';
+import { providerHealth } from './health.js';
 import { BaseProvider, networkErrorFrom, openAiChatBody, parseOpenAiChat, readJsonResponse, retryableErrorFrom, upstreamErrorFrom } from './base.js';
 
 const API_BASE = 'https://router.huggingface.co/v1';
@@ -18,7 +19,7 @@ export class HuggingFaceProvider extends BaseProvider {
       label: 'HuggingFace',
       // The real env var is HF_API_KEY, not HUGGINGFACE_API_KEY.
       apiKey: overrides.apiKey ?? config.huggingface.apiKey,
-      model: overrides.model ?? config.huggingface.model,
+      model: overrides.model ?? resolveModel('huggingface', providerHealth.get('huggingface').model),
     });
     this.baseUrl = (overrides.baseUrl ?? API_BASE).replace(/\/+$/, '');
   }

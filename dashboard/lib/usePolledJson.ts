@@ -13,9 +13,13 @@
  * and falls back to the same-origin copy this app's own build baked into
  * `public/state/` (`scripts/copy-state.mjs`) — so the page still shows the
  * state as of the last dashboard build even if raw.githubusercontent.com is
- * unreachable or rate-limited.
+ * unreachable or rate-limited. Both paths are cache-busted with `?t=` /
+ * `cache: "no-store"` (task instructions, section 3: "cache-busted polling
+ * against raw.githubusercontent so the page is never silently stale") and
+ * `lastFetchedAt` + `refresh()` let the UI show exactly when data was last
+ * pulled and let a viewer force a fresh pull on demand.
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const OWNER = process.env.NEXT_PUBLIC_GITHUB_OWNER || "";
 const REPO = process.env.NEXT_PUBLIC_GITHUB_REPO || "";
@@ -27,7 +31,7 @@ function rawUrl(path: string): string | null {
 }
 
 function localUrl(path: string): string {
-  return `${BASE_PATH}/state/${path.replace(/^state\//, "")}`;
+  return `${BASE_PATH}/state/${path.replace(/^state\//, "")}?t=${Date.now()}`;
 }
 
 export interface PolledJsonResult<T> {
@@ -35,64 +39,73 @@ export interface PolledJsonResult<T> {
   error: string | null;
   loading: boolean;
   source: "live" | "build" | null;
+  lastFetchedAt: number | null;
+  refresh: () => void;
 }
 
 /**
  * @param statePath e.g. "state/heartbeat.json"
- * @param intervalMs how often to re-poll; 0 disables polling (fetch once)
+ * @param intervalMs how often to re-poll; 0 disables polling (fetch once, refresh() still works)
  */
 export function usePolledJson<T>(statePath: string, intervalMs = 20_000): PolledJsonResult<T> {
-  const [result, setResult] = useState<PolledJsonResult<T>>({
+  const [result, setResult] = useState<Omit<PolledJsonResult<T>, "refresh">>({
     data: null,
     error: null,
     loading: true,
     source: null,
+    lastFetchedAt: null,
   });
   const mounted = useRef(true);
+  const nonce = useRef(0);
+
+  const load = useCallback(async () => {
+    const myNonce = ++nonce.current;
+    const remote = rawUrl(statePath);
+    if (remote) {
+      // A hung connection (a proxy with no route to raw.githubusercontent.com,
+      // a flaky network) must not block the local fallback indefinitely —
+      // fetch() has no default timeout, so this needs an explicit one.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4_000);
+      try {
+        const res = await fetch(remote, { cache: "no-store", signal: controller.signal });
+        if (res.ok) {
+          const data = (await res.json()) as T;
+          if (mounted.current && myNonce === nonce.current) {
+            setResult({ data, error: null, loading: false, source: "live", lastFetchedAt: Date.now() });
+          }
+          return;
+        }
+      } catch {
+        // fall through to the build-time copy
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    try {
+      const res = await fetch(localUrl(statePath), { cache: "no-store" });
+      if (res.ok) {
+        const data = (await res.json()) as T;
+        if (mounted.current && myNonce === nonce.current) {
+          setResult({ data, error: null, loading: false, source: "build", lastFetchedAt: Date.now() });
+        }
+        return;
+      }
+      throw new Error(`local copy responded ${res.status}`);
+    } catch (err) {
+      if (mounted.current && myNonce === nonce.current) {
+        setResult((prev) => ({
+          ...prev,
+          error: err instanceof Error ? err.message : String(err),
+          loading: false,
+          lastFetchedAt: Date.now(),
+        }));
+      }
+    }
+  }, [statePath]);
 
   useEffect(() => {
     mounted.current = true;
-
-    async function load() {
-      const remote = rawUrl(statePath);
-      if (remote) {
-        // A hung connection (a proxy with no route to raw.githubusercontent.com,
-        // a flaky network) must not block the local fallback indefinitely —
-        // fetch() has no default timeout, so this needs an explicit one.
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 4_000);
-        try {
-          const res = await fetch(remote, { cache: "no-store", signal: controller.signal });
-          if (res.ok) {
-            const data = (await res.json()) as T;
-            if (mounted.current) setResult({ data, error: null, loading: false, source: "live" });
-            return;
-          }
-        } catch {
-          // fall through to the build-time copy
-        } finally {
-          clearTimeout(timer);
-        }
-      }
-      try {
-        const res = await fetch(localUrl(statePath), { cache: "no-store" });
-        if (res.ok) {
-          const data = (await res.json()) as T;
-          if (mounted.current) setResult({ data, error: null, loading: false, source: "build" });
-          return;
-        }
-        throw new Error(`local copy responded ${res.status}`);
-      } catch (err) {
-        if (mounted.current) {
-          setResult((prev) => ({
-            ...prev,
-            error: err instanceof Error ? err.message : String(err),
-            loading: false,
-          }));
-        }
-      }
-    }
-
     void load();
     if (intervalMs > 0) {
       const id = window.setInterval(() => void load(), intervalMs);
@@ -104,9 +117,9 @@ export function usePolledJson<T>(statePath: string, intervalMs = 20_000): Polled
     return () => {
       mounted.current = false;
     };
-  }, [statePath, intervalMs]);
+  }, [load, intervalMs]);
 
-  return result;
+  return { ...result, refresh: () => void load() };
 }
 
 export default usePolledJson;

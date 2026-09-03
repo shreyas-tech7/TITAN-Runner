@@ -30,7 +30,13 @@
     "contextWindow": 32768,
     "source": "seed",
     "probedAt": null,
-    "observed": {}
+    "observed": {
+      "architecture": {
+        "runs": 4,
+        "successRate": 0,
+        "avgMs": 0
+      }
+    }
   },
   "phase2:together": {
     "modelId": "phase2:together",
@@ -61,7 +67,13 @@
     "contextWindow": 1048576,
     "source": "seed",
     "probedAt": null,
-    "observed": {}
+    "observed": {
+      "architecture": {
+        "runs": 2,
+        "successRate": 0,
+        "avgMs": 0
+      }
+    }
   },
   "phase2:huggingface": {
     "modelId": "phase2:huggingface",
@@ -75,6 +87,83 @@
       "security-review"
     ],
     "latencyClass": "slow",
+    "contextWindow": 8192,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "deepseek-v4-flash-free": {
+    "modelId": "deepseek-v4-flash-free",
+    "pool": "opencode",
+    "strengths": [],
+    "weaknesses": [],
+    "latencyClass": "medium",
+    "contextWindow": 8192,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "muse-spark-1.2-contributor-free": {
+    "modelId": "muse-spark-1.2-contributor-free",
+    "pool": "opencode",
+    "strengths": [],
+    "weaknesses": [],
+    "latencyClass": "medium",
+    "contextWindow": 8192,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "mimo-v2.5-free": {
+    "modelId": "mimo-v2.5-free",
+    "pool": "opencode",
+    "strengths": [],
+    "weaknesses": [],
+    "latencyClass": "medium",
+    "contextWindow": 8192,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "ling-3.0-flash-fin-free": {
+    "modelId": "ling-3.0-flash-fin-free",
+    "pool": "opencode",
+    "strengths": [],
+    "weaknesses": [],
+    "latencyClass": "medium",
+    "contextWindow": 8192,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "nemotron-3-ultra-free": {
+    "modelId": "nemotron-3-ultra-free",
+    "pool": "opencode",
+    "strengths": [],
+    "weaknesses": [],
+    "latencyClass": "medium",
+    "contextWindow": 8192,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "nemotron-3.5-lightning-free": {
+    "modelId": "nemotron-3.5-lightning-free",
+    "pool": "opencode",
+    "strengths": [],
+    "weaknesses": [],
+    "latencyClass": "medium",
+    "contextWindow": 8192,
+    "source": "seed",
+    "probedAt": null,
+    "observed": {}
+  },
+  "laguna-s-2.1-free": {
+    "modelId": "laguna-s-2.1-free",
+    "pool": "opencode",
+    "strengths": [],
+    "weaknesses": [],
+    "latencyClass": "medium",
     "contextWindow": 8192,
     "source": "seed",
     "probedAt": null,

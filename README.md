@@ -17,14 +17,17 @@ Pages is enabled — see docs/RUNTIME.md).
 
 ## How it works, in one paragraph
 
-File a task as a GitHub issue labeled `titan-task` (use the issue
-template). Within 15 minutes, the next scheduled pulse (`.github/workflows/titan-pulse.yml`)
+File a task through the dashboard or as a GitHub issue labeled `titan-task`.
+Within 15 minutes, the next scheduled pulse (`.github/workflows/titan-pulse.yml`)
 picks it up, decomposes it into subtasks, dispatches each subtask to a
-free-tier model (Groq, Together, OpenRouter, Gemini, HuggingFace, plus two
-best-effort placeholder pools — see `docs/RUNTIME.md`), merges the results,
-comments the outcome back on your issue, and closes it. Every pulse commits
-its state to `state/*.json` — that's the whole database, since a GitHub
-Actions runner is wiped clean after every run.
+free-tier model (Groq, Together, OpenRouter, Gemini, HuggingFace, plus
+OpenCode's curated free catalog — see `docs/RUNTIME.md`; Freebuff has no
+public API to dispatch to at all, also explained there), merges the
+results, comments the outcome back on your issue, and closes it. A
+provider-selftest workflow re-discovers each one's live model catalog and
+checks it's actually reachable, weekly. Every pulse commits its state to
+`state/*.json` — that's the whole database, since a GitHub Actions runner
+is wiped clean after every run.
 
 ## Security — read this before filing a task
 
@@ -49,13 +52,19 @@ Actions runner is wiped clean after every run.
 
 ## Give it a task
 
-Two ways:
+Three ways:
 
-1. **Open an issue** using the "TITAN task" template (the dashboard's
-   "+ New task" button is a pre-filled link to this). Add the
-   `titan-self-improve` label if you want the result as a pull request
-   against this repo instead of a one-off answer.
-2. **Run it right now**, without waiting for the cron: Actions tab ->
+1. **The dashboard's "+ New task" button** opens an in-page form (title,
+   description, priority, routing hint) and files it directly — no
+   redirect to GitHub. Paste a fine-grained PAT into Settings once
+   (scoped to this repo, Issues: Read and write) to file, cancel, and
+   retry tasks from the dashboard itself; without one, the modal still
+   validates your input and hands you the exact issue body to file
+   yourself, with a pre-filled link.
+2. **Open an issue** using the "TITAN task" template directly on GitHub.
+   Add the `titan-self-improve` label if you want the result as a pull
+   request against this repo instead of a one-off answer.
+3. **Run it right now**, without waiting for the cron: Actions tab ->
    "TITAN Pulse" -> "Run workflow" -> fill in "Task text".
 
 ## Run it locally

@@ -25,6 +25,8 @@ import { config } from '../config.js';
 import { guardedFetch } from '../lib/net.js';
 import { AgentAdapter, AdapterError } from './AgentAdapter.js';
 import { buildProbePrompt } from '../orchestrator/capabilityRegistry.js';
+import { providerHealth } from '../providers/health.js';
+import { isFreePriced } from '../providers/freeFilter.js';
 
 /** Longest upstream error snippet we'll fold into an AdapterError message. */
 const MAX_UPSTREAM_DETAIL = 200;
@@ -87,6 +89,40 @@ export class OpenCodeAgent extends AgentAdapter {
     return Boolean(this.apiKey);
   }
 
+  /**
+   * A minimal, direct chat call outside the task-decomposition machinery —
+   * used only by `scripts/provider-selftest.mjs`'s "tiny completion" probe
+   * (task instructions, section 6), where the point is a real round trip
+   * with a real answer, not a full orchestration prompt. Never called from
+   * `_doExecute`/the scheduler.
+   * @param {string} prompt
+   * @param {{ maxTokens?: number }} [opts]
+   * @returns {Promise<{ text: string, model: string, tokensUsed: number|null }>}
+   */
+  async selfTestChat(prompt, opts = {}) {
+    if (!this.isConfigured()) {
+      throw new AdapterError('OpenCode is not configured (missing OPENCODE_API_KEY)', {
+        code: 'NOT_CONFIGURED',
+        retryable: false,
+      });
+    }
+    const model = await this.#resolveModel(undefined);
+    const json = await this.#callOpenCodeApi({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0,
+      max_tokens: opts.maxTokens ?? 5,
+      stream: false,
+    });
+    const text = json?.choices?.[0]?.message?.content;
+    const tokens = json?.usage?.total_tokens;
+    return {
+      text: typeof text === 'string' ? text : '',
+      model: typeof json?.model === 'string' ? json.model : model,
+      tokensUsed: Number.isFinite(tokens) ? Number(tokens) : null,
+    };
+  }
+
   /* ---- AgentAdapter hooks --------------------------------------------- */
 
   async _doExecute(task, sharedContext, options = {}) {
@@ -98,7 +134,7 @@ export class OpenCodeAgent extends AgentAdapter {
       });
     }
 
-    const model = options.modelId || 'opencode:default';
+    const model = await this.#resolveModel(options.modelId);
     const payload = {
       model,
       messages: [{ role: 'user', content: this._buildTaskPrompt(task, sharedContext) }],
@@ -134,7 +170,7 @@ export class OpenCodeAgent extends AgentAdapter {
     if (config.dryRun) return loadFixture().probe.text;
 
     const payload = {
-      model: modelId,
+      model: await this.#resolveModel(modelId),
       messages: [{ role: 'user', content: buildProbePrompt(modelId, opts) }],
       temperature: 0.2,
       max_tokens: 512,
@@ -161,6 +197,37 @@ export class OpenCodeAgent extends AgentAdapter {
       modelId: sample.modelId,
       tokensUsed: Number.isFinite(sample.tokensUsed) ? sample.tokensUsed : null,
     };
+  }
+
+  /**
+   * Turn an internal capability-registry model id ("opencode:default", the
+   * seed-table placeholder, or a previously-discovered "opencode:<real-id>")
+   * into the bare id the live API expects. "default" is not a real model —
+   * sending it literally would 404 against the real API — so it resolves
+   * from the cached discovery result (`state/providers.json`, refreshed by
+   * `scripts/provider-selftest.mjs`) if one exists, else a fresh catalog
+   * fetch. `#fetchModelCatalog()` never throws (see its own header); its
+   * worst case is one fixture-derived id, which at least fails predictably
+   * instead of 404ing on a literal "default".
+   * @param {string|undefined} requested
+   * @returns {Promise<string>}
+   */
+  async #resolveModel(requested) {
+    const prefix = 'opencode:';
+    const bare = typeof requested === 'string' && requested.startsWith(prefix)
+      ? requested.slice(prefix.length)
+      : requested;
+    if (bare && bare !== 'default') return bare;
+
+    const cached = providerHealth.get('opencode').model;
+    if (cached) return cached;
+
+    const models = await this.#fetchModelCatalog();
+    const chosen = models[0]?.modelId ?? 'opencode:default';
+    if (models.length > 0) {
+      providerHealth.setDiscoveredModels('opencode', models.map((m) => m.modelId), chosen);
+    }
+    return chosen;
   }
 
   /* ---- live HTTP — the ONLY two methods that touch the network ---------- */
@@ -223,17 +290,22 @@ export class OpenCodeAgent extends AgentAdapter {
       if (!res.ok) throw new Error(`OpenCode models catalog returned ${res.status}`);
       const json = await res.json();
       const raw = Array.isArray(json?.data) ? json.data : Array.isArray(json?.models) ? json.models : [];
-      const models = raw
-        .map((m) => ({
-          modelId: typeof m === 'string' ? m : (m?.id ?? m?.modelId),
-          pool: 'opencode',
-          contextWindow: Number.isFinite(m?.context_window)
-            ? m.context_window
-            : Number.isFinite(m?.contextWindow)
-              ? m.contextWindow
-              : 32768,
-        }))
-        .filter((m) => typeof m.modelId === 'string' && m.modelId.length > 0);
+      const toRecord = (m) => ({
+        modelId: typeof m === 'string' ? m : (m?.id ?? m?.modelId),
+        pool: 'opencode',
+        contextWindow: Number.isFinite(m?.context_window)
+          ? m.context_window
+          : Number.isFinite(m?.contextWindow)
+            ? m.contextWindow
+            : 32768,
+      });
+      const named = raw.filter((m) => typeof (m?.id ?? m?.modelId ?? m) === 'string');
+      // OpenCode Zen's catalog mixes free and paid curated models (task
+      // brief, section 6) — prefer entries the pricing/id shape marks free;
+      // if nothing is confidently free (an unrecognised response shape),
+      // fall back to the full list rather than returning nothing.
+      const free = named.filter(isFreePriced).map(toRecord).filter((m) => typeof m.modelId === 'string' && m.modelId.length > 0);
+      const models = free.length > 0 ? free : named.map(toRecord).filter((m) => typeof m.modelId === 'string' && m.modelId.length > 0);
       if (models.length === 0) throw new Error('OpenCode models catalog returned no entries');
       return models;
     } catch {

@@ -27,6 +27,27 @@ const OBSERVED_MAX_SCORE = 20;
 const LATENCY_RANK = { fast: 2, medium: 1, slow: 0 };
 
 /**
+ * A task's optional routing hint (task filing modal, "fast / cheap /
+ * careful / any" — task instructions, section 1 and 6) nudges scoring
+ * without ever overriding a real category match: `'fast'`'s latency bonus
+ * (max 15) and `'careful'`'s observed-success multiplier both stay below
+ * `CATEGORY_MATCH_SCORE` (100), so a strength/weakness match still decides
+ * routing first — the hint only breaks ties among otherwise-similar
+ * candidates. `'cheap'` is a documented no-op: every pool in this repo is
+ * already free-tier, so there is no real cost signal to route on yet.
+ * `'any'`/missing/unrecognised all resolve to the same zero-bonus baseline,
+ * which is exactly the pre-routing-hint scoring behaviour — existing
+ * callers that never set `task.routingHint` see no change at all.
+ */
+const ROUTING_HINT_LATENCY_BONUS = Object.freeze({ fast: 15, careful: 0, cheap: 0, any: 0 });
+const ROUTING_HINT_OBSERVED_MULTIPLIER = Object.freeze({ fast: 1, careful: 1.5, cheap: 1, any: 1 });
+
+/** @param {string|undefined} hint @returns {'fast'|'careful'|'cheap'|'any'} */
+function normalizeHint(hint) {
+  return hint && Object.prototype.hasOwnProperty.call(ROUTING_HINT_LATENCY_BONUS, hint) ? hint : 'any';
+}
+
+/**
  * @typedef {object} RankedCandidate
  * @property {string} modelId
  * @property {string} pool
@@ -48,15 +69,23 @@ function scoreCandidate(task, record, available) {
   const isWeakness = record.weaknesses.includes(task.aspect);
   const categoryScore = isStrength ? CATEGORY_MATCH_SCORE : isWeakness ? CATEGORY_WEAKNESS_SCORE : 0;
 
+  const hint = normalizeHint(task.routingHint);
   const observed = record.observed?.[task.aspect];
   const observedScore =
-    observed && observed.runs > 0 ? observed.successRate * OBSERVED_MAX_SCORE : 0;
+    observed && observed.runs > 0
+      ? observed.successRate * OBSERVED_MAX_SCORE * ROUTING_HINT_OBSERVED_MULTIPLIER[hint]
+      : 0;
 
-  const latencyTiebreak = LATENCY_RANK[record.latencyClass] ?? LATENCY_RANK.medium;
+  const latencyRank = LATENCY_RANK[record.latencyClass] ?? LATENCY_RANK.medium;
+  const latencyTiebreak = latencyRank;
+  // 'fast' scales this into real score (max 15, at LATENCY_RANK.fast === 2);
+  // every other hint keeps ROUTING_HINT_LATENCY_BONUS at 0, so this is a
+  // no-op for 'any'/'cheap'/'careful'/unset.
+  const latencyBonus = (latencyRank / LATENCY_RANK.fast) * ROUTING_HINT_LATENCY_BONUS[hint];
 
   // Hard rule 3: unavailable scores zero outright — category/observed scores
   // never rescue a model that is at its concurrency cap right now.
-  const score = available ? categoryScore + observedScore : 0;
+  const score = available ? categoryScore + observedScore + latencyBonus : 0;
 
   const reasonParts = [];
   if (isStrength) reasonParts.push(`strength match on "${task.aspect}"`);
@@ -65,6 +94,7 @@ function scoreCandidate(task, record, available) {
   if (observed && observed.runs > 0) {
     reasonParts.push(`${Math.round(observed.successRate * 100)}% observed success (${observed.runs} runs)`);
   }
+  if (hint !== 'any') reasonParts.push(`routing hint "${hint}" applied`);
   if (!available) reasonParts.push('pool at capacity — excluded');
 
   return {
