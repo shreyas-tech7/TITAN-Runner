@@ -1,25 +1,5 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-31T23:08:54.721Z",
-  "tasks": [
-    {
-      "id": "issue-2",
-      "type": "task",
-      "issueNumber": 2,
-      "issueUrl": "https://github.com/shreyas-tech7/TITAN-Runner/issues/2",
-      "title": "Confirm the dashboard task-filing pipeline end to end",
-      "prompt": "This is a one-word test — reply with exactly the word \"verified\" and nothing else.",
-      "priority": "high",
-      "routingHint": "any",
-      "status": "failed",
-      "createdAt": "2026-08-31T23:07:02.048Z",
-      "claimedAt": "2026-08-31T23:08:54.169Z",
-      "startedAt": "2026-08-31T23:08:54.169Z",
-      "completedAt": "2026-08-31T23:08:54.267Z",
-      "runId": "ee4152e0-fff6-4f4e-aa74-162e72f387c1",
-      "prNumber": null,
-      "prUrl": null,
-      "error": null
-    }
-  ]
+  "updatedAt": "2026-09-03T01:11:03.982Z",
+  "tasks": []
 }
