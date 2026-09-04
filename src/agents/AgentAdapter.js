@@ -12,10 +12,10 @@
  *
  * Unlike `BaseProvider`, this base class does NOT branch on
  * `config.dryRun` itself. The three pools' offline stories differ too
- * much to unify: `phase2Agent.js` simply delegates to `services/registry.js`,
- * which already has its own complete offline/fixture path; `freebuffAgent.js`
- * and `opencodeAgent.js` read their own fixtures directly. Each subclass's
- * `_doExecute` decides.
+ * much to unify: `phase2Agent.js` simply delegates to
+ * `providers/registry.js`, which already has its own complete
+ * offline/fixture path; `freebuffAgent.js` and `opencodeAgent.js` read
+ * their own fixtures directly. Each subclass's `_doExecute` decides.
  */
 
 import { Semaphore } from '../lib/semaphore.js';

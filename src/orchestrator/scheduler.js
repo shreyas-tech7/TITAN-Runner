@@ -40,10 +40,7 @@
  * first rather than run alongside it. The policy layer (excluding Freebuff
  * from every ready task except the reserved one) exists to make routing
  * *sensible*, not to make the cap *safe* — the cap is safe regardless,
- * because it is a real semaphore one layer down. See
- * `__tests__/orchestrator-scheduler.test.js`'s concurrency test, which
- * fires many Freebuff-suited tasks at a real `FreebuffAgent` and asserts
- * `inFlight` never exceeds 1 — proving the mechanism, not just the policy.
+ * because it is a real semaphore one layer down (`src/lib/semaphore.js`).
  */
 
 import { rankModels } from './router.js';
@@ -81,13 +78,13 @@ const MAX_DEP_BLOCK_CHARS = 24000;
  * @property {Array<{modelId: string, pool: string, ok: boolean, ms: number, error: object|null}>} attempts
  * @property {string|null} output
  * @property {1|2|3|null} [outputTier] Which `outputParser.js` tier parsed
- *   `output` into files — set by `engine.js`'s `runPipeline` once synthesis
- *   runs, absent before then (the scheduler itself never sets this).
+ *   `output` into files — set once synthesis runs, absent before then (the
+ *   scheduler itself never sets this).
  * @property {{code: string, message: string}|null} error
  * @property {string|null} startedAt
  * @property {string|null} completedAt
- * @property {1|2|3|null} [envelopeTier] Set by synthesizer.js/engine.js
- *   after the scheduler finishes — absent (not just `null`) beforehand.
+ * @property {1|2|3|null} [envelopeTier] Set by synthesizer.js after the
+ *   scheduler finishes — absent (not just `null`) beforehand.
  */
 
 /**

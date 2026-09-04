@@ -4,11 +4,11 @@
  * downloadable archive.
  *
  * Deliberately pure — no filesystem access anywhere in this file.
- * `engine.js` owns all persistence (it already writes run state to disk
- * after every scheduler transition); this module only transforms in-memory
- * data, which keeps it trivial to unit test and reusable from a future
- * context (a CLI, a different persistence backend) without dragging disk
- * I/O along.
+ * The pulse (`src/pulse.js`) owns all persistence (it writes the run record
+ * to `state/runs/` after orchestration); this module only transforms
+ * in-memory data, which keeps it trivial to unit test and reusable from a
+ * future context (a CLI, a different persistence backend) without dragging
+ * disk I/O along.
  *
  * File extraction: per-task parsing goes through `outputParser.js`'s
  * three-tier parser — strict fenced JSON envelope, then lenient repair
@@ -167,8 +167,8 @@ export async function synthesize(graph, tasksById, options = {}) {
 
     const parsed = await parseTaskOutput(task.output, options);
     taskParseResults[taskDef.id] = { tier: parsed.tier, malformed: parsed.malformed };
-    // Recorded on the live task object — engine.js persists task state
-    // after every transition, so this reaches TaskDetailDrawer the same
+    // Recorded on the live task object — the pulse persists the run record
+    // after orchestration, so this reaches TaskDetailDrawer the same
     // way `task.output`/`task.error` already do. `envelopeTier` is only
     // set here if a prior repair pass didn't already claim it: a repaired
     // task's output now parses as an ordinary tier-1/2 success (that's

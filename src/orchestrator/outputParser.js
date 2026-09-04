@@ -18,10 +18,11 @@
  * trivial to unit test, reusable outside the orchestrator's own plumbing.
  *
  * Tiers 1-2's actual JSON-repair mechanics (balanced-brace scanning,
- * trailing-comma stripping) live in `utils/jsonRepair.js`, shared with
- * `services/assistant/toolCallParser.js` — "parsed by the same three-tier
- * parser" applies to the repair primitives themselves, not just the
- * strict/lenient/repair *shape*.
+ * trailing-comma stripping) live in `lib/jsonRepair.js`, shared with
+ * `envelopeParser.js` (which re-exports this module's own functions for
+ * backward compatibility) — "parsed by the same three-tier parser" applies
+ * to the repair primitives themselves, not just the strict/lenient/repair
+ * *shape*.
  */
 
 import { tryStrictJson, tryLenientJson } from '../lib/jsonRepair.js';
@@ -124,7 +125,7 @@ function tryLenient(text) {
   const fromBalancedScan = tryLenientJson(text, coerceEnvelope);
   if (fromBalancedScan) return fromBalancedScan;
 
-  const legacy = extractLegacyFileBlocks(text);
+  const legacy = extractFileBlocks(text);
   if (legacy.length > 0) return { files: legacy, notes: null };
 
   return null;
@@ -132,11 +133,13 @@ function tryLenient(text) {
 
 /**
  * The pre-v4.0 `// file: <path>` convention, kept verbatim as tier 2's
- * legacy fallback — see this file's header.
+ * legacy fallback — see this file's header. Exported under this name so
+ * `envelopeParser.js` can re-export it for backward compatibility (it is the
+ * single implementation now; see `envelopeParser.js`'s header).
  * @param {string} text
  * @returns {ExtractedFile[]}
  */
-function extractLegacyFileBlocks(text) {
+export function extractFileBlocks(text) {
   const blocks = [];
   FENCE_RE.lastIndex = 0;
   let match;
@@ -209,6 +212,28 @@ export async function parseTaskOutput(text, options = {}) {
   }
 
   return { tier: null, files: [], notes: null, malformed: true };
+}
+
+/**
+ * Synchronous, two-tier-only parse (strict fenced envelope, then lenient
+ * local repair including the legacy `// file:` convention) — the subset of
+ * `parseTaskOutput` that does not need a network-capable tier-3 repair pass.
+ * Re-exported by `envelopeParser.js` for backward compatibility (its public
+ * API was `parseEnvelope`/`extractFileBlocks`/`normalizePath`); behaviour
+ * matches the original: an envelope that named zero usable files is not a
+ * success, and genuine freeform prose yields `tier: null`.
+ * @param {string} text
+ * @returns {{tier: 1|2|null, files: ExtractedFile[], notes: string}}
+ */
+export function parseEnvelope(text) {
+  if (typeof text !== 'string' || text.length === 0) {
+    return { tier: null, files: [], notes: '' };
+  }
+  const strict = tryStrict(text);
+  if (strict && strict.files.length > 0) return { tier: 1, files: strict.files, notes: strict.notes ?? '' };
+  const lenient = tryLenient(text);
+  if (lenient && lenient.files.length > 0) return { tier: 2, files: lenient.files, notes: lenient.notes ?? '' };
+  return { tier: null, files: [], notes: '' };
 }
 
 export default parseTaskOutput;

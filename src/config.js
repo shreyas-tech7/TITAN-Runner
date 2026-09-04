@@ -70,6 +70,11 @@ export const config = Object.freeze({
     maxSubtasksPerRun: positiveInt(process.env.TITAN_MAX_SUBTASKS_PER_RUN, 8),
     maxOpenCode: positiveInt(process.env.TITAN_MAX_OPENCODE, 4),
     taskTimeoutMs: positiveInt(process.env.TITAN_TASK_TIMEOUT_MS, 120000),
+    // 0 disables: a task may sit in the queue forever, exactly as before.
+    // Set (e.g. TITAN_TASK_TTL_MS=259200000 for 72h) to expire a pending
+    // task that was never claimed instead of running it stale.
+    taskTtlMs: positiveInt(process.env.TITAN_TASK_TTL_MS, 0),
+    maxTaskRetries: positiveInt(process.env.TITAN_MAX_TASK_RETRIES, 3),
   },
 
   reviewer: {

@@ -12,6 +12,7 @@ import { listOpenTaskIssues } from './github.js';
 import { redactString } from './lib/redact.js';
 import { scrubForState } from './lib/secretScrub.js';
 import { parseTaskYaml } from './lib/taskYaml.js';
+import { config } from './config.js';
 import { createLogger } from './lib/logger.js';
 
 const log = createLogger('issueSync');
@@ -19,11 +20,25 @@ const log = createLogger('issueSync');
 /**
  * Pull open `titan-task` issues and add any not already tracked in
  * `tasksState.tasks` as new pending entries. Mutates and returns the state.
+ *
+ * On a GitHub API failure returns `issues: null` (and does NOT mutate state):
+ * the caller must skip issue reconciliation entirely rather than treat "could
+ * not reach GitHub" as "there are no open issues", which would cancel every
+ * pending task that still has an open issue.
  * @param {object} tasksState
- * @returns {Promise<{ state: object, added: number }>}
+ * @returns {Promise<{ state: object, added: number, issues: Array<{number:number, updated_at?:string}>|null }>}
  */
 export async function syncIssuesIntoTasks(tasksState) {
-  const issues = await listOpenTaskIssues('titan-task');
+  let issues;
+  try {
+    issues = await listOpenTaskIssues('titan-task');
+  } catch (err) {
+    log.warn('issue sync failed — skipping GitHub intake this pulse (no tasks cancelled, no tasks synced)', {
+      error: String(err),
+    });
+    return { state: tasksState, added: 0, issues: null };
+  }
+
   const known = new Set(tasksState.tasks.map((t) => t.id));
   let added = 0;
 
@@ -54,6 +69,7 @@ export async function syncIssuesIntoTasks(tasksState) {
         priority: structured?.priority ?? null,
         routingHint: structured?.routingHint ?? null,
         status: 'pending',
+        retryCount: 0,
         createdAt: new Date().toISOString(),
         claimedAt: null,
         startedAt: null,
@@ -123,7 +139,20 @@ export function reconcileIssueState(tasksState, openIssues) {
       const updatedAt = Date.parse(openIssue.updated_at ?? '');
       const completedAt = Date.parse(task.completedAt);
       if (Number.isFinite(updatedAt) && Number.isFinite(completedAt) && updatedAt > completedAt) {
+        const retryCount = (task.retryCount ?? 0) + 1;
+        if (retryCount > config.orchestrator.maxTaskRetries) {
+          // A task that keeps failing and keeps being retried must stop
+          // re-entering the queue forever. Fail it loudly instead; a human
+          // can still file a fresh issue.
+          task.status = 'failed';
+          task.retryCount = retryCount;
+          task.error =
+            'Retry limit reached — this task has been retried too many times and will not run again automatically. File a new issue to try again.';
+          retried += 1;
+          continue;
+        }
         task.status = 'pending';
+        task.retryCount = retryCount;
         task.claimedAt = null;
         task.startedAt = null;
         task.completedAt = null;
@@ -135,6 +164,47 @@ export function reconcileIssueState(tasksState, openIssues) {
   }
 
   return { cancelled, retried };
+}
+
+/** Priority rank for claim ordering — high jumps the queue, low yields to it. */
+const PRIORITY_RANK = { high: 2, normal: 1, low: 0 };
+
+/**
+ * Choose which pending tasks this pulse claims, in order, and (when a TTL is
+ * configured) expire stale ones. Pure aside from mutating the expired tasks
+ * into `failed` — the caller counts them as failures and the rest of the
+ * pipeline is untouched.
+ *
+ * @param {Array<object>} tasks The full task list (non-pending entries are ignored).
+ * @param {{ max: number, ttlMs?: number, now?: number }} opts
+ *   `ttlMs <= 0` (the default) disables expiry, matching the pre-TTL
+ *   "stay in the queue forever" behaviour.
+ * @returns {{ claims: Array<object>, expired: Array<object> }}
+ */
+export function selectClaims(tasks, { max, ttlMs = 0, now = Date.now() }) {
+  const expired = [];
+  const remaining = [];
+  for (const t of tasks ?? []) {
+    if (t.status !== 'pending') continue;
+    if (ttlMs > 0) {
+      const created = Date.parse(t.createdAt ?? '');
+      if (Number.isFinite(created) && now - created > ttlMs) {
+        t.status = 'failed';
+        t.completedAt = new Date(now).toISOString();
+        t.error = `Expired: not claimed within the configured ${ttlMs}ms task TTL.`;
+        expired.push(t);
+        continue;
+      }
+    }
+    remaining.push(t);
+  }
+  remaining.sort((a, b) => {
+    const pa = PRIORITY_RANK[a.priority] ?? PRIORITY_RANK.normal;
+    const pb = PRIORITY_RANK[b.priority] ?? PRIORITY_RANK.normal;
+    if (pa !== pb) return pb - pa;
+    return String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? ''));
+  });
+  return { claims: remaining.slice(0, max), expired };
 }
 
 /**
@@ -156,6 +226,7 @@ export function addManualTask(tasksState, text) {
       priority: null,
       routingHint: null,
       status: 'pending',
+      retryCount: 0,
       createdAt: new Date().toISOString(),
       claimedAt: null,
       startedAt: null,
@@ -169,4 +240,4 @@ export function addManualTask(tasksState, text) {
   return id;
 }
 
-export default { syncIssuesIntoTasks, reconcileIssueState, addManualTask };
+export default { syncIssuesIntoTasks, reconcileIssueState, addManualTask, selectClaims };

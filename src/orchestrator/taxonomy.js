@@ -40,11 +40,11 @@ export function isAspectCategory(value) {
  * distinct from `failed`: it means "never attempted because a dependency
  * failed", not "attempted and lost". `malformed_output` is distinct from
  * both: the model call itself succeeded (unlike `failed`), but
- * `services/orchestrator/outputParser.js`'s three-tier parser could not
- * extract a files-envelope from output that looked like it was trying to
- * produce one — set only when the v4.0 Wave 0.4 parser's own `malformed`
- * flag is true, never for genuinely freeform prose output (see that
- * module's `looksLikeAttemptedEnvelope` heuristic).
+ * `orchestrator/outputParser.js`'s three-tier parser could not extract a
+ * files-envelope from output that looked like it was trying to produce one
+ * — set only when that parser's own `malformed` flag is true, never for
+ * genuinely freeform prose output (see its `looksLikeAttemptedEnvelope`
+ * heuristic).
  * @type {readonly string[]}
  */
 export const TASK_STATES = Object.freeze([
@@ -73,8 +73,8 @@ export function isComplexityLevel(value) {
 
 /**
  * The three agent pools. `phase2` wraps the five existing AI providers
- * (services/registry.js) behind the same adapter interface as the two new
- * pools, so the router treats all three uniformly.
+ * (`providers/registry.js`) behind the same adapter interface as the two
+ * other pools, so the router treats all three uniformly.
  * @type {readonly string[]}
  */
 export const AGENT_POOLS = Object.freeze(['freebuff', 'opencode', 'phase2']);
@@ -103,11 +103,9 @@ export function isRunState(value) {
 
 /**
  * The subset of RUN_STATES a run never leaves once reached. Previously
- * inlined as `['complete', 'failed', 'cancelled']` at each call site
- * (`engine.js`'s `subscribe()`, the dashboard's `RunSummaryBar.tsx`) —
- * pulled out here once the run-store retention job needed the exact same
- * list a third time, matching this file's own "one file, not a
- * grep-and-pray" charter.
+ * inlined as `['complete', 'failed', 'cancelled']` at each call site —
+ * pulled out here so callers share one list instead of a grep-and-pray,
+ * matching this file's own charter.
  * @type {readonly string[]}
  */
 export const TERMINAL_RUN_STATES = Object.freeze(['complete', 'failed', 'cancelled']);

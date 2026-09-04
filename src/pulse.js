@@ -25,7 +25,7 @@ import { writeJsonAtomic } from './state/io.js';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-import { syncIssuesIntoTasks, reconcileIssueState, addManualTask } from './issueSync.js';
+import { syncIssuesIntoTasks, reconcileIssueState, addManualTask, selectClaims } from './issueSync.js';
 import { commentOnIssue, closeIssue } from './github.js';
 import { proposeSelfImprovement, checkSelfImprovePrStatus } from './selfImprove.js';
 import { reviewAction } from './reviewer/reviewer.js';
@@ -47,6 +47,27 @@ const log = createLogger('pulse');
 
 const MAX_FILE_PREVIEW_CHARS = 4000;
 const MAX_RUN_FILE_CHARS = 6000;
+
+/**
+ * GitHub side-effects are best-effort: a comment/close that fails (rate limit,
+ * a transient API error) must not abort the rest of the pulse. The run record
+ * is already durable under `state/`; the issue comment is a nicety on top.
+ */
+async function safeCommentOnIssue(number, body) {
+  try {
+    await commentOnIssue(number, body);
+  } catch (err) {
+    log.warn('failed to comment on issue (continuing)', { number, error: redactString(String(err)) });
+  }
+}
+
+async function safeCloseIssue(number) {
+  try {
+    await closeIssue(number);
+  } catch (err) {
+    log.warn('failed to close issue (continuing)', { number, error: redactString(String(err)) });
+  }
+}
 
 function pools() {
   return { freebuff: new FreebuffAgent(), opencode: new OpenCodeAgent(), phase2: new Phase2Agent() };
@@ -121,15 +142,19 @@ function writeRunRecord(task, result, durationMs) {
 }
 
 function issueCommentFor(result) {
+  // The originating issue is a PUBLIC, world-readable, search-indexed sink —
+  // the same reason `state/` is scrubbed. Scrub the posted summary and file
+  // contents with the same full `redactString()` scan `state/` gets, so a
+  // credential-shaped string in model output can never reach the issue.
   const lines = [
     result.ok ? 'TITAN-Runner finished this task.' : 'TITAN-Runner finished this task, but one or more subtasks failed.',
     '',
-    result.synthesis.markdownSummary.slice(0, 60000),
+    redactString(result.synthesis.markdownSummary.slice(0, 60000)),
   ];
   if (result.synthesis.files.length > 0) {
     lines.push('', '<details><summary>Files produced</summary>', '');
     for (const f of result.synthesis.files) {
-      lines.push(`**\`${f.path}\`**`, '```', f.content.slice(0, 3000), '```', '');
+      lines.push(`**\`${f.path}\`**`, '```', redactString(f.content.slice(0, 3000)), '```', '');
     }
     lines.push('</details>');
   }
@@ -153,7 +178,7 @@ async function processTask(task) {
     task.completedAt = new Date().toISOString();
     task.error = review.reason ?? 'Blocked by the Reviewer Gate.';
     if (task.issueNumber) {
-      await commentOnIssue(task.issueNumber, `TITAN-Runner declined this task: ${redactString(task.error)}`);
+      await safeCommentOnIssue(task.issueNumber, `TITAN-Runner declined this task: ${redactString(task.error)}`);
     }
     return;
   }
@@ -167,7 +192,7 @@ async function processTask(task) {
     task.error = redactString(err instanceof Error ? err.message : String(err));
     log.error('task orchestration threw', { taskId: task.id, error: task.error });
     if (task.issueNumber) {
-      await commentOnIssue(task.issueNumber, `TITAN-Runner hit an internal error on this task: ${task.error}`);
+      await safeCommentOnIssue(task.issueNumber, `TITAN-Runner hit an internal error on this task: ${task.error}`);
     }
     return;
   }
@@ -183,7 +208,7 @@ async function processTask(task) {
       task.prNumber = outcome.prNumber ?? null;
       task.prUrl = outcome.prUrl ?? null;
       if (task.issueNumber) {
-        await commentOnIssue(
+        await safeCommentOnIssue(
           task.issueNumber,
           `TITAN-Runner opened a draft pull request for this self-improvement task: ${outcome.prUrl ?? '(PR URL unavailable in dry-run)'}\n\nIt will not be merged automatically — CI (full test suite + the denylist gate) must pass, and a maintainer decides whether to merge.`,
         );
@@ -192,7 +217,7 @@ async function processTask(task) {
       task.status = 'failed';
       task.error = outcome.reason ?? outcome.status;
       if (task.issueNumber) {
-        await commentOnIssue(task.issueNumber, `TITAN-Runner did not open a pull request for this task: ${redactString(task.error)}`);
+        await safeCommentOnIssue(task.issueNumber, `TITAN-Runner did not open a pull request for this task: ${redactString(task.error)}`);
       }
     }
     return;
@@ -201,8 +226,8 @@ async function processTask(task) {
   task.status = result.ok ? 'complete' : 'failed';
   task.completedAt = new Date().toISOString();
   if (task.issueNumber) {
-    await commentOnIssue(task.issueNumber, issueCommentFor(result));
-    if (result.ok) await closeIssue(task.issueNumber);
+    await safeCommentOnIssue(task.issueNumber, issueCommentFor(result));
+    if (result.ok) await safeCloseIssue(task.issueNumber);
   }
 }
 
@@ -213,14 +238,14 @@ async function revisitSelfImprovePr(task) {
     task.error = 'CI failed on the self-improve PR; it has been closed.';
     task.completedAt = new Date().toISOString();
     if (task.issueNumber) {
-      await commentOnIssue(task.issueNumber, `The pull request for this task failed CI and has been closed: ${task.prUrl ?? ''}`);
+      await safeCommentOnIssue(task.issueNumber, `The pull request for this task failed CI and has been closed: ${task.prUrl ?? ''}`);
     }
   } else if (outcome.status === 'merged') {
     task.status = 'complete';
     task.completedAt = new Date().toISOString();
     if (task.issueNumber) {
-      await commentOnIssue(task.issueNumber, `The pull request for this task was merged: ${task.prUrl ?? ''}`);
-      await closeIssue(task.issueNumber);
+      await safeCommentOnIssue(task.issueNumber, `The pull request for this task was merged: ${task.prUrl ?? ''}`);
+      await safeCloseIssue(task.issueNumber);
     }
   }
   // 'still-open'/'unknown': leave as-is, checked again next pulse.
@@ -268,10 +293,15 @@ async function main() {
       if (added > 0) log.info('synced issues into task queue', { added });
       // Dashboard cancel/retry (task instructions, section 1) act on the
       // GitHub issue directly from the browser — this is what makes those
-      // actions take effect here rather than being purely cosmetic.
-      const { cancelled, retried } = reconcileIssueState(tasksState, issues);
-      if (cancelled > 0) log.info('cancelled tasks whose issue was closed from the dashboard', { cancelled });
-      if (retried > 0) log.info('reset tasks to pending after a dashboard retry', { retried });
+      // actions take effect here rather than being purely cosmetic. Skipped
+      // entirely when issue sync failed (`issues === null`): "could not reach
+      // GitHub" must not be treated as "no open issues", or every pending
+      // task would be cancelled on a transient API error.
+      if (issues !== null) {
+        const { cancelled, retried } = reconcileIssueState(tasksState, issues);
+        if (cancelled > 0) log.info('cancelled tasks whose issue was closed from the dashboard', { cancelled });
+        if (retried > 0) log.info('reset tasks to pending after a dashboard retry', { retried });
+      }
     }
 
     if (process.env.TITAN_MANUAL_TASK && process.env.TITAN_MANUAL_TASK.trim().length > 0) {
@@ -284,8 +314,15 @@ async function main() {
       await revisitSelfImprovePr(task);
     }
 
-    const pending = tasksState.tasks.filter((t) => t.status === 'pending');
-    const claim = pending.slice(0, config.orchestrator.maxTasksPerPulse);
+    // Claim order: priority (high > normal > low), then FIFO by createdAt.
+    // A task without a priority behaves exactly as today (normal, arrival
+    // order). TTL (opt-in, default disabled) expires a stale pending task
+    // into `failed` instead of running it late. See `issueSync.selectClaims`.
+    const { claims: claim, expired } = selectClaims(tasksState.tasks, {
+      max: config.orchestrator.maxTasksPerPulse,
+      ttlMs: config.orchestrator.taskTtlMs,
+    });
+    tasksFailed += expired.length;
     for (const task of claim) {
       task.claimedAt = new Date().toISOString();
       tasksClaimed += 1;
