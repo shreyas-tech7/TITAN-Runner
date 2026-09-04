@@ -104,6 +104,14 @@
       "tasksClaimed": 0,
       "tasksCompleted": 0,
       "tasksFailed": 0
+    },
+    {
+      "at": "2026-09-04T18:27:39.969Z",
+      "durationMs": 300,
+      "status": "ok",
+      "tasksClaimed": 0,
+      "tasksCompleted": 0,
+      "tasksFailed": 0
     }
   ]
 }
