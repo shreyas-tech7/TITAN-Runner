@@ -12,6 +12,7 @@ import { listOpenTaskIssues } from './github.js';
 import { redactString } from './lib/redact.js';
 import { scrubForState } from './lib/secretScrub.js';
 import { parseTaskYaml } from './lib/taskYaml.js';
+import { screenPrompt } from './lib/promptScreen.js';
 import { config } from './config.js';
 import { createLogger } from './lib/logger.js';
 
@@ -58,6 +59,11 @@ export async function syncIssuesIntoTasks(tasksState) {
     const title = structured?.title ?? issue.title ?? '';
     const prompt = structured?.description ?? issue.body ?? '';
 
+    // Layer-1 prompt-injection screening (roadmap D1): warn-only. A flagged
+    // task still runs (the Reviewer Gate and redaction remain the enforcement
+    // layers); the warnings are recorded so a human can see them in state.
+    const screening = screenPrompt(`${title}\n${prompt}`);
+
     tasksState.tasks.push(
       scrubForState({
         id,
@@ -68,6 +74,8 @@ export async function syncIssuesIntoTasks(tasksState) {
         prompt: redactString(prompt).slice(0, 8000),
         priority: structured?.priority ?? null,
         routingHint: structured?.routingHint ?? null,
+        screeningSuspicious: screening.suspicious,
+        screeningWarnings: screening.warnings,
         status: 'pending',
         retryCount: 0,
         createdAt: new Date().toISOString(),
@@ -81,6 +89,9 @@ export async function syncIssuesIntoTasks(tasksState) {
       }),
     );
     added += 1;
+    if (screening.suspicious) {
+      log.warn('new task tripped prompt-injection screening (warn-only)', { id, warnings: screening.warnings });
+    }
     log.info('picked up new issue as a task', { id, title: issue.title, selfImprove: isSelfImprove });
   }
 
@@ -215,6 +226,7 @@ export function selectClaims(tasks, { max, ttlMs = 0, now = Date.now() }) {
  */
 export function addManualTask(tasksState, text) {
   const id = `manual-${Date.now()}`;
+  const screening = screenPrompt(text);
   tasksState.tasks.push(
     scrubForState({
       id,
@@ -225,6 +237,8 @@ export function addManualTask(tasksState, text) {
       prompt: redactString(text).slice(0, 8000),
       priority: null,
       routingHint: null,
+      screeningSuspicious: screening.suspicious,
+      screeningWarnings: screening.warnings,
       status: 'pending',
       retryCount: 0,
       createdAt: new Date().toISOString(),

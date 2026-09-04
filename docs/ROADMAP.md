@@ -444,3 +444,39 @@ Land the **P0 correctness/safety slice** first — A1 (verification task) + A2
 (sandboxed execution) + G1 (parser fuzzing) + E2 (queue pruning) — because it
 is the largest quality-per-risk win and none of it touches a denylisted path
 or a workflow. Then proceed through P1 in small, individually-shippable PRs.
+
+## 18. Implementation status
+
+This section records what has actually landed (and what is still open) so the
+plan and the code never drift. Updated each time an item ships.
+
+**Shipped (all behaviour-preserving / additive, none denylisted):**
+
+- **A1 — verification pass** — `src/orchestrator/verifier.js`; runs post-
+  synthesis in live mode only, records `passed|failed|unavailable|skipped`,
+  and *never* blocks a task (a failed verdict degrades to "complete with
+  caveats", surfaced on the issue and in the run record).
+- **D1 — prompt-injection & output-hygiene screening** —
+  `src/lib/promptScreen.js`; warn-only, wired into `issueSync.js` (incoming)
+  and `pulse.js` (outgoing content), recorded as `screeningWarnings`.
+- **G1 — parser fuzzing** — `test/parser-fuzz.test.js`; deterministic,
+  dependency-free corpus proving the model-output parsers terminate and stay
+  well-shaped.
+- **E2 — bounded task queue** — `src/state/prune.js#pruneTasks`; archives the
+  oldest `complete`/`cancelled` tasks into a dated digest beyond
+  `TITAN_MAX_TERMINAL_TASKS` (default 100). `failed`/`blocked` are never
+  archived (their open issues need the id to avoid re-import).
+- **C6 — no-provider degradation ladder** — `src/pulse.js`; with zero
+  configured providers a live pulse fails tasks with setup guidance instead
+  of three doomed attempts each.
+- **J2 — per-run token accounting** — run records now carry `tokenUsage`.
+- **A5 — deterministic replay fields** — run records now carry `promptHash`
+  and `seed` (per-attempt `modelId` already existed).
+- **L1/L2/H4 — docs & governance** — `docs/ARCHITECTURE.md`, `docs/adr/0001`,
+  `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`.
+
+**Still open (not yet landed):** A2 (sandboxed execution of generated tests —
+needs a workflow change, **🚩**), A3–A6, B1–B7, C1–C5, D2–D7 (D2/D3/D4/D6 are
+**🚩**), E1, E3–E5, F1–F4, G2–G6 (G4/G5 touch CI **🚩**), H1–H3/H5, I1–I7,
+J1/J3/J4, K1–K3 (K3 **🚩**), L3/L4, and M1–M7. These proceed in small,
+individually-reversible PRs per §16's guardrails.

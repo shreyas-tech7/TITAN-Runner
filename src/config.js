@@ -75,6 +75,10 @@ export const config = Object.freeze({
     // task that was never claimed instead of running it stale.
     taskTtlMs: positiveInt(process.env.TITAN_TASK_TTL_MS, 0),
     maxTaskRetries: positiveInt(process.env.TITAN_MAX_TASK_RETRIES, 3),
+    // Post-synthesis verification pass (roadmap A1). On by default in live
+    // mode; TITAN_VERIFICATION=0 turns it off. Never blocks a task — a failed
+    // verification degrades to "complete with caveats" (see verifier.js).
+    verification: process.env.TITAN_VERIFICATION !== '0',
   },
 
   reviewer: {
@@ -88,6 +92,11 @@ export const config = Object.freeze({
   retention: {
     maxRunFiles: positiveInt(process.env.TITAN_MAX_RUN_FILES, 60),
     maxReviewLines: positiveInt(process.env.TITAN_MAX_REVIEW_LINES, 5000),
+    // Bound on the number of finished (complete/cancelled) tasks kept in the
+    // live `state/tasks.json` queue; older ones are rolled into a dated
+    // digest under `state/digests/` (roadmap E2). Failed/blocked tasks are
+    // never archived (their open issues need the id to avoid re-import).
+    maxTerminalTasks: positiveInt(process.env.TITAN_MAX_TERMINAL_TASKS, 100),
   },
 });
 
