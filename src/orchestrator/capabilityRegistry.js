@@ -13,11 +13,13 @@
  * `observed` (per-model, per-category rolling stats) is fed by the scheduler
  * after every task completion — a simple running average, not a model.
  *
- * Persistence is fail-soft, matching db/index.js and store/index.js in this
- * same codebase: a missing or corrupt `capabilities.json` degrades to the
- * seed table, never a thrown error. The cache file itself is gitignored
- * (like `.titan-store/`) — it is regenerated state, not a deliverable; the
- * seed table below is the thing that is actually shipped and reviewed.
+ * Persistence is fail-soft, matching the rest of this repo's state layer: a
+ * missing or corrupt cache degrades to the seed table, never a thrown error.
+ * The cache file (`state/agents.json`) is COMMITTED, like every other state
+ * file — a GitHub Actions runner is wiped between pulses, so committed state
+ * is the only thing that survives (see docs/RUNTIME.md). The seed table below
+ * is what ships and gets reviewed; the committed cache accumulates real
+ * observed stats across pulses.
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -486,15 +488,13 @@ export class CapabilityRegistry {
    * Test-only: wipe every accumulated record — in memory AND on disk — back
    * to nothing, so the next `get()` reseeds from `SEED_TABLE` alone.
    *
-   * Exists specifically because `engine.js` imports the module-level
+   * Exists specifically because `pulse.js` imports the module-level
    * `capabilityRegistry` singleton (correctly — production routing must
    * learn across real runs, so a fresh instance per call would defeat the
-   * point). That same singleton is what `engine.test.js` exercises through
-   * real `createRun()` calls, and every one of those records real
-   * observations to the real on-disk cache. Without a reset between runs,
-   * repeated `npm test` invocations accumulate observed data that can flip
-   * routing decisions between otherwise-identical test runs — this is
-   * exactly the nondeterminism Wave 4's own tests caught before commit.
+   * point). Tests exercising that singleton record real observations to the
+   * real on-disk cache; without a reset between runs, repeated `npm test`
+   * invocations accumulate observed data that can flip routing decisions
+   * between otherwise-identical test runs.
    */
   resetForTests() {
     this.#records.clear();

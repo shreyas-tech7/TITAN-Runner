@@ -116,7 +116,14 @@ writeFileSync(outPath, lines.join('\n'), 'utf8');
 console.log(`Wrote ${outPath}`);
 
 const issueTitle = `TITAN-Runner weekly digest — ${dateStamp}`;
-const existing = await listOpenTaskIssues(DIGEST_LABEL);
+let existing = [];
+try {
+  existing = await listOpenTaskIssues(DIGEST_LABEL);
+} catch (err) {
+  // Dedupe is best-effort only — a GitHub API failure here just means a
+  // possible duplicate digest issue on a retry, never a skipped rollup.
+  console.warn(`Could not list existing digest issues (continuing without dedupe check): ${err instanceof Error ? err.message : String(err)}`);
+}
 if (existing.some((i) => i.title === issueTitle)) {
   console.log('Digest issue already open for this date — not filing a duplicate.');
 } else {

@@ -1,29 +1,25 @@
 /**
  * @file Adapter that wraps the existing five-provider AI registry
- * (`services/registry.js`) behind the `AgentAdapter` interface, so the
+ * (`providers/registry.js`) behind the `AgentAdapter` interface, so the
  * orchestrator's scheduler can treat "one of the five Phase 2 providers" as
  * just another agent pool alongside `freebuff` and `opencode`.
  *
- * This is a thin pass-through: `services/registry.js` already owns discovery,
- * failover, health caching, and offline-fixture behaviour end to end, so none
- * of that is duplicated here — this file's only job is shaping calls in and
- * results out. The registry dependency is injectable (`registryDep`,
- * defaulting to the real singleton) so tests can prove a full success path
- * with a fake `chat()` that resolves synchronously and does zero I/O. A real
- * `Registry` in this test environment has no provider keys configured and can
- * only ever exercise the ALL_PROVIDERS_FAILED path (see registry.test.js) —
- * that is not sufficient to prove this adapter's happy path works.
+ * This is a thin pass-through: `providers/registry.js` already owns
+ * discovery, failover, health caching, and offline-fixture behaviour end to
+ * end, so none of that is duplicated here — this file's only job is shaping
+ * calls in and results out. The registry dependency is injectable
+ * (`registryDep`, defaulting to the real singleton) so tests can prove a
+ * full success path with a fake `chat()` that resolves synchronously and
+ * does zero I/O.
  *
- * NOTE on `_buildTaskPrompt`: `AgentAdapter.js` was expected to provide a
- * shared `this._buildTaskPrompt(task, sharedContext)` helper, but as of this
- * writing it does not define one (checked by reading the file in full — no
- * such method exists on `main` or `phase-3-orchestrator`). Rather than add a
- * method to a base class that two other in-flight adapters
- * (`freebuffAgent.js`, `opencodeAgent.js`) extend in parallel — risking an
- * uncoordinated three-way merge conflict on shared infrastructure — this file
- * defines its own equivalent `buildTaskPrompt()` below, scoped to this pool
- * only. If the base class later grows a real `_buildTaskPrompt`, this local
- * copy should be deleted in favour of it.
+ * Task prompts are built by the base class's shared
+ * `AgentAdapter#_buildTaskPrompt()` — the same prompt builder `opencodeAgent`
+ * uses — so the five-provider pool receives the identical
+ * `{"files":[...]}` JSON-envelope instruction as every other pool. (This
+ * file once carried a private `buildTaskPrompt()` stand-in from before that
+ * base-class method existed; it silently diverged and dropped the envelope
+ * instructions, so every Phase 2 task was being told nothing about the file
+ * format. Removed in favour of the shared method.)
  */
 
 import { AgentAdapter } from './AgentAdapter.js';
@@ -34,7 +30,7 @@ import { buildProbePrompt } from '../orchestrator/capabilityRegistry.js';
 /** This adapter's pool name, per taxonomy.js's AGENT_POOLS. */
 const POOL = 'phase2';
 
-/** The five provider ids `services/registry.js` owns, in its own FAILOVER_ORDER. */
+/** The five provider ids `providers/registry.js` owns (see its FAILOVER_ORDER). */
 const PROVIDER_IDS = ['groq', 'openrouter', 'together', 'gemini', 'huggingface'];
 
 /**
@@ -67,34 +63,12 @@ function stripPoolPrefix(modelId) {
 }
 
 /**
- * Format a task and its shared run context into one user-turn prompt. Local
- * stand-in for a base-class `_buildTaskPrompt()` that does not exist yet —
- * see the file header note.
- * @param {import('./AgentAdapter.js').AdapterTask} task
- * @param {string} sharedContext
- * @returns {string}
- */
-function buildTaskPrompt(task, sharedContext) {
-  const body = [
-    `Task: ${task?.title ?? task?.id ?? 'untitled'}`,
-    `Aspect: ${task?.aspect ?? 'unspecified'}`,
-    '',
-    task?.description ?? '',
-    '',
-    `Deliverable: ${task?.deliverable ?? ''}`,
-  ]
-    .join('\n')
-    .trim();
-  return sharedContext ? `${sharedContext}\n\n${body}` : body;
-}
-
-/**
- * Adapts `services/registry.js`'s five-provider chat routing to the
+ * Adapts `providers/registry.js`'s five-provider chat routing to the
  * `AgentAdapter` interface. See the file header for the DI rationale.
  */
 export class Phase2Agent extends AgentAdapter {
   /**
-   * @param {{ registry?: import('../services/registry.js').Registry, maxConcurrency?: number }} [init]
+   * @param {{ registry?: import('../providers/registry.js').Registry, maxConcurrency?: number }} [init]
    */
   constructor({ registry: registryDep = registry, maxConcurrency = 5 } = {}) {
     super({ pool: POOL, label: 'Phase 2 (5-provider registry)', maxConcurrency });
@@ -118,18 +92,15 @@ export class Phase2Agent extends AgentAdapter {
    * @returns {Promise<{output: string, modelId: string, tokensUsed: number|null}>}
    */
   async _doExecute(task, sharedContext, options) {
-    /** @type {import('../services/base.js').ChatMessage[]} */
-    const messages = [{ role: 'user', content: buildTaskPrompt(task, sharedContext) }];
-    const service = /** @type {import('../services/registry.js').RouteTarget} */ (
-      options.modelId ? stripPoolPrefix(options.modelId) : 'auto'
-    );
+    const messages = [{ role: 'user', content: this._buildTaskPrompt(task, sharedContext) }];
+    const service = options.modelId ? stripPoolPrefix(options.modelId) : 'auto';
 
     // Any throw here (a ProviderError, already carrying `.code`) propagates
     // untouched — the base class's execute() wrapper catches, redacts, and
     // shapes it. Nothing to catch on this side.
     const result = await this.registryDep.chat(messages, {
       taskType: 'code',
-      service: /** @type {import('../services/registry.js').RouteTarget} */ (service),
+      service,
       signal: options.signal,
     });
 
@@ -166,13 +137,10 @@ export class Phase2Agent extends AgentAdapter {
   async _doProbeCapabilities(modelId, opts) {
     const providerId = stripPoolPrefix(modelId);
     const probePrompt = buildProbePrompt(modelId, opts);
-    const result = await this.registryDep.chat(
-      /** @type {import('../services/base.js').ChatMessage[]} */ ([{ role: 'user', content: probePrompt }]),
-      {
-        taskType: 'analysis',
-        service: /** @type {import('../services/registry.js').RouteTarget} */ (providerId),
-      },
-    );
+    const result = await this.registryDep.chat([{ role: 'user', content: probePrompt }], {
+      taskType: 'analysis',
+      service: providerId,
+    });
     return result.text;
   }
 }

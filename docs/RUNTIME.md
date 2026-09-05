@@ -138,7 +138,18 @@ commit/push left to the workflow shell steps around it.
    marks the task failed if CI concluded failure; marks it complete and
    closes the issue if the PR was merged; otherwise leaves it for the next
    pulse.
-6. Claim up to `TITAN_MAX_TASKS_PER_PULSE` (default 3) pending tasks.
+6. Claim up to `TITAN_MAX_TASKS_PER_PULSE` (default 3) pending tasks —
+   chosen by priority (high > normal > low), then FIFO by `createdAt`
+   (`src/issueSync.js#selectClaims`); a task without a priority behaves
+   exactly as before. If `TITAN_TASK_TTL_MS` is set, a pending task older
+   than that is marked `failed` ("Expired") instead of being run stale; the
+   default (unset/0) keeps tasks in the queue forever. A task whose issue is
+   retried from the dashboard more than `TITAN_MAX_TASK_RETRIES` (default 3)
+   times stops being reset to `pending` and fails loudly instead. If the
+   GitHub issue-list call fails mid-pulse, intake and cancel/retry
+   reconciliation are skipped for that pulse (logged, never treated as "no
+   open issues" — which would have cancelled every pending task), and the
+   pulse still runs any already-pending and manual tasks.
 7. For each claimed task: run it past the Reviewer Gate, then
    decompose -> schedule -> synthesize across the three agent pools
    (`freebuff`, `opencode`, `phase2` — the last wrapping the five free-tier
@@ -187,12 +198,17 @@ it's written — a value-only redaction (see below for why it's deliberately
 prompt/completion text at all. `state/`'s whole purpose is the opposite: a
 task's prompt and a model's output ARE the deliverable this repo exists to
 store and post back to the filer. `src/lib/secretScrub.js`'s
-`scrubForState()` instead walks every string value and applies only
-`redactString()`'s pattern scan (credential-shaped substrings, email
-addresses) — content survives, secrets don't. Using `redact()` on state by
-mistake was a real bug caught during this build (a task's own prompt came
-back as literal `"[REDACTED]"` in `state/tasks.json`) — see the git history
-if curious.
+`scrubForState()` instead walks every string value and applies a pattern
+scan (credential-shaped substrings, email addresses) — content survives,
+secrets don't. Using `redact()` on state by mistake was a real bug caught
+during this build (a task's own prompt came back as literal `"[REDACTED]"`
+in `state/tasks.json`) — see the git history if curious.
+
+The issue comment the pulse posts (`src/pulse.js#issueCommentFor`) goes
+through the same `redactString()` scan as `state/` — the originating issue is
+another public, world-readable, search-indexed sink, and the summary + file
+contents it posts are model output, so they must never carry a
+credential-shaped string either.
 
 ## The dashboard
 
