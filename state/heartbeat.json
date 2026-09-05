@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "lastPulseAt": "2026-09-05T00:53:01.545Z",
+  "lastPulseAt": "2026-09-05T05:31:51.831Z",
   "lastPulseStatus": "ok",
-  "lastPulseDurationMs": 398,
+  "lastPulseDurationMs": 272,
   "lastPulseTasksClaimed": 0,
   "lastPulseTasksCompleted": 0,
   "lastPulseTasksFailed": 0,
   "lastPulseError": null,
   "consecutivePulseFailures": 0,
-  "totalPulses": 31,
+  "totalPulses": 32,
   "cadenceMinutes": 15
 }
