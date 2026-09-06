@@ -234,12 +234,12 @@
       "tasksFailed": 0
     },
     {
-      "at": "2026-09-06T18:07:24.024Z",
-      "durationMs": 4476,
+      "at": "2026-09-06T18:20:57.704Z",
+      "durationMs": 364,
       "status": "ok",
-      "tasksClaimed": 1,
+      "tasksClaimed": 0,
       "tasksCompleted": 0,
-      "tasksFailed": 1
+      "tasksFailed": 0
     }
   ]
 }
