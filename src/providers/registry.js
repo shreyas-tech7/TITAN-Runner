@@ -13,6 +13,7 @@ import { OpenRouterProvider } from './openrouter.js';
 import { GeminiProvider } from './gemini.js';
 import { HuggingFaceProvider } from './huggingface.js';
 import { providerHealth } from './health.js';
+import { quotaLedger } from '../state/quota.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('providers:registry');
@@ -23,15 +24,18 @@ export const FAILOVER_ORDER = ['groq', 'together', 'openrouter', 'gemini', 'hugg
 export class Registry {
   #providers = new Map();
   #health;
+  #quota;
 
   /**
-   * @param {{providers?: Map<string, object>, healthStore?: import('./health.js').ProviderHealthStore}} [deps]
-   *   Both injectable for tests only — production code always uses the
+   * @param {{providers?: Map<string, object>, healthStore?: import('./health.js').ProviderHealthStore,
+   *   quota?: import('../state/quota.js').QuotaLedger}} [deps]
+   *   All three injectable for tests only — production code always uses the
    *   defaults (the five real provider instances, the shared `providerHealth`
-   *   singleton). See `test/registry-health.test.js`.
+   *   and `quotaLedger` singletons). See `test/registry-health.test.js`.
    */
-  constructor({ providers, healthStore = providerHealth } = {}) {
+  constructor({ providers, healthStore = providerHealth, quota = quotaLedger } = {}) {
     this.#health = healthStore;
+    this.#quota = quota;
     if (providers) {
       this.#providers = providers;
       return;
@@ -82,7 +86,23 @@ export class Registry {
         skipped.push(id);
         continue;
       }
+      // Quota ledger (task brief, Track B): skip a provider already at its
+      // known free-tier daily cap rather than burning a retry on a call
+      // almost certain to 429 — same "auto mode only, an explicit hint
+      // still gets one honest attempt" rule as the health check above.
+      if (service === 'auto' && this.#quota.wouldExceed(id)) {
+        skipped.push(`${id} (quota)`);
+        continue;
+      }
       tried.push(id);
+      // Only auto-routed calls count against the ledger — same rule as the
+      // skip check above. An explicit routing hint (the reviewer's own
+      // `service: 'groq'` call, or a task's `routingHint`) is a human/system
+      // decision to use this provider regardless, and is rare enough next
+      // to ordinary auto-routed traffic that under-counting it is the safer
+      // direction (never block a deliberate explicit choice on a ledger it
+      // never opted into).
+      if (service === 'auto') this.#quota.recordCall(id);
       try {
         return await provider.chat(messages, { temperature, maxTokens, signal });
       } catch (err) {

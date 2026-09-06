@@ -42,6 +42,10 @@ import { pruneRuns } from './state/prune.js';
 import { scrubForState } from './lib/secretScrub.js';
 import { redactString } from './lib/redact.js';
 import { createLogger } from './lib/logger.js';
+import { CONTRACT_VERSION } from './state/contract.js';
+import { acquireLock, releaseLock } from './state/lock.js';
+import { quotaLedger } from './state/quota.js';
+import { writeHealthSnapshot } from './state/health.js';
 
 const log = createLogger('pulse');
 
@@ -91,15 +95,54 @@ function actionsRunUrl() {
   return `https://github.com/${config.github.repository}/actions/runs/${config.github.runId}`;
 }
 
-function writeRunRecord(task, result, durationMs) {
+/**
+ * @param {object} task
+ * @param {object} result
+ * @param {number} durationMs
+ * @param {{ verdict: string, reason: string|null, matchedRules: string[] }|null} review The
+ *   Reviewer Gate verdict for this task, so the contract's `reviewer` field
+ *   (docs/CONTRACT.md) reflects a real decision rather than being omitted.
+ */
+function writeRunRecord(task, result, durationMs, review) {
+  const now = new Date().toISOString();
+  const subtasks = [...result.tasksById.values()].map((t) => {
+    const tokensOut = (t.attempts ?? []).reduce((sum, a) => (typeof a.tokensUsed === 'number' ? sum + a.tokensUsed : sum), 0);
+    return {
+      id: t.id,
+      title: t.title,
+      agent: t.assignment?.pool ?? null,
+      provider: t.assignment?.pool ?? null,
+      model: t.assignment?.modelId ?? null,
+      status: t.state,
+      startedAt: t.startedAt ?? null,
+      endedAt: t.completedAt ?? null,
+      attempts: (t.attempts ?? []).length,
+      tokensIn: null, // not tracked separately from tokensOut anywhere upstream
+      tokensOut: tokensOut > 0 ? tokensOut : null,
+      costUsd: 0, // every provider this repo calls is free-tier — task brief, section 8
+      artifacts: result.synthesis.files.filter((f) => f.sourceTaskId === t.id).map((f) => f.path),
+    };
+  });
+  const providerCalls = subtasks.reduce((sum, s) => sum + s.attempts, 0);
+  const retries = subtasks.reduce((sum, s) => sum + Math.max(0, s.attempts - 1), 0);
+
   const record = scrubForState({
+    contractVersion: CONTRACT_VERSION,
     runId: result.runId,
     taskId: task.id,
     taskTitle: task.title,
+    title: task.title,
     issueUrl: task.issueUrl,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
     durationMs,
+    // `state` is this repo's own long-standing field name (dashboard reads
+    // it); `status` is the contract's exact enum member (docs/CONTRACT.md) —
+    // both are written, additively, rather than renaming the field the
+    // dashboard already depends on.
     state: result.ok ? 'complete' : 'failed',
+    status: result.ok ? 'done' : 'failed',
+    redacted: true,
     actionsRunUrl: actionsRunUrl(),
     sharedContext: String(result.graph.sharedContext ?? '').slice(0, MAX_RUN_FILE_CHARS),
     tasks: [...result.tasksById.values()].map((t) => ({
@@ -114,6 +157,11 @@ function writeRunRecord(task, result, durationMs) {
       outputPreview: typeof t.output === 'string' ? t.output.slice(0, MAX_FILE_PREVIEW_CHARS) : null,
       error: t.error,
     })),
+    subtasks,
+    reviewer: review
+      ? { verdict: review.verdict, reasons: review.reason ? [review.reason] : [], ruleIds: review.matchedRules ?? [] }
+      : null,
+    metrics: { durationMs, providerCalls, retries, failoverHops: retries },
     files: result.synthesis.files.map((f) => ({ path: f.path, sourceTaskId: f.sourceTaskId, conflict: f.conflict })),
     markdownSummary: String(result.synthesis.markdownSummary ?? '').slice(0, MAX_RUN_FILE_CHARS),
   });
@@ -173,7 +221,7 @@ async function processTask(task) {
   }
 
   task.runId = result.runId;
-  writeRunRecord(task, result, Date.now() - Date.parse(task.startedAt));
+  writeRunRecord(task, result, Date.now() - Date.parse(task.startedAt), review);
 
   if (task.type === 'self-improve') {
     const outcome = await proposeSelfImprovement(task, result.synthesis);
@@ -249,9 +297,30 @@ function primeProviderHealth() {
   }
 }
 
+/** This pulse process's own identity for the lock file — one per `main()`
+ *  invocation, so a stale lock from a crashed prior run is unambiguously
+ *  someone else's. */
+const PULSE_RUN_ID = randomUUID();
+
 async function main() {
   const pulseStartedAt = Date.now();
   ensureStateFiles();
+
+  // Idempotency/locking (task brief, Track B) — defense in depth alongside
+  // titan-pulse.yml's own `concurrency: { group: titan-pulse }`; see
+  // src/state/lock.js's file header for why both exist. A pulse that can't
+  // acquire the lock no-ops cleanly rather than racing the state files a
+  // concurrent run already has open.
+  const holder = config.github.runId ? `github-actions:${config.github.runId}` : `local:${process.pid}`;
+  const lock = acquireLock({ runId: PULSE_RUN_ID, holder });
+  if (!lock.ok) {
+    log.warn('another pulse already holds the lock — no-op, not double-running', {
+      heldBy: lock.heldBy.holder, heldSince: lock.heldBy.acquiredAt, expiresAt: lock.heldBy.expiresAt,
+    });
+    console.log(JSON.stringify({ pulse: 'skipped-locked', heldBy: lock.heldBy.holder, expiresAt: lock.heldBy.expiresAt }));
+    return;
+  }
+
   primeProviderHealth();
 
   const tasksState = loadTasksState();
@@ -302,6 +371,7 @@ async function main() {
     capabilityRegistry.list();
     capabilityRegistry.save();
     providerHealth.save();
+    quotaLedger.save();
 
     const pruneResult = pruneRuns({ maxFiles: 60 });
     if (pruneResult.prunedCount > 0) log.info('pruned old run records into a digest', pruneResult);
@@ -313,6 +383,8 @@ async function main() {
   const durationMs = Date.now() - pulseStartedAt;
   const finishedAt = new Date().toISOString();
   saveTasksState(tasksState);
+  const consecutivePulseFailures = pulseError ? (heartbeat.consecutivePulseFailures ?? 0) + 1 : 0;
+  const totalPulses = (heartbeat.totalPulses ?? 0) + 1;
   saveHeartbeat({
     version: 1,
     lastPulseAt: finishedAt,
@@ -322,8 +394,8 @@ async function main() {
     lastPulseTasksCompleted: tasksCompleted,
     lastPulseTasksFailed: tasksFailed,
     lastPulseError: pulseError,
-    consecutivePulseFailures: pulseError ? (heartbeat.consecutivePulseFailures ?? 0) + 1 : 0,
-    totalPulses: (heartbeat.totalPulses ?? 0) + 1,
+    consecutivePulseFailures,
+    totalPulses,
     cadenceMinutes: heartbeat.cadenceMinutes ?? 15,
   });
   // Pulse timeline strip (dashboard, task instructions section 3) — real
@@ -337,6 +409,20 @@ async function main() {
     tasksCompleted,
     tasksFailed,
   });
+  // state/health.json (task brief, Track B) — additive alongside
+  // state/heartbeat.json above; see docs/DECISIONS.md D-6.
+  writeHealthSnapshot({
+    lastPulseAt: finishedAt,
+    lastPulseStatus: pulseError ? 'error' : 'ok',
+    lastPulseDurationMs: durationMs,
+    consecutivePulseFailures,
+    totalPulses,
+    providers: providerHealth.list().map((p) => ({
+      id: p.id, status: p.status, configured: p.configured, cooldownUntil: p.cooldownUntil,
+    })),
+  });
+
+  releaseLock(PULSE_RUN_ID);
 
   console.log(
     JSON.stringify({
