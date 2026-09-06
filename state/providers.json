@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-06T16:08:02.146Z",
+  "updatedAt": "2026-09-06T18:07:24.023Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -41,16 +41,16 @@
     "openrouter": {
       "id": "openrouter",
       "configured": true,
-      "status": "error",
-      "lastCheckedAt": "2026-09-03T01:31:18.287Z",
-      "lastSuccessAt": null,
-      "latencyMs": null,
-      "p50LatencyMs": null,
-      "samples": 1,
-      "errorRate": 0.3,
-      "consecutiveFailures": 1,
-      "cooldownUntil": "2026-09-03T01:36:18.287Z",
-      "lastError": "OpenRouter returned no message content",
+      "status": "ok",
+      "lastCheckedAt": "2026-09-06T18:07:24.021Z",
+      "lastSuccessAt": "2026-09-06T18:07:24.021Z",
+      "latencyMs": 2171,
+      "p50LatencyMs": 2171,
+      "samples": 2,
+      "errorRate": 0.21,
+      "consecutiveFailures": 0,
+      "cooldownUntil": null,
+      "lastError": null,
       "model": "inclusionai/ling-3.0-flash-fin:free",
       "discoveredModels": [
         "inclusionai/ling-3.0-flash-fin:free",

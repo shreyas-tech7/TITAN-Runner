@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-06T18:07:24.024Z",
+  "lastRunAt": "2026-09-06T18:07:24.024Z",
+  "lastRunStatus": "ok",
+  "lastRunDurationMs": 4476,
+  "consecutiveFailures": 0,
+  "totalRuns": 44,
+  "beacon": "green",
+  "providers": [
+    {
+      "id": "groq",
+      "status": "not_configured",
+      "configured": false,
+      "cooldownUntil": null
+    },
+    {
+      "id": "together",
+      "status": "not_configured",
+      "configured": false,
+      "cooldownUntil": null
+    },
+    {
+      "id": "openrouter",
+      "status": "ok",
+      "configured": true,
+      "cooldownUntil": null
+    },
+    {
+      "id": "gemini",
+      "status": "ok",
+      "configured": true,
+      "cooldownUntil": null
+    },
+    {
+      "id": "huggingface",
+      "status": "not_configured",
+      "configured": false,
+      "cooldownUntil": null
+    },
+    {
+      "id": "freebuff",
+      "status": "no_public_api",
+      "configured": true,
+      "cooldownUntil": null
+    },
+    {
+      "id": "opencode",
+      "status": "not_configured",
+      "configured": false,
+      "cooldownUntil": null
+    }
+  ]
+}
