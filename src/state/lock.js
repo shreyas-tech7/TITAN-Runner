@@ -64,7 +64,10 @@ export function acquireLock({ runId, holder, ttlMs = DEFAULT_TTL_MS, path = LOCK
   if (existing && existing.runId !== runId && !isExpired(existing, now)) {
     return { ok: false, heldBy: existing };
   }
-  if (existing && existing.runId !== runId && isExpired(existing, now)) {
+  if (existing && existing.runId !== null && existing.runId !== runId && isExpired(existing, now)) {
+    // existing.runId === null is the ordinary "cleanly released" marker
+    // releaseLock() writes — not a stale/abandoned lock, so it doesn't earn
+    // this warning.
     log.warn('reclaiming a stale lock', { staleRunId: existing.runId, staleHolder: existing.holder, expiredAt: existing.expiresAt });
   }
   writeJsonAtomic(path, {
