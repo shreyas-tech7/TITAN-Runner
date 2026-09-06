@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { reconcileIssueState } from '../src/issueSync.js';
+import { reconcileIssueState, processTitanCommands } from '../src/issueSync.js';
 
 function task(overrides) {
   return {
@@ -78,4 +78,118 @@ test('a blocked (Reviewer Gate) task can also be retried once its issue is reope
   const result = reconcileIssueState(state, [{ number: 4, updated_at: '2026-01-01T01:00:00.000Z' }]);
   assert.equal(result.retried, 1);
   assert.equal(state.tasks[0].status, 'pending');
+});
+
+test('a needs-human task (status "review") is reset to pending once titan-approved is added — the human approval gate', () => {
+  const state = { tasks: [task({ issueNumber: 5, status: 'review' })] };
+  const withoutApproval = reconcileIssueState(state, [{ number: 5, labels: [{ name: 'titan-task' }, { name: 'titan-review' }] }]);
+  assert.equal(withoutApproval.approved, 0);
+  assert.equal(state.tasks[0].status, 'review', 'must not proceed without titan-approved');
+
+  const result = reconcileIssueState(state, [
+    { number: 5, labels: [{ name: 'titan-task' }, { name: 'titan-review' }, { name: 'titan-approved' }] },
+  ]);
+  assert.equal(result.approved, 1);
+  assert.equal(state.tasks[0].status, 'pending');
+});
+
+test('a needs-human task also accepts plain-string labels, not just {name} objects', () => {
+  const state = { tasks: [task({ issueNumber: 6, status: 'review' })] };
+  const result = reconcileIssueState(state, [{ number: 6, labels: ['titan-task', 'titan-approved'] }]);
+  assert.equal(result.approved, 1);
+  assert.equal(state.tasks[0].status, 'pending');
+});
+
+function fakeDeps({ comments = [], owner = 'shreyas-tech7' } = {}) {
+  const posted = [];
+  const labeled = [];
+  return {
+    deps: {
+      listIssueComments: async () => comments,
+      commentOnIssue: async (number, body) => { posted.push({ number, body }); return null; },
+      addLabels: async (number, labels) => { labeled.push({ number, labels }); return null; },
+      repoOwnerLogin: () => owner,
+    },
+    posted,
+    labeled,
+  };
+}
+
+test('/titan cancel from the repo owner cancels a pending task and labels it titan-cancelled', async () => {
+  const t = task({ issueNumber: 10, status: 'pending' });
+  const { deps, posted, labeled } = fakeDeps({
+    comments: [{ user: { login: 'shreyas-tech7' }, body: '/titan cancel', created_at: '2026-02-01T00:00:00.000Z' }],
+  });
+  const result = await processTitanCommands(t, deps);
+  assert.equal(result.action, 'cancel');
+  assert.equal(t.status, 'cancelled');
+  assert.deepEqual(labeled[0].labels, ['titan-cancelled']);
+  assert.equal(posted.length, 1);
+});
+
+test('/titan cancel from someone who is NOT the repo owner is ignored entirely', async () => {
+  const t = task({ issueNumber: 11, status: 'pending' });
+  const { deps, posted } = fakeDeps({
+    comments: [{ user: { login: 'some-random-user' }, body: '/titan cancel', created_at: '2026-02-01T00:00:00.000Z' }],
+  });
+  const result = await processTitanCommands(t, deps);
+  assert.equal(result.action, null);
+  assert.equal(t.status, 'pending');
+  assert.equal(posted.length, 0);
+});
+
+test('/titan retry resets a terminal task to pending', async () => {
+  const t = task({ issueNumber: 12, status: 'failed', completedAt: '2026-01-01T00:00:00.000Z', error: 'boom' });
+  const { deps } = fakeDeps({
+    comments: [{ user: { login: 'shreyas-tech7' }, body: '/titan retry', created_at: '2026-02-01T00:00:00.000Z' }],
+  });
+  const result = await processTitanCommands(t, deps);
+  assert.equal(result.action, 'retry');
+  assert.equal(t.status, 'pending');
+  assert.equal(t.error, null);
+});
+
+test('/titan status never changes the task, only posts a comment', async () => {
+  const t = task({ issueNumber: 13, status: 'running', runId: 'run-xyz' });
+  const { deps, posted } = fakeDeps({
+    comments: [{ user: { login: 'shreyas-tech7' }, body: '/titan status', created_at: '2026-02-01T00:00:00.000Z' }],
+  });
+  const result = await processTitanCommands(t, deps);
+  assert.equal(result.action, 'status');
+  assert.equal(t.status, 'running');
+  assert.match(posted[0].body, /run-xyz/);
+});
+
+test('a command already processed (older than lastCommandProcessedAt) is never re-applied', async () => {
+  const t = task({ issueNumber: 14, status: 'pending', lastCommandProcessedAt: '2026-02-01T00:05:00.000Z' });
+  const { deps, posted } = fakeDeps({
+    comments: [{ user: { login: 'shreyas-tech7' }, body: '/titan cancel', created_at: '2026-02-01T00:00:00.000Z' }],
+  });
+  const result = await processTitanCommands(t, deps);
+  assert.equal(result.action, null);
+  assert.equal(t.status, 'pending');
+  assert.equal(posted.length, 0);
+});
+
+test('a comment that merely mentions /titan cancel mid-sentence is not treated as a command', async () => {
+  const t = task({ issueNumber: 15, status: 'pending' });
+  const { deps } = fakeDeps({
+    comments: [{ user: { login: 'shreyas-tech7' }, body: 'I was thinking about /titan cancel but not yet', created_at: '2026-02-01T00:00:00.000Z' }],
+  });
+  const result = await processTitanCommands(t, deps);
+  assert.equal(result.action, null);
+  assert.equal(t.status, 'pending');
+});
+
+test('when multiple commands arrive, only the most recent one is applied', async () => {
+  const t = task({ issueNumber: 16, status: 'pending' });
+  const { deps } = fakeDeps({
+    comments: [
+      { user: { login: 'shreyas-tech7' }, body: '/titan cancel', created_at: '2026-02-01T00:00:00.000Z' },
+      { user: { login: 'shreyas-tech7' }, body: '/titan status', created_at: '2026-02-01T00:01:00.000Z' },
+    ],
+  });
+  const result = await processTitanCommands(t, deps);
+  assert.equal(result.action, 'status');
+  assert.equal(t.status, 'pending', 'the earlier cancel must not have been applied');
 });

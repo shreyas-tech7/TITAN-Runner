@@ -8,11 +8,18 @@
  * `state/tasks.json` — this repo is public, and Shreyas may paste something
  * careless into an issue without thinking about it.
  */
-import { listOpenTaskIssues } from './github.js';
+import { listOpenTaskIssues, listIssueComments, commentOnIssue, repoOwnerLogin, addLabels } from './github.js';
 import { redactString } from './lib/redact.js';
 import { scrubForState } from './lib/secretScrub.js';
 import { parseTaskYaml } from './lib/taskYaml.js';
 import { createLogger } from './lib/logger.js';
+
+/** Terminal-ish statuses `/titan cancel` can still meaningfully pre-empt —
+ *  deliberately broader than PREEMPTABLE_STATUSES below (issue-close
+ *  cancel), since a comment command can also cancel a task that is
+ *  actively `running`/`review`/`pr-open` right this pulse, not just one
+ *  still queued. */
+const CANCELLABLE_BY_COMMAND = new Set(['pending', 'claimed', 'running', 'review', 'pr-open']);
 
 const log = createLogger('issueSync');
 
@@ -106,6 +113,7 @@ export function reconcileIssueState(tasksState, openIssues) {
   const open = new Map(openIssues.map((i) => [i.number, i]));
   let cancelled = 0;
   let retried = 0;
+  let approved = 0;
 
   for (const task of tasksState.tasks) {
     if (task.issueNumber == null) continue;
@@ -116,6 +124,23 @@ export function reconcileIssueState(tasksState, openIssues) {
       task.completedAt = new Date().toISOString();
       task.error = 'Cancelled from the dashboard — the originating issue was closed before this task ran.';
       cancelled += 1;
+      continue;
+    }
+
+    // Human approval gate (task brief, Track D): a task the Reviewer Gate
+    // parked with verdict `needs-human` (status `review`, issue labeled
+    // `titan-review` — see pulse.js#processTask) sits here until a human
+    // adds `titan-approved` to the issue. Nothing about this loop resets it
+    // automatically otherwise — an ordinary reopen/comment (the RETRIABLE
+    // branch below) never restarts a `review`-status task; only this label
+    // does.
+    if (openIssue && task.status === 'review' && hasLabel(openIssue, 'titan-approved')) {
+      task.status = 'pending';
+      task.claimedAt = null;
+      task.startedAt = null;
+      task.completedAt = null;
+      task.error = null;
+      approved += 1;
       continue;
     }
 
@@ -134,7 +159,12 @@ export function reconcileIssueState(tasksState, openIssues) {
     }
   }
 
-  return { cancelled, retried };
+  return { cancelled, retried, approved };
+}
+
+/** @param {{labels?: Array<string|{name:string}>}} issue @param {string} name @returns {boolean} */
+function hasLabel(issue, name) {
+  return (issue.labels ?? []).some((l) => (typeof l === 'string' ? l : l?.name) === name);
 }
 
 /**
@@ -169,4 +199,90 @@ export function addManualTask(tasksState, text) {
   return id;
 }
 
-export default { syncIssuesIntoTasks, reconcileIssueState, addManualTask };
+/** Matches `/titan cancel`, `/titan retry`, `/titan status`, case-insensitive,
+ *  allowing trailing whitespace/punctuation but nothing else on the line —
+ *  a comment that merely mentions "/titan cancel" mid-sentence does not
+ *  match (must be the whole first line). */
+const COMMAND_PATTERN = /^\/titan\s+(cancel|retry|status)\s*[.!]?\s*$/i;
+
+/**
+ * `/titan cancel`, `/titan retry`, `/titan status` (task brief, Track D) —
+ * restricted to the repo owner and validated against the actual comment
+ * author, never trusted from the comment body/label alone. Processes at
+ * most the single most recent unprocessed command comment on a task's
+ * issue per call, and records `task.lastCommandProcessedAt` so the same
+ * comment is never re-applied on a later pulse.
+ * @param {object} task
+ * @param {{ listIssueComments?: Function, commentOnIssue?: Function, addLabels?: Function,
+ *   repoOwnerLogin?: Function }} [deps] Injectable for tests only —
+ *   production uses the real github.js calls (which themselves no-op
+ *   without a token/in dry-run — see github.js#ready()).
+ * @returns {Promise<{ action: 'cancel'|'retry'|'status'|null }>}
+ */
+export async function processTitanCommands(task, deps = {}) {
+  const _listIssueComments = deps.listIssueComments ?? listIssueComments;
+  const _commentOnIssue = deps.commentOnIssue ?? commentOnIssue;
+  const _addLabels = deps.addLabels ?? addLabels;
+  const _repoOwnerLogin = deps.repoOwnerLogin ?? repoOwnerLogin;
+
+  if (task.issueNumber == null) return { action: null };
+  const owner = _repoOwnerLogin();
+  if (!owner) return { action: null };
+
+  const comments = await _listIssueComments(task.issueNumber);
+  const since = task.lastCommandProcessedAt ?? task.createdAt ?? '1970-01-01T00:00:00.000Z';
+  const sinceMs = Date.parse(since) || 0;
+
+  const candidates = comments
+    .filter((c) => c.user?.login?.toLowerCase() === owner.toLowerCase())
+    .filter((c) => Date.parse(c.created_at ?? '') > sinceMs)
+    .filter((c) => COMMAND_PATTERN.test((c.body ?? '').trim().split('\n')[0]))
+    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+
+  if (candidates.length === 0) return { action: null };
+
+  const last = candidates[candidates.length - 1];
+  const match = COMMAND_PATTERN.exec(last.body.trim().split('\n')[0]);
+  const action = match[1].toLowerCase();
+  task.lastCommandProcessedAt = last.created_at;
+
+  if (action === 'cancel' && CANCELLABLE_BY_COMMAND.has(task.status)) {
+    task.status = 'cancelled';
+    task.completedAt = new Date().toISOString();
+    task.error = `Cancelled via /titan cancel by @${owner}.`;
+    await _addLabels(task.issueNumber, ['titan-cancelled']);
+    await _commentOnIssue(task.issueNumber, `Cancelled, as requested — this task will not be worked on further.`);
+    return { action: 'cancel' };
+  }
+
+  if (action === 'retry' && (RETRIABLE_STATUSES.has(task.status) || task.status === 'review')) {
+    task.status = 'pending';
+    task.claimedAt = null;
+    task.startedAt = null;
+    task.completedAt = null;
+    task.runId = null;
+    task.error = null;
+    await _commentOnIssue(task.issueNumber, `Queued for retry, as requested — the next pulse will pick this up fresh.`);
+    return { action: 'retry' };
+  }
+
+  if (action === 'status') {
+    await _commentOnIssue(
+      task.issueNumber,
+      [
+        `**Status**: \`${task.status}\``,
+        task.runId ? `**Last run**: \`${task.runId}\`` : null,
+        task.error ? `**Last error**: ${redactString(task.error)}` : null,
+      ].filter(Boolean).join('\n'),
+    );
+    return { action: 'status' };
+  }
+
+  // A valid command from the owner, but not applicable to this task's
+  // current status (e.g. /titan retry on a task that's still pending) —
+  // still consumed (lastCommandProcessedAt is already updated above) so it
+  // is never silently retried forever against a status it can't apply to.
+  return { action: null };
+}
+
+export default { syncIssuesIntoTasks, reconcileIssueState, addManualTask, processTitanCommands };

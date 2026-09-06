@@ -25,8 +25,8 @@ import { writeJsonAtomic } from './state/io.js';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-import { syncIssuesIntoTasks, reconcileIssueState, addManualTask } from './issueSync.js';
-import { commentOnIssue, closeIssue } from './github.js';
+import { syncIssuesIntoTasks, reconcileIssueState, addManualTask, processTitanCommands } from './issueSync.js';
+import { commentOnIssue, closeIssue, addLabels, removeLabel } from './github.js';
 import { proposeSelfImprovement, checkSelfImprovePrStatus } from './selfImprove.js';
 import { reviewAction } from './reviewer/reviewer.js';
 import { decompose } from './orchestrator/decomposer.js';
@@ -185,9 +185,55 @@ function issueCommentFor(result) {
   return lines.join('\n');
 }
 
+/**
+ * Label lifecycle (task brief, Track D): titan-task -> titan-running ->
+ * (titan-review | titan-done | titan-blocked | titan-cancelled). The pulse
+ * owns every transition; `titan-task` itself is never removed (it's what
+ * keeps the issue findable/re-syncable), and every call is a no-op in
+ * dry-run/no-token (see github.js#ready()).
+ * @param {object} task
+ * @param {string} label
+ */
+async function setStatusLabel(task, label) {
+  if (!task.issueNumber) return;
+  await removeLabel(task.issueNumber, 'titan-running');
+  await removeLabel(task.issueNumber, 'titan-review');
+  await addLabels(task.issueNumber, [label]);
+}
+
+/**
+ * Dead letter (task brief, Track D): after `config.orchestrator.maxTaskAttempts`
+ * failures, stop treating this as an ordinary retriable `failed` task —
+ * label it `titan-blocked`, comment the reason and the run id, and leave it
+ * there rather than have the next retry (dashboard, `/titan retry`, or a
+ * reopened issue) just fail the same way again.
+ * @param {object} task
+ * @param {string} reason
+ */
+async function finalizeFailure(task, reason) {
+  task.status = 'failed';
+  task.completedAt = new Date().toISOString();
+  task.error = reason;
+  task.failureCount = (task.failureCount ?? 0) + 1;
+
+  if (task.failureCount >= config.orchestrator.maxTaskAttempts) {
+    task.status = 'blocked';
+    if (task.issueNumber) {
+      await setStatusLabel(task, 'titan-blocked');
+      await commentOnIssue(
+        task.issueNumber,
+        `TITAN-Runner is giving up on this task after ${task.failureCount} failed attempt(s): ${redactString(reason)}` +
+          (task.runId ? `\n\nLast run: \`${task.runId}\`` : '') +
+          `\n\nIt will not be retried automatically. Add \`titan-approved\` and \`/titan retry\` if you want it tried again anyway.`,
+      );
+    }
+  }
+}
+
 async function processTask(task) {
   task.status = 'running';
   task.startedAt = new Date().toISOString();
+  if (task.issueNumber) await addLabels(task.issueNumber, ['titan-running']);
 
   const review = await reviewAction({
     toolId: task.type === 'self-improve' ? 'self-improve-task' : 'orchestrate-task',
@@ -196,11 +242,29 @@ async function processTask(task) {
     effect: 'external',
   });
 
+  if (review.verdict === 'needs-human') {
+    // Human approval gate (task brief, Track D) — parked, not failed. The
+    // next pulse resets this to `pending` only once a human adds
+    // `titan-approved` (src/issueSync.js#reconcileIssueState).
+    task.status = 'review';
+    task.error = null;
+    if (task.issueNumber) {
+      await setStatusLabel(task, 'titan-review');
+      await commentOnIssue(
+        task.issueNumber,
+        `TITAN-Runner needs a human before proceeding: ${redactString(review.reason ?? 'the Reviewer Gate flagged this for human judgment.')}\n\n` +
+          `Add the \`titan-approved\` label to this issue once you've reviewed it, and the next pulse will pick it up again.`,
+      );
+    }
+    return;
+  }
+
   if (review.verdict === 'block') {
     task.status = 'blocked';
     task.completedAt = new Date().toISOString();
     task.error = review.reason ?? 'Blocked by the Reviewer Gate.';
     if (task.issueNumber) {
+      await setStatusLabel(task, 'titan-blocked');
       await commentOnIssue(task.issueNumber, `TITAN-Runner declined this task: ${redactString(task.error)}`);
     }
     return;
@@ -210,13 +274,12 @@ async function processTask(task) {
   try {
     result = await runOrchestration(task);
   } catch (err) {
-    task.status = 'failed';
-    task.completedAt = new Date().toISOString();
-    task.error = redactString(err instanceof Error ? err.message : String(err));
-    log.error('task orchestration threw', { taskId: task.id, error: task.error });
+    const reason = redactString(err instanceof Error ? err.message : String(err));
+    log.error('task orchestration threw', { taskId: task.id, error: reason });
     if (task.issueNumber) {
-      await commentOnIssue(task.issueNumber, `TITAN-Runner hit an internal error on this task: ${task.error}`);
+      await commentOnIssue(task.issueNumber, `TITAN-Runner hit an internal error on this task: ${reason}`);
     }
+    await finalizeFailure(task, reason);
     return;
   }
 
@@ -225,9 +288,9 @@ async function processTask(task) {
 
   if (task.type === 'self-improve') {
     const outcome = await proposeSelfImprovement(task, result.synthesis);
-    task.completedAt = new Date().toISOString();
     if (outcome.status === 'pr-open') {
       task.status = 'pr-open';
+      task.completedAt = new Date().toISOString();
       task.prNumber = outcome.prNumber ?? null;
       task.prUrl = outcome.prUrl ?? null;
       if (task.issueNumber) {
@@ -237,20 +300,26 @@ async function processTask(task) {
         );
       }
     } else {
-      task.status = 'failed';
-      task.error = outcome.reason ?? outcome.status;
+      const reason = outcome.reason ?? outcome.status;
       if (task.issueNumber) {
-        await commentOnIssue(task.issueNumber, `TITAN-Runner did not open a pull request for this task: ${redactString(task.error)}`);
+        await commentOnIssue(task.issueNumber, `TITAN-Runner did not open a pull request for this task: ${redactString(reason)}`);
       }
+      await finalizeFailure(task, reason);
     }
     return;
   }
 
-  task.status = result.ok ? 'complete' : 'failed';
-  task.completedAt = new Date().toISOString();
-  if (task.issueNumber) {
-    await commentOnIssue(task.issueNumber, issueCommentFor(result));
-    if (result.ok) await closeIssue(task.issueNumber);
+  if (result.ok) {
+    task.status = 'complete';
+    task.completedAt = new Date().toISOString();
+    if (task.issueNumber) {
+      await commentOnIssue(task.issueNumber, issueCommentFor(result));
+      await setStatusLabel(task, 'titan-done');
+      await closeIssue(task.issueNumber);
+    }
+  } else {
+    if (task.issueNumber) await commentOnIssue(task.issueNumber, issueCommentFor(result));
+    await finalizeFailure(task, 'One or more subtasks failed during orchestration.');
   }
 }
 
@@ -338,9 +407,17 @@ async function main() {
       // Dashboard cancel/retry (task instructions, section 1) act on the
       // GitHub issue directly from the browser — this is what makes those
       // actions take effect here rather than being purely cosmetic.
-      const { cancelled, retried } = reconcileIssueState(tasksState, issues);
+      const { cancelled, retried, approved } = reconcileIssueState(tasksState, issues);
       if (cancelled > 0) log.info('cancelled tasks whose issue was closed from the dashboard', { cancelled });
       if (retried > 0) log.info('reset tasks to pending after a dashboard retry', { retried });
+      if (approved > 0) log.info('reset needs-human tasks to pending after titan-approved', { approved });
+
+      // /titan cancel|retry|status (task brief, Track D) — checked for
+      // every task with a live issue, owner-only, before this pulse claims
+      // anything, so a same-pulse cancel/retry takes effect immediately.
+      for (const task of tasksState.tasks) {
+        if (task.issueNumber != null) await processTitanCommands(task);
+      }
     }
 
     if (process.env.TITAN_MANUAL_TASK && process.env.TITAN_MANUAL_TASK.trim().length > 0) {

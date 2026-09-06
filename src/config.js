@@ -70,6 +70,11 @@ export const config = Object.freeze({
     maxSubtasksPerRun: positiveInt(process.env.TITAN_MAX_SUBTASKS_PER_RUN, 8),
     maxOpenCode: positiveInt(process.env.TITAN_MAX_OPENCODE, 4),
     taskTimeoutMs: positiveInt(process.env.TITAN_TASK_TIMEOUT_MS, 120000),
+    // Dead letter (task brief, Track D): a task that fails this many times
+    // (across retries — a dashboard/`/titan retry`, or a reopened issue —
+    // each attempt included) is labeled titan-blocked and stops being
+    // auto-retried, rather than burning provider calls on it forever.
+    maxTaskAttempts: positiveInt(process.env.TITAN_MAX_TASK_ATTEMPTS, 3),
   },
 
   reviewer: {
