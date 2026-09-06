@@ -38,7 +38,7 @@ import { OpenCodeAgent } from './agents/opencodeAgent.js';
 import { Phase2Agent } from './agents/phase2Agent.js';
 import { registry as providerRegistry } from './providers/registry.js';
 import { providerHealth } from './providers/health.js';
-import { pruneRuns } from './state/prune.js';
+import { pruneRuns, writeStateIndex } from './state/prune.js';
 import { scrubForState } from './lib/secretScrub.js';
 import { redactString } from './lib/redact.js';
 import { createLogger } from './lib/logger.js';
@@ -374,7 +374,8 @@ async function main() {
     quotaLedger.save();
 
     const pruneResult = pruneRuns({ maxFiles: 60 });
-    if (pruneResult.prunedCount > 0) log.info('pruned old run records into a digest', pruneResult);
+    if (pruneResult.prunedCount > 0) log.info('pruned old run records into a digest + archive', pruneResult);
+    writeStateIndex();
   } catch (err) {
     pulseError = redactString(err instanceof Error ? err.message : String(err));
     log.error('pulse failed', { error: pulseError });
