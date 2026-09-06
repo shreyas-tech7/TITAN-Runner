@@ -26,7 +26,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 import { syncIssuesIntoTasks, reconcileIssueState, addManualTask, processTitanCommands } from './issueSync.js';
-import { commentOnIssue, closeIssue, addLabels, removeLabel } from './github.js';
+import { commentOnIssue, closeIssue, addLabels, removeLabel, ensureLabels } from './github.js';
 import { proposeSelfImprovement, checkSelfImprovePrStatus } from './selfImprove.js';
 import { reviewAction } from './reviewer/reviewer.js';
 import { decompose } from './orchestrator/decomposer.js';
@@ -346,6 +346,18 @@ async function revisitSelfImprovePr(task) {
 /** Every provider id this repo knows about, registry-backed or agent-pool-backed. */
 const ALL_PROVIDER_IDS = ['groq', 'together', 'openrouter', 'gemini', 'huggingface', 'freebuff', 'opencode'];
 
+/** The label lifecycle (task brief, Track D) this repo owns end to end.
+ *  `titan-task`/`titan-self-improve` are not listed — they're filed by the
+ *  issue template/dashboard, never created by the pulse itself. */
+const LIFECYCLE_LABELS = [
+  { name: 'titan-running', color: '1d76db', description: 'TITAN-Runner has claimed this task and is working on it now.' },
+  { name: 'titan-review', color: 'fbca04', description: 'The Reviewer Gate needs a human before this proceeds — add titan-approved.' },
+  { name: 'titan-approved', color: '0e8a16', description: 'A human has reviewed a needs-human task — the next pulse will resume it.' },
+  { name: 'titan-done', color: '0e8a16', description: 'TITAN-Runner finished this task successfully.' },
+  { name: 'titan-blocked', color: 'b60205', description: 'Blocked by the Reviewer Gate, or dead-lettered after repeated failures.' },
+  { name: 'titan-cancelled', color: '5319e7', description: 'Cancelled via the dashboard or /titan cancel.' },
+];
+
 /**
  * Stamp `not_configured`/`no_public_api` for every provider that will not be
  * attempted this pulse, so `state/providers.json` (and the dashboard's
@@ -402,6 +414,7 @@ async function main() {
 
   try {
     if (!config.dryRun) {
+      await ensureLabels(LIFECYCLE_LABELS);
       const { added, issues } = await syncIssuesIntoTasks(tasksState);
       if (added > 0) log.info('synced issues into task queue', { added });
       // Dashboard cancel/retry (task instructions, section 1) act on the
