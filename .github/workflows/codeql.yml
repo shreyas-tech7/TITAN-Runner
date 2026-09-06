@@ -1,0 +1,35 @@
+name: CodeQL
+
+# Static analysis for JS/TS across both the pulse (src/, scripts/) and the
+# dashboard (dashboard/). Deliberately its own workflow — CodeQL's analyze
+# step is slow relative to this repo's own test suite, and has no reason to
+# sit on the critical path of a PR the way the fast `test`/`actionlint`/
+# `gitleaks` jobs in ci.yml do.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 8 * * 3" # Wednesday, 08:00 UTC — weekly, offset from every other cron in this repo
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@a45bef097606dca6eac8285c279babedd70e6dfd # v3.37.9
+        with:
+          languages: javascript-typescript
+
+      - uses: github/codeql-action/analyze@a45bef097606dca6eac8285c279babedd70e6dfd # v3.37.9

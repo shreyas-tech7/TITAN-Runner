@@ -38,11 +38,14 @@ jobs:
     # block the next scheduled pulse from ever starting.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          # This job commits and pushes state/ with the workflow's own
+          # GITHUB_TOKEN below — persist-credentials stays at its default
+          # (true) here, deliberately, so the later `git push` step works.
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
 
@@ -77,6 +80,9 @@ jobs:
       - name: Scrub and verify state before committing
         run: node scripts/check-secrets-in-state.mjs
 
+      - name: Verify state contract (redaction gate, schema, size budget)
+        run: node scripts/verify-state.mjs
+
       - name: Commit and push state changes
         run: |
           git config user.name "titan-runner-bot"
@@ -107,6 +113,10 @@ jobs:
 
       - name: Report real run duration
         run: echo "Pulse took ${{ steps.run_pulse.outputs.duration_ms }}ms"
+
+      - name: Write job summary
+        if: always()
+        run: node scripts/write-pulse-summary.mjs >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail the job if the pulse itself errored
         if: env.PULSE_FAILED == '1'
