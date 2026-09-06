@@ -30,6 +30,7 @@ import { AgentAdapter } from './AgentAdapter.js';
 import { registry } from '../providers/registry.js';
 import { isProviderConfigured } from '../config.js';
 import { buildProbePrompt } from '../orchestrator/capabilityRegistry.js';
+import { wrapUntrusted } from '../lib/untrustedContent.js';
 
 /** This adapter's pool name, per taxonomy.js's AGENT_POOLS. */
 const POOL = 'phase2';
@@ -79,7 +80,7 @@ function buildTaskPrompt(task, sharedContext) {
     `Task: ${task?.title ?? task?.id ?? 'untitled'}`,
     `Aspect: ${task?.aspect ?? 'unspecified'}`,
     '',
-    task?.description ?? '',
+    wrapUntrusted('Description', task?.description ?? ''),
     '',
     `Deliverable: ${task?.deliverable ?? ''}`,
   ]
