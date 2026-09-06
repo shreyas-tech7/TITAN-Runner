@@ -27,7 +27,9 @@ const log = createLogger('reviewer');
 /**
  * @param {{ toolId: string, args?: Record<string, unknown>, riskLevel?: 'low'|'medium'|'high',
  *   effect?: 'read'|'local_write'|'external', description?: string }} action
- * @param {{ systemState?: object, chatFn?: Function, timeoutMs?: number, enabled?: boolean }} [opts]
+ * @param {{ systemState?: object, chatFn?: Function, timeoutMs?: number, enabled?: boolean,
+ *   reviewStoreDir?: string }} [opts] `reviewStoreDir` is injectable for
+ *   tests only — production always persists to the real `state/reviews/`.
  */
 export async function reviewAction(action, opts = {}) {
   const enabled = opts.enabled ?? config.reviewer.enabled;
@@ -39,7 +41,7 @@ export async function reviewAction(action, opts = {}) {
 
   if (classification === 'safe') {
     const result = { verdict: 'allow', classification, layer: 1, reason: null, suggestion: null, matchedRules };
-    persist(action, result);
+    persist(action, result, opts.reviewStoreDir);
     return result;
   }
 
@@ -60,7 +62,7 @@ export async function reviewAction(action, opts = {}) {
     );
     const raw = await chatFn(messages, { service: 'groq', signal: controller.signal, temperature: 0 });
     const parsed = parseProbeJson(raw?.text);
-    if (parsed && (parsed.verdict === 'allow' || parsed.verdict === 'block')) {
+    if (parsed && (parsed.verdict === 'allow' || parsed.verdict === 'block' || parsed.verdict === 'needs-human')) {
       modelVerdict = {
         verdict: parsed.verdict,
         reason: typeof parsed.reason === 'string' ? parsed.reason : null,
@@ -100,22 +102,25 @@ export async function reviewAction(action, opts = {}) {
     rules: matchedRules.join(',') || undefined,
   });
 
-  persist(action, result);
+  persist(action, result, opts.reviewStoreDir);
   return result;
 }
 
-function persist(action, result) {
-  appendReview({
-    ts: new Date().toISOString(),
-    toolId: action.toolId,
-    classification: result.classification,
-    verdict: result.verdict,
-    layer: result.layer,
-    matchedRules: result.matchedRules,
-    failMode: result.failMode ?? null,
-    reason: result.reason,
-    suggestion: result.suggestion,
-  });
+function persist(action, result, dir) {
+  appendReview(
+    {
+      ts: new Date().toISOString(),
+      toolId: action.toolId,
+      classification: result.classification,
+      verdict: result.verdict,
+      layer: result.layer,
+      matchedRules: result.matchedRules,
+      failMode: result.failMode ?? null,
+      reason: result.reason,
+      suggestion: result.suggestion,
+    },
+    dir ? { dir } : {},
+  );
 }
 
 export default { reviewAction };
