@@ -23,7 +23,11 @@ function positiveInt(raw, fallback) {
 }
 
 export const config = Object.freeze({
-  dryRun: process.env.TITAN_DRY_RUN === '1',
+  // PULSE_DRY_RUN is the task brief's exact name (Track F); TITAN_DRY_RUN is
+  // this repo's original name and stays supported unchanged — additive
+  // alias, not a rename (docs/RUNTIME.md, README, and every existing script
+  // still reference TITAN_DRY_RUN).
+  dryRun: process.env.TITAN_DRY_RUN === '1' || process.env.PULSE_DRY_RUN === '1',
 
   github: {
     token: credential(process.env.GITHUB_TOKEN),

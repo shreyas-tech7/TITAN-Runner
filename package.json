@@ -11,8 +11,12 @@
     "pulse": "node src/pulse.js",
     "pulse:dry": "TITAN_DRY_RUN=1 node src/pulse.js",
     "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage",
+    "check:coverage": "node scripts/check-coverage.mjs",
     "check:denylist": "node scripts/check-denylist.mjs",
-    "check:secrets": "node scripts/check-secrets-in-state.mjs"
+    "check:secrets": "node scripts/check-secrets-in-state.mjs",
+    "verify:state": "node scripts/verify-state.mjs",
+    "prune:state": "node scripts/prune-state.mjs"
   },
   "license": "MIT"
 }
