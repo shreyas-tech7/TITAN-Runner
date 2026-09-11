@@ -23,7 +23,11 @@ function positiveInt(raw, fallback) {
 }
 
 export const config = Object.freeze({
-  dryRun: process.env.TITAN_DRY_RUN === '1',
+  // PULSE_DRY_RUN is the task brief's exact name (Track F); TITAN_DRY_RUN is
+  // this repo's original name and stays supported unchanged — additive
+  // alias, not a rename (docs/RUNTIME.md, README, and every existing script
+  // still reference TITAN_DRY_RUN).
+  dryRun: process.env.TITAN_DRY_RUN === '1' || process.env.PULSE_DRY_RUN === '1',
 
   github: {
     token: credential(process.env.GITHUB_TOKEN),
@@ -70,6 +74,11 @@ export const config = Object.freeze({
     maxSubtasksPerRun: positiveInt(process.env.TITAN_MAX_SUBTASKS_PER_RUN, 8),
     maxOpenCode: positiveInt(process.env.TITAN_MAX_OPENCODE, 4),
     taskTimeoutMs: positiveInt(process.env.TITAN_TASK_TIMEOUT_MS, 120000),
+    // Dead letter (task brief, Track D): a task that fails this many times
+    // (across retries — a dashboard/`/titan retry`, or a reopened issue —
+    // each attempt included) is labeled titan-blocked and stops being
+    // auto-retried, rather than burning provider calls on it forever.
+    maxTaskAttempts: positiveInt(process.env.TITAN_MAX_TASK_ATTEMPTS, 3),
   },
 
   reviewer: {

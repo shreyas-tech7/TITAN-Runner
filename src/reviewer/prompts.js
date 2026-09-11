@@ -40,8 +40,11 @@ export function buildReviewMessages(action, systemState) {
       (action.matchedRules.length > 0 ? ` (matched: ${action.matchedRules.join(', ')} — ${action.reasons.join('; ')})` : ''),
     `Current branch: ${systemState.branch ?? 'unknown'}`,
     `Working tree dirty: ${systemState.dirty === null ? 'unknown' : systemState.dirty ? 'yes' : 'no'}`,
-    'Decide whether this action should proceed. Respond with ONLY a JSON object: ' +
-      '{"verdict": "allow"|"block", "reason": "one or two sentences", "suggestion": "a safer alternative, or null"}.',
+    'Decide whether this action should proceed. If it needs private context this system does not ' +
+      'have (vault content, credentials, a judgment call only a human filer can make), choose ' +
+      '"needs-human" rather than guessing either way. Respond with ONLY a JSON object: ' +
+      '{"verdict": "allow"|"block"|"needs-human", "reason": "one or two sentences", ' +
+      '"suggestion": "a safer alternative, or what is missing, or null"}.',
   ];
 
   return [

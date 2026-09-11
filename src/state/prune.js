@@ -11,7 +11,8 @@
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { RUNS_DIR, DIGESTS_DIR } from './io.js';
+import { RUNS_DIR, DIGESTS_DIR, STATE_DIR, writeJsonAtomic } from './io.js';
+import { archiveRun, ARCHIVE_DIR, listArchivedMonths } from './archive.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('state:prune');
@@ -30,6 +31,7 @@ export function pruneRuns(opts = {}) {
   const now = opts.now ?? new Date();
   const runsDir = opts.runsDir ?? RUNS_DIR;
   const digestsDir = opts.digestsDir ?? DIGESTS_DIR;
+  const archiveDir = opts.archiveDir ?? ARCHIVE_DIR;
 
   if (!existsSync(runsDir)) return { prunedCount: 0, prunedIds: [] };
   const files = readdirSync(runsDir)
@@ -52,6 +54,11 @@ export function pruneRuns(opts = {}) {
         appendFileSync(digestPath, `# Run rollup — ${now.toISOString().slice(0, 10)}\n\nOlder runs pruned from \`state/runs/\` on this date, summarized here.\n\n`, 'utf8');
       }
       appendFileSync(digestPath, line, 'utf8');
+      // Compaction (task brief, Track C): the full record survives, losslessly,
+      // in state/archive/YYYY-MM.ndjson.gz — the digest line above is only a
+      // fast human-readable summary, this is what "restore from archive"
+      // (docs/RUNBOOK.md) actually reads back.
+      archiveRun(run, { archiveDir });
       unlinkSync(entry.path);
       prunedIds.push(run.runId ?? entry.file);
     } catch (err) {
@@ -62,4 +69,30 @@ export function pruneRuns(opts = {}) {
   return { prunedCount: prunedIds.length, prunedIds };
 }
 
-export default { pruneRuns };
+/**
+ * `state/index.json` — a small, cheap-to-fetch summary of the state store
+ * (task brief, Track C), so a dashboard or script never has to list every
+ * file under state/runs/ (or worse, every archived month) just to answer
+ * "how many runs are there and how far back does history go."
+ * @param {{ runsDir?: string, archiveDir?: string, indexPath?: string }} [opts]
+ * @returns {object} The index that was written.
+ */
+export function writeStateIndex(opts = {}) {
+  const runsDir = opts.runsDir ?? RUNS_DIR;
+  const archiveDir = opts.archiveDir ?? ARCHIVE_DIR;
+  const indexPath = opts.indexPath ?? join(STATE_DIR, 'index.json');
+
+  const hotRuns = existsSync(runsDir) ? readdirSync(runsDir).filter((f) => f.endsWith('.json')) : [];
+  const archivedMonths = listArchivedMonths({ archiveDir });
+
+  const index = {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    hotRunCount: hotRuns.length,
+    archivedMonths,
+  };
+  writeJsonAtomic(indexPath, index);
+  return index;
+}
+
+export default { pruneRuns, writeStateIndex };

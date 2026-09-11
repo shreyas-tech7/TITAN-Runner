@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { readJson, writeJsonAtomic, loadPulseHistory, appendPulseHistory, MAX_PULSE_HISTORY } from '../src/state/io.js';
-import { pruneRuns } from '../src/state/prune.js';
+import { pruneRuns, writeStateIndex } from '../src/state/prune.js';
 
 test('writeJsonAtomic + readJson round-trip, and a missing file returns the fallback', () => {
   const dir = mkdtempSync(join(tmpdir(), 'titan-state-'));
@@ -51,23 +51,52 @@ test('appendPulseHistory caps at MAX_PULSE_HISTORY, dropping the oldest entries 
   }
 });
 
-test('pruneRuns rolls the oldest runs into a dated digest and deletes them once over the cap', () => {
+test('pruneRuns rolls the oldest runs into a dated digest and an archive, and deletes them once over the cap', () => {
   const dir = mkdtempSync(join(tmpdir(), 'titan-prune-'));
   const runsDir = join(dir, 'runs');
   const digestsDir = join(dir, 'digests');
+  const archiveDir = join(dir, 'archive');
   mkdirSync(runsDir, { recursive: true });
   try {
     for (let i = 0; i < 5; i += 1) {
       writeFileSync(
         join(runsDir, `run-${i}.json`),
-        JSON.stringify({ runId: `run-${i}`, taskTitle: `Task ${i}`, state: 'complete', tasks: [] }),
+        JSON.stringify({ runId: `run-${i}`, taskTitle: `Task ${i}`, state: 'complete', tasks: [], createdAt: '2026-03-01T00:00:00.000Z' }),
       );
     }
-    const result = pruneRuns({ maxFiles: 3, runsDir, digestsDir });
+    // archiveDir is explicitly overridden (scratch dir) so this test never
+    // touches the real repo's state/archive/ — pruneRuns() defaults it to
+    // the real cwd-derived path otherwise, same as runsDir/digestsDir.
+    const result = pruneRuns({ maxFiles: 3, runsDir, digestsDir, archiveDir });
     assert.equal(result.prunedCount, 2);
     assert.equal(existsSync(join(runsDir, 'run-0.json')), false);
     assert.equal(existsSync(join(runsDir, 'run-4.json')), true);
     assert.ok(existsSync(digestsDir));
+    assert.ok(existsSync(join(archiveDir, '2026-03.ndjson.gz')), 'the pruned runs must be archived, not just summarized');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('writeStateIndex reports the hot run count and every archived month', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'titan-index-'));
+  const runsDir = join(dir, 'runs');
+  const digestsDir = join(dir, 'digests');
+  const archiveDir = join(dir, 'archive');
+  const indexPath = join(dir, 'index.json');
+  mkdirSync(runsDir, { recursive: true });
+  try {
+    for (let i = 0; i < 5; i += 1) {
+      writeFileSync(
+        join(runsDir, `run-${i}.json`),
+        JSON.stringify({ runId: `run-${i}`, taskTitle: `Task ${i}`, state: 'complete', tasks: [], createdAt: '2026-03-01T00:00:00.000Z' }),
+      );
+    }
+    pruneRuns({ maxFiles: 3, runsDir, digestsDir, archiveDir });
+    const index = writeStateIndex({ runsDir, archiveDir, indexPath });
+    assert.equal(index.hotRunCount, 3);
+    assert.deepEqual(index.archivedMonths, ['2026-03']);
+    assert.deepEqual(JSON.parse(readFileSync(indexPath, 'utf8')).hotRunCount, 3);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

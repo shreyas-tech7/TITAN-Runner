@@ -25,8 +25,8 @@ import { writeJsonAtomic } from './state/io.js';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-import { syncIssuesIntoTasks, reconcileIssueState, addManualTask } from './issueSync.js';
-import { commentOnIssue, closeIssue } from './github.js';
+import { syncIssuesIntoTasks, reconcileIssueState, addManualTask, processTitanCommands } from './issueSync.js';
+import { commentOnIssue, closeIssue, addLabels, removeLabel, ensureLabels } from './github.js';
 import { proposeSelfImprovement, checkSelfImprovePrStatus } from './selfImprove.js';
 import { reviewAction } from './reviewer/reviewer.js';
 import { decompose } from './orchestrator/decomposer.js';
@@ -38,10 +38,14 @@ import { OpenCodeAgent } from './agents/opencodeAgent.js';
 import { Phase2Agent } from './agents/phase2Agent.js';
 import { registry as providerRegistry } from './providers/registry.js';
 import { providerHealth } from './providers/health.js';
-import { pruneRuns } from './state/prune.js';
+import { pruneRuns, writeStateIndex } from './state/prune.js';
 import { scrubForState } from './lib/secretScrub.js';
 import { redactString } from './lib/redact.js';
 import { createLogger } from './lib/logger.js';
+import { CONTRACT_VERSION } from './state/contract.js';
+import { acquireLock, releaseLock } from './state/lock.js';
+import { quotaLedger } from './state/quota.js';
+import { writeHealthSnapshot } from './state/health.js';
 
 const log = createLogger('pulse');
 
@@ -91,15 +95,54 @@ function actionsRunUrl() {
   return `https://github.com/${config.github.repository}/actions/runs/${config.github.runId}`;
 }
 
-function writeRunRecord(task, result, durationMs) {
+/**
+ * @param {object} task
+ * @param {object} result
+ * @param {number} durationMs
+ * @param {{ verdict: string, reason: string|null, matchedRules: string[] }|null} review The
+ *   Reviewer Gate verdict for this task, so the contract's `reviewer` field
+ *   (docs/CONTRACT.md) reflects a real decision rather than being omitted.
+ */
+function writeRunRecord(task, result, durationMs, review) {
+  const now = new Date().toISOString();
+  const subtasks = [...result.tasksById.values()].map((t) => {
+    const tokensOut = (t.attempts ?? []).reduce((sum, a) => (typeof a.tokensUsed === 'number' ? sum + a.tokensUsed : sum), 0);
+    return {
+      id: t.id,
+      title: t.title,
+      agent: t.assignment?.pool ?? null,
+      provider: t.assignment?.pool ?? null,
+      model: t.assignment?.modelId ?? null,
+      status: t.state,
+      startedAt: t.startedAt ?? null,
+      endedAt: t.completedAt ?? null,
+      attempts: (t.attempts ?? []).length,
+      tokensIn: null, // not tracked separately from tokensOut anywhere upstream
+      tokensOut: tokensOut > 0 ? tokensOut : null,
+      costUsd: 0, // every provider this repo calls is free-tier — task brief, section 8
+      artifacts: result.synthesis.files.filter((f) => f.sourceTaskId === t.id).map((f) => f.path),
+    };
+  });
+  const providerCalls = subtasks.reduce((sum, s) => sum + s.attempts, 0);
+  const retries = subtasks.reduce((sum, s) => sum + Math.max(0, s.attempts - 1), 0);
+
   const record = scrubForState({
+    contractVersion: CONTRACT_VERSION,
     runId: result.runId,
     taskId: task.id,
     taskTitle: task.title,
+    title: task.title,
     issueUrl: task.issueUrl,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
     durationMs,
+    // `state` is this repo's own long-standing field name (dashboard reads
+    // it); `status` is the contract's exact enum member (docs/CONTRACT.md) —
+    // both are written, additively, rather than renaming the field the
+    // dashboard already depends on.
     state: result.ok ? 'complete' : 'failed',
+    status: result.ok ? 'done' : 'failed',
+    redacted: true,
     actionsRunUrl: actionsRunUrl(),
     sharedContext: String(result.graph.sharedContext ?? '').slice(0, MAX_RUN_FILE_CHARS),
     tasks: [...result.tasksById.values()].map((t) => ({
@@ -114,6 +157,11 @@ function writeRunRecord(task, result, durationMs) {
       outputPreview: typeof t.output === 'string' ? t.output.slice(0, MAX_FILE_PREVIEW_CHARS) : null,
       error: t.error,
     })),
+    subtasks,
+    reviewer: review
+      ? { verdict: review.verdict, reasons: review.reason ? [review.reason] : [], ruleIds: review.matchedRules ?? [] }
+      : null,
+    metrics: { durationMs, providerCalls, retries, failoverHops: retries },
     files: result.synthesis.files.map((f) => ({ path: f.path, sourceTaskId: f.sourceTaskId, conflict: f.conflict })),
     markdownSummary: String(result.synthesis.markdownSummary ?? '').slice(0, MAX_RUN_FILE_CHARS),
   });
@@ -137,9 +185,55 @@ function issueCommentFor(result) {
   return lines.join('\n');
 }
 
+/**
+ * Label lifecycle (task brief, Track D): titan-task -> titan-running ->
+ * (titan-review | titan-done | titan-blocked | titan-cancelled). The pulse
+ * owns every transition; `titan-task` itself is never removed (it's what
+ * keeps the issue findable/re-syncable), and every call is a no-op in
+ * dry-run/no-token (see github.js#ready()).
+ * @param {object} task
+ * @param {string} label
+ */
+async function setStatusLabel(task, label) {
+  if (!task.issueNumber) return;
+  await removeLabel(task.issueNumber, 'titan-running');
+  await removeLabel(task.issueNumber, 'titan-review');
+  await addLabels(task.issueNumber, [label]);
+}
+
+/**
+ * Dead letter (task brief, Track D): after `config.orchestrator.maxTaskAttempts`
+ * failures, stop treating this as an ordinary retriable `failed` task —
+ * label it `titan-blocked`, comment the reason and the run id, and leave it
+ * there rather than have the next retry (dashboard, `/titan retry`, or a
+ * reopened issue) just fail the same way again.
+ * @param {object} task
+ * @param {string} reason
+ */
+async function finalizeFailure(task, reason) {
+  task.status = 'failed';
+  task.completedAt = new Date().toISOString();
+  task.error = reason;
+  task.failureCount = (task.failureCount ?? 0) + 1;
+
+  if (task.failureCount >= config.orchestrator.maxTaskAttempts) {
+    task.status = 'blocked';
+    if (task.issueNumber) {
+      await setStatusLabel(task, 'titan-blocked');
+      await commentOnIssue(
+        task.issueNumber,
+        `TITAN-Runner is giving up on this task after ${task.failureCount} failed attempt(s): ${redactString(reason)}` +
+          (task.runId ? `\n\nLast run: \`${task.runId}\`` : '') +
+          `\n\nIt will not be retried automatically. Add \`titan-approved\` and \`/titan retry\` if you want it tried again anyway.`,
+      );
+    }
+  }
+}
+
 async function processTask(task) {
   task.status = 'running';
   task.startedAt = new Date().toISOString();
+  if (task.issueNumber) await addLabels(task.issueNumber, ['titan-running']);
 
   const review = await reviewAction({
     toolId: task.type === 'self-improve' ? 'self-improve-task' : 'orchestrate-task',
@@ -148,11 +242,29 @@ async function processTask(task) {
     effect: 'external',
   });
 
+  if (review.verdict === 'needs-human') {
+    // Human approval gate (task brief, Track D) — parked, not failed. The
+    // next pulse resets this to `pending` only once a human adds
+    // `titan-approved` (src/issueSync.js#reconcileIssueState).
+    task.status = 'review';
+    task.error = null;
+    if (task.issueNumber) {
+      await setStatusLabel(task, 'titan-review');
+      await commentOnIssue(
+        task.issueNumber,
+        `TITAN-Runner needs a human before proceeding: ${redactString(review.reason ?? 'the Reviewer Gate flagged this for human judgment.')}\n\n` +
+          `Add the \`titan-approved\` label to this issue once you've reviewed it, and the next pulse will pick it up again.`,
+      );
+    }
+    return;
+  }
+
   if (review.verdict === 'block') {
     task.status = 'blocked';
     task.completedAt = new Date().toISOString();
     task.error = review.reason ?? 'Blocked by the Reviewer Gate.';
     if (task.issueNumber) {
+      await setStatusLabel(task, 'titan-blocked');
       await commentOnIssue(task.issueNumber, `TITAN-Runner declined this task: ${redactString(task.error)}`);
     }
     return;
@@ -162,24 +274,23 @@ async function processTask(task) {
   try {
     result = await runOrchestration(task);
   } catch (err) {
-    task.status = 'failed';
-    task.completedAt = new Date().toISOString();
-    task.error = redactString(err instanceof Error ? err.message : String(err));
-    log.error('task orchestration threw', { taskId: task.id, error: task.error });
+    const reason = redactString(err instanceof Error ? err.message : String(err));
+    log.error('task orchestration threw', { taskId: task.id, error: reason });
     if (task.issueNumber) {
-      await commentOnIssue(task.issueNumber, `TITAN-Runner hit an internal error on this task: ${task.error}`);
+      await commentOnIssue(task.issueNumber, `TITAN-Runner hit an internal error on this task: ${reason}`);
     }
+    await finalizeFailure(task, reason);
     return;
   }
 
   task.runId = result.runId;
-  writeRunRecord(task, result, Date.now() - Date.parse(task.startedAt));
+  writeRunRecord(task, result, Date.now() - Date.parse(task.startedAt), review);
 
   if (task.type === 'self-improve') {
     const outcome = await proposeSelfImprovement(task, result.synthesis);
-    task.completedAt = new Date().toISOString();
     if (outcome.status === 'pr-open') {
       task.status = 'pr-open';
+      task.completedAt = new Date().toISOString();
       task.prNumber = outcome.prNumber ?? null;
       task.prUrl = outcome.prUrl ?? null;
       if (task.issueNumber) {
@@ -189,20 +300,26 @@ async function processTask(task) {
         );
       }
     } else {
-      task.status = 'failed';
-      task.error = outcome.reason ?? outcome.status;
+      const reason = outcome.reason ?? outcome.status;
       if (task.issueNumber) {
-        await commentOnIssue(task.issueNumber, `TITAN-Runner did not open a pull request for this task: ${redactString(task.error)}`);
+        await commentOnIssue(task.issueNumber, `TITAN-Runner did not open a pull request for this task: ${redactString(reason)}`);
       }
+      await finalizeFailure(task, reason);
     }
     return;
   }
 
-  task.status = result.ok ? 'complete' : 'failed';
-  task.completedAt = new Date().toISOString();
-  if (task.issueNumber) {
-    await commentOnIssue(task.issueNumber, issueCommentFor(result));
-    if (result.ok) await closeIssue(task.issueNumber);
+  if (result.ok) {
+    task.status = 'complete';
+    task.completedAt = new Date().toISOString();
+    if (task.issueNumber) {
+      await commentOnIssue(task.issueNumber, issueCommentFor(result));
+      await setStatusLabel(task, 'titan-done');
+      await closeIssue(task.issueNumber);
+    }
+  } else {
+    if (task.issueNumber) await commentOnIssue(task.issueNumber, issueCommentFor(result));
+    await finalizeFailure(task, 'One or more subtasks failed during orchestration.');
   }
 }
 
@@ -229,6 +346,18 @@ async function revisitSelfImprovePr(task) {
 /** Every provider id this repo knows about, registry-backed or agent-pool-backed. */
 const ALL_PROVIDER_IDS = ['groq', 'together', 'openrouter', 'gemini', 'huggingface', 'freebuff', 'opencode'];
 
+/** The label lifecycle (task brief, Track D) this repo owns end to end.
+ *  `titan-task`/`titan-self-improve` are not listed — they're filed by the
+ *  issue template/dashboard, never created by the pulse itself. */
+const LIFECYCLE_LABELS = [
+  { name: 'titan-running', color: '1d76db', description: 'TITAN-Runner has claimed this task and is working on it now.' },
+  { name: 'titan-review', color: 'fbca04', description: 'The Reviewer Gate needs a human before this proceeds — add titan-approved.' },
+  { name: 'titan-approved', color: '0e8a16', description: 'A human has reviewed a needs-human task — the next pulse will resume it.' },
+  { name: 'titan-done', color: '0e8a16', description: 'TITAN-Runner finished this task successfully.' },
+  { name: 'titan-blocked', color: 'b60205', description: 'Blocked by the Reviewer Gate, or dead-lettered after repeated failures.' },
+  { name: 'titan-cancelled', color: '5319e7', description: 'Cancelled via the dashboard or /titan cancel.' },
+];
+
 /**
  * Stamp `not_configured`/`no_public_api` for every provider that will not be
  * attempted this pulse, so `state/providers.json` (and the dashboard's
@@ -249,9 +378,30 @@ function primeProviderHealth() {
   }
 }
 
+/** This pulse process's own identity for the lock file — one per `main()`
+ *  invocation, so a stale lock from a crashed prior run is unambiguously
+ *  someone else's. */
+const PULSE_RUN_ID = randomUUID();
+
 async function main() {
   const pulseStartedAt = Date.now();
   ensureStateFiles();
+
+  // Idempotency/locking (task brief, Track B) — defense in depth alongside
+  // titan-pulse.yml's own `concurrency: { group: titan-pulse }`; see
+  // src/state/lock.js's file header for why both exist. A pulse that can't
+  // acquire the lock no-ops cleanly rather than racing the state files a
+  // concurrent run already has open.
+  const holder = config.github.runId ? `github-actions:${config.github.runId}` : `local:${process.pid}`;
+  const lock = acquireLock({ runId: PULSE_RUN_ID, holder });
+  if (!lock.ok) {
+    log.warn('another pulse already holds the lock — no-op, not double-running', {
+      heldBy: lock.heldBy.holder, heldSince: lock.heldBy.acquiredAt, expiresAt: lock.heldBy.expiresAt,
+    });
+    console.log(JSON.stringify({ pulse: 'skipped-locked', heldBy: lock.heldBy.holder, expiresAt: lock.heldBy.expiresAt }));
+    return;
+  }
+
   primeProviderHealth();
 
   const tasksState = loadTasksState();
@@ -264,14 +414,23 @@ async function main() {
 
   try {
     if (!config.dryRun) {
+      await ensureLabels(LIFECYCLE_LABELS);
       const { added, issues } = await syncIssuesIntoTasks(tasksState);
       if (added > 0) log.info('synced issues into task queue', { added });
       // Dashboard cancel/retry (task instructions, section 1) act on the
       // GitHub issue directly from the browser — this is what makes those
       // actions take effect here rather than being purely cosmetic.
-      const { cancelled, retried } = reconcileIssueState(tasksState, issues);
+      const { cancelled, retried, approved } = reconcileIssueState(tasksState, issues);
       if (cancelled > 0) log.info('cancelled tasks whose issue was closed from the dashboard', { cancelled });
       if (retried > 0) log.info('reset tasks to pending after a dashboard retry', { retried });
+      if (approved > 0) log.info('reset needs-human tasks to pending after titan-approved', { approved });
+
+      // /titan cancel|retry|status (task brief, Track D) — checked for
+      // every task with a live issue, owner-only, before this pulse claims
+      // anything, so a same-pulse cancel/retry takes effect immediately.
+      for (const task of tasksState.tasks) {
+        if (task.issueNumber != null) await processTitanCommands(task);
+      }
     }
 
     if (process.env.TITAN_MANUAL_TASK && process.env.TITAN_MANUAL_TASK.trim().length > 0) {
@@ -302,9 +461,11 @@ async function main() {
     capabilityRegistry.list();
     capabilityRegistry.save();
     providerHealth.save();
+    quotaLedger.save();
 
     const pruneResult = pruneRuns({ maxFiles: 60 });
-    if (pruneResult.prunedCount > 0) log.info('pruned old run records into a digest', pruneResult);
+    if (pruneResult.prunedCount > 0) log.info('pruned old run records into a digest + archive', pruneResult);
+    writeStateIndex();
   } catch (err) {
     pulseError = redactString(err instanceof Error ? err.message : String(err));
     log.error('pulse failed', { error: pulseError });
@@ -313,6 +474,8 @@ async function main() {
   const durationMs = Date.now() - pulseStartedAt;
   const finishedAt = new Date().toISOString();
   saveTasksState(tasksState);
+  const consecutivePulseFailures = pulseError ? (heartbeat.consecutivePulseFailures ?? 0) + 1 : 0;
+  const totalPulses = (heartbeat.totalPulses ?? 0) + 1;
   saveHeartbeat({
     version: 1,
     lastPulseAt: finishedAt,
@@ -322,8 +485,8 @@ async function main() {
     lastPulseTasksCompleted: tasksCompleted,
     lastPulseTasksFailed: tasksFailed,
     lastPulseError: pulseError,
-    consecutivePulseFailures: pulseError ? (heartbeat.consecutivePulseFailures ?? 0) + 1 : 0,
-    totalPulses: (heartbeat.totalPulses ?? 0) + 1,
+    consecutivePulseFailures,
+    totalPulses,
     cadenceMinutes: heartbeat.cadenceMinutes ?? 15,
   });
   // Pulse timeline strip (dashboard, task instructions section 3) — real
@@ -337,6 +500,20 @@ async function main() {
     tasksCompleted,
     tasksFailed,
   });
+  // state/health.json (task brief, Track B) — additive alongside
+  // state/heartbeat.json above; see docs/DECISIONS.md D-6.
+  writeHealthSnapshot({
+    lastPulseAt: finishedAt,
+    lastPulseStatus: pulseError ? 'error' : 'ok',
+    lastPulseDurationMs: durationMs,
+    consecutivePulseFailures,
+    totalPulses,
+    providers: providerHealth.list().map((p) => ({
+      id: p.id, status: p.status, configured: p.configured, cooldownUntil: p.cooldownUntil,
+    })),
+  });
+
+  releaseLock(PULSE_RUN_ID);
 
   console.log(
     JSON.stringify({

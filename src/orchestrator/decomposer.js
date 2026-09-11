@@ -22,6 +22,7 @@
 import { config } from '../config.js';
 import { ASPECT_CATEGORIES, isAspectCategory, isComplexityLevel } from './taxonomy.js';
 import { parseProbeJson } from './capabilityRegistry.js';
+import { wrapUntrusted } from '../lib/untrustedContent.js';
 
 /** Order of preference for which pool answers the decomposition prompt. */
 const DECOMPOSER_POOL_ORDER = ['freebuff', 'phase2', 'opencode'];
@@ -71,7 +72,7 @@ export function buildDecomposePrompt(masterPrompt, maxTasks, retryErrors) {
     `this shared context plus its own task, so it must carry everything needed to keep every agent's ` +
     `output consistent with every other agent's.\n` +
     `- The dependency graph must have no cycles, and every id in "dependsOn" must exist in "tasks".\n\n` +
-    `Master prompt:\n${masterPrompt}`;
+    wrapUntrusted('Master prompt', masterPrompt);
 
   if (!retryErrors || retryErrors.length === 0) return base;
 

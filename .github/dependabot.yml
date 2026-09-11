@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # This repo's own package.json carries zero runtime dependencies by design
+  # (see docs/DECISIONS.md D-2) — this still watches devDependencies/lockfile
+  # advisories and keeps npm's own ecosystem metadata current.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/dashboard"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Keeps every SHA-pinned action in .github/workflows/ current — Dependabot
+  # resolves a version bump to the new tag's own commit SHA automatically,
+  # so pins never go stale silently.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

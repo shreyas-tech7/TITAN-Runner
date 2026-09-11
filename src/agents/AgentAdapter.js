@@ -21,6 +21,7 @@
 import { Semaphore } from '../lib/semaphore.js';
 import { redactString } from '../lib/redact.js';
 import { providerHealth } from '../providers/health.js';
+import { wrapUntrusted } from '../lib/untrustedContent.js';
 
 /**
  * Pools tracked in `state/providers.json` health/dashboard terms. `phase2`
@@ -207,7 +208,7 @@ export class AgentAdapter {
     }
     lines.push(`Task: ${task.title}`);
     lines.push(`Aspect: ${task.aspect}`);
-    lines.push(`Description: ${task.description}`);
+    lines.push(wrapUntrusted('Description', task.description));
     lines.push(`Expected deliverable: ${task.deliverable}`);
     lines.push(
       'Produce your output now. If your output includes one or more files, put them in a ' +

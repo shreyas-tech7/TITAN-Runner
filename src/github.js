@@ -74,6 +74,119 @@ export async function closeIssue(number) {
   return call('PATCH', `/repos/${owner}/${repo}/issues/${number}`, { state: 'closed', state_reason: 'completed' });
 }
 
+/** The repo owner's login — the only actor `/titan ...` comment commands
+ *  trust (task brief, Track D: "Restrict them to the repo owner and
+ *  validate the actor before acting"). @returns {string} */
+export function repoOwnerLogin() {
+  return repoParts().owner ?? '';
+}
+
+/**
+ * Adding a label the repo doesn't have yet (see `ensureLabels()`) is a 404
+ * from GitHub's API — swallowed here, same as `removeLabel()` below, since
+ * a labeling hiccup is cosmetic and must never fail the pulse it's
+ * decorating (task/issue state is what actually matters).
+ * @param {number} number @param {string[]} labels
+ */
+export async function addLabels(number, labels) {
+  if (!ready() || labels.length === 0) {
+    if (labels.length > 0) log.info('dry-run/no-token: would add labels', { number, labels });
+    return null;
+  }
+  const { owner, repo } = repoParts();
+  try {
+    return await call('POST', `/repos/${owner}/${repo}/issues/${number}/labels`, { labels });
+  } catch (err) {
+    log.warn('addLabels failed — continuing without it', { number, labels, error: String(err) });
+    return null;
+  }
+}
+
+/** Creates a repo label if it doesn't already exist; a 422 (already
+ *  exists) is swallowed, same idempotent-by-design shape as removeLabel. */
+export async function createLabel(name, color, description) {
+  if (!ready()) return null;
+  const { owner, repo } = repoParts();
+  try {
+    return await call('POST', `/repos/${owner}/${repo}/labels`, { name, color, description });
+  } catch (err) {
+    if (!/-> 422/.test(String(err))) log.warn('createLabel failed', { name, error: String(err) });
+    return null;
+  }
+}
+
+/**
+ * Creates every label this repo's lifecycle depends on, if missing. Cheap
+ * and idempotent enough to call once per pulse (task brief, Track D's label
+ * lifecycle needs titan-running/titan-review/titan-done/titan-blocked/
+ * titan-cancelled/titan-approved to exist before addLabels() can apply
+ * them — GitHub's API 404s on a label name the repo has never created).
+ * @param {Array<{name:string, color:string, description:string}>} labels
+ */
+export async function ensureLabels(labels) {
+  if (!ready()) return;
+  for (const l of labels) await createLabel(l.name, l.color, l.description);
+}
+
+/** Idempotent: a label that isn't present on the issue is a 404 from
+ *  GitHub's API, swallowed here rather than treated as a real failure. */
+export async function removeLabel(number, label) {
+  if (!ready()) {
+    log.info('dry-run/no-token: would remove label', { number, label });
+    return null;
+  }
+  const { owner, repo } = repoParts();
+  try {
+    return await call('DELETE', `/repos/${owner}/${repo}/issues/${number}/labels/${encodeURIComponent(label)}`);
+  } catch (err) {
+    if (!/-> 404/.test(String(err))) log.warn('removeLabel failed', { number, label, error: String(err) });
+    return null;
+  }
+}
+
+/** @returns {Promise<Array<{id:number, body:string, user:{login:string}, created_at:string}>>} */
+export async function listIssueComments(number) {
+  if (!ready()) return [];
+  const { owner, repo } = repoParts();
+  try {
+    return await call('GET', `/repos/${owner}/${repo}/issues/${number}/comments?per_page=100`);
+  } catch (err) {
+    log.warn('listIssueComments failed', { number, error: String(err) });
+    return [];
+  }
+}
+
+export async function updateIssueComment(commentId, body) {
+  if (!ready()) {
+    log.info('dry-run/no-token: would update comment', { commentId, preview: body.slice(0, 120) });
+    return null;
+  }
+  const { owner, repo } = repoParts();
+  return call('PATCH', `/repos/${owner}/${repo}/issues/comments/${commentId}`, { body });
+}
+
+/**
+ * "One rolling comment per task, edited in place" (task brief, Track D).
+ * Creates the comment the first time (returning its id for the caller to
+ * remember, e.g. on `task.statusCommentId`), edits it on every call after.
+ * @param {number} issueNumber
+ * @param {number|null} existingCommentId
+ * @param {string} body
+ * @returns {Promise<number|null>} The comment id to remember for next time (unchanged if dry-run/no-token).
+ */
+export async function upsertRollingComment(issueNumber, existingCommentId, body) {
+  if (!ready()) {
+    log.info('dry-run/no-token: would upsert rolling status comment', { issueNumber, preview: body.slice(0, 120) });
+    return existingCommentId;
+  }
+  if (existingCommentId) {
+    await updateIssueComment(existingCommentId, body);
+    return existingCommentId;
+  }
+  const created = await commentOnIssue(issueNumber, body);
+  return created?.id ?? null;
+}
+
 export async function createPullRequest({ title, head, base = 'main', body, draft = false }) {
   if (!ready()) {
     log.info('dry-run/no-token: would open PR', { title, head, base });
@@ -126,4 +239,5 @@ export async function createIssueForDeadman(title, body, label = 'titan-alert') 
 export default {
   listOpenTaskIssues, commentOnIssue, closeIssue, createPullRequest, closePullRequest,
   getPullRequest, getCombinedStatus, createIssue, createIssueForDeadman,
+  repoOwnerLogin, addLabels, removeLabel, createLabel, ensureLabels, listIssueComments, updateIssueComment, upsertRollingComment,
 };
