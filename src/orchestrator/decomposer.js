@@ -10,13 +10,13 @@
  * failed, and falls back to a single-task graph containing the raw master
  * prompt if the retry also fails.
  *
- * Offline mode returns a fixed, realistic sample graph — same pattern
- * `services/base.js` already uses everywhere else in this codebase: an
- * offline call ignores its real input and returns canned fixture data, so
- * the whole system is exercisable with zero network calls. It still goes
- * through the same validator as the live path (nothing about validation is
- * skipped in offline mode), which is what proves the validator itself works
- * against a graph shaped like a real one.
+ * Offline mode returns a fixed, realistic sample graph — same pattern the
+ * agent adapters (`agents/freebuffAgent.js`, `agents/opencodeAgent.js`) use
+ * everywhere else in this codebase: an offline call ignores its real input
+ * and returns canned fixture data, so the whole system is exercisable with
+ * zero network calls. It still goes through the same validator as the live
+ * path (nothing about validation is skipped in offline mode), which is what
+ * proves the validator itself works against a graph shaped like a real one.
  */
 
 import { config } from '../config.js';

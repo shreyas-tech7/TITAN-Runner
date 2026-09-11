@@ -87,9 +87,20 @@ state/          the database: tasks.json, agents.json, heartbeat.json, runs/, di
 dashboard/      static Next.js export published to GitHub Pages
 scripts/        CI gate scripts (denylist, secret scan) and the weekly/dead-man's-switch jobs
 test/           unit + integration tests (node:test), zero network required
-.github/        the four workflows (pulse, CI, Pages deploy, keep-alive/dead-man's-switch)
-docs/RUNTIME.md how the pulse works, minute-budget math, how to add a task, how to kill a runaway agent
+.github/        the workflows (pulse, CI, Pages deploy, keep-alive/dead-man's-switch)
+docs/           RUNTIME.md (how a pulse runs), ARCHITECTURE.md (the map), ROADMAP.md (the plan), adr/
 ```
+
+## Documentation
+
+- `docs/ARCHITECTURE.md` — the pulse lifecycle, the state model, the layer contracts.
+- `docs/RUNTIME.md` — minute-budget math, how to add a task, how to kill a runaway agent.
+- `docs/ROADMAP.md` — the long-horizon improvement plan (aspects A–M) and its implementation status.
+- `docs/IMPROVEMENT_PLAN.md` — the first implementation pass's plan + status.
+- `docs/adr/` — architecture decision records (repo-as-database, and the rest of the big calls).
+- `SECURITY.md` — the safety model and how to report a vulnerability.
+- `CONTRIBUTING.md` — the two never-negotiable rules and the dev loop.
+- `CODE_OF_CONDUCT.md`, `CHANGELOG.md` — community norms and the change log.
 
 ## What this is not
 

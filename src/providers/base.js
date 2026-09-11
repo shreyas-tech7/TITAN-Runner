@@ -15,7 +15,7 @@
  * Subclasses override `_doChat`, never `chat`.
  */
 import { config } from '../config.js';
-import { RetryableError, isRetryableError, withRetry } from '../lib/retry.js';
+import { RetryableError, isRetryableError, withRetry, parseRetryAfterMs } from '../lib/retry.js';
 import { redactString } from '../lib/redact.js';
 import { Semaphore } from '../lib/semaphore.js';
 import { createLogger } from '../lib/logger.js';
@@ -65,15 +65,6 @@ async function safeUpstreamMessage(res) {
   return String(picked).replace(/\s+/g, ' ').trim().slice(0, MAX_UPSTREAM_MESSAGE);
 }
 
-function parseRetryAfter(header) {
-  if (!header) return null;
-  const seconds = Number(header);
-  if (Number.isFinite(seconds) && seconds >= 0) return Math.round(seconds * 1000);
-  const when = Date.parse(header);
-  if (Number.isFinite(when)) return Math.max(0, when - Date.now());
-  return null;
-}
-
 function stampRetryable(err, service, code, status, retryAfterMs) {
   return Object.assign(err, { service, code, status, retryAfterMs, retryable: true });
 }
@@ -83,7 +74,7 @@ export async function upstreamErrorFrom(res, ctx) {
   const detail = await safeUpstreamMessage(res);
   const suffix = detail ? `: ${detail}` : '';
   const status = res.status;
-  const retryAfterMs = parseRetryAfter(res.headers.get('retry-after'));
+  const retryAfterMs = parseRetryAfterMs(res.headers.get('retry-after'));
 
   if (status === 429) {
     const err = new RetryableError(`${ctx.label} rate limited (429)${suffix}`, { status, retryAfterMs: retryAfterMs ?? undefined });

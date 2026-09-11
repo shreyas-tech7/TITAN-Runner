@@ -1,15 +1,14 @@
 /**
  * @file Shared, envelope-agnostic JSON-repair primitives.
  *
- * Extracted (v4.0 Wave 2) from `services/orchestrator/outputParser.js`,
- * which needed these to recover a `{"files":[...]}` envelope from messy
- * model output, and `services/assistant/toolCallParser.js`, which needs
- * the exact same recovery for a `{"tool":"...","args":{...}}` envelope —
- * "parsed by the same three-tier parser" (the brief's own phrasing for
- * both) means sharing the actual repair mechanics, not maintaining two
- * copies of a balanced-brace scanner. Neither caller's envelope shape is
- * known to this file; it only finds and repairs JSON *syntax*, never
- * validates *semantics* — that stays the caller's job.
+ * Used by `orchestrator/outputParser.js` to recover a `{"files":[...]}`
+ * envelope from messy model output (and originally also by the private
+ * TITAN backend's tool-call parser, which is not part of this repo).
+ * "Parsed by the same three-tier parser" means sharing the actual repair
+ * mechanics — a balanced-brace scanner and trailing-comma stripper — rather
+ * than maintaining two copies. Neither caller's envelope shape is known to
+ * this file; it only finds and repairs JSON *syntax*, never validates
+ * *semantics* — that stays the caller's job.
  */
 
 /**

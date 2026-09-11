@@ -49,6 +49,7 @@ export interface TaskRecord {
   priority?: TaskPriority | null;
   routingHint?: RoutingHint | null;
   status: TaskStatus;
+  retryCount?: number | null;
   createdAt: string;
   claimedAt: string | null;
   startedAt: string | null;

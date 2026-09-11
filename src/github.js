@@ -25,8 +25,8 @@ function ready() {
   return Boolean(config.github.token && owner && repo) && !config.dryRun;
 }
 
-async function call(method, path, body) {
-  const res = await fetch(`${API_BASE}${path}`, {
+async function call(method, path, body, fetchFn = fetch) {
+  const res = await fetchFn(`${API_BASE}${path}`, {
     method,
     headers: {
       authorization: `Bearer ${config.github.token}`,
@@ -44,16 +44,39 @@ async function call(method, path, body) {
   return res.json();
 }
 
-/** @returns {Promise<Array<{number:number, title:string, body:string, html_url:string, updated_at:string, labels: Array<{name:string}>}>>} */
-export async function listOpenTaskIssues(label = 'titan-task') {
+/**
+ * @param {string} [label]
+ * @param {typeof fetch} [fetchFn] Injectable for tests; defaults to global fetch.
+ * @returns {Promise<Array<{number:number, title:string, body:string, html_url:string, updated_at:string, labels: Array<{name:string}>}>>}
+ * Throws on a real GitHub API failure — deliberately NOT swallowed here: the
+ * caller (`issueSync.js`) must be able to tell "no open issues" (an empty
+ * list, safe to reconcile against) apart from "could not reach GitHub" (which
+ * must NOT cancel every pending task the way an empty list would). Callers
+ * that don't need the distinction (`scripts/weekly-rollup.mjs`) catch it.
+ *
+ * Paginated: follows `page` until a short page (or the 10-page safety cap).
+ * The old hardcoded `per_page=50` silently ignored every open issue past the
+ * 50th; a queue can genuinely grow past that.
+ */
+export async function listOpenTaskIssues(label = 'titan-task', fetchFn = fetch) {
   if (!ready()) return [];
   const { owner, repo } = repoParts();
-  try {
-    return await call('GET', `/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(label)}&state=open&per_page=50`);
-  } catch (err) {
-    log.warn('listOpenTaskIssues failed', { error: String(err) });
-    return [];
+  const all = [];
+  const MAX_PAGES = 10; // 1000 issues — beyond this, something is wrong.
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    const batch = await call(
+      'GET',
+      `/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(label)}&state=open&per_page=100&page=${page}`,
+      undefined,
+      fetchFn,
+    );
+    all.push(...batch);
+    if (batch.length < 100) break;
+    if (page === MAX_PAGES) {
+      log.warn('listOpenTaskIssues hit the pagination cap — more than 1000 open issues; truncating', { label });
+    }
   }
+  return all;
 }
 
 export async function commentOnIssue(number, body) {
