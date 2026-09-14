@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-14T06:59:53.353Z",
+  "updatedAt": "2026-09-14T13:32:32.122Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -42,17 +42,20 @@
       "id": "openrouter",
       "configured": true,
       "status": "error",
-      "lastCheckedAt": "2026-09-07T13:12:00.103Z",
+      "lastCheckedAt": "2026-09-14T13:32:28.523Z",
       "lastSuccessAt": null,
       "latencyMs": null,
       "p50LatencyMs": null,
-      "samples": 2,
-      "errorRate": 0.51,
-      "consecutiveFailures": 2,
-      "cooldownUntil": "2026-09-07T13:22:00.103Z",
+      "samples": 3,
+      "errorRate": 0.657,
+      "consecutiveFailures": 3,
+      "cooldownUntil": "2026-09-14T13:52:28.523Z",
       "lastError": "OpenRouter returned no message content",
-      "model": "inclusionai/ling-3.0-flash-sante:free",
+      "model": "inclusionai/ling-3.0-flash-vl:free",
       "discoveredModels": [
+        "inclusionai/ling-3.0-flash-vl:free",
+        "nex-agi/nex-n2.5-mini:free",
+        "nex-agi/nex-n2.5-pro:free",
         "inclusionai/ling-3.0-flash-sante:free",
         "inclusionai/ling-3.0-flash-fin:free",
         "dots-studio/dots-3-note-preview:free",
@@ -65,28 +68,26 @@
         "cohere/north-mini-code:free",
         "nvidia/nemotron-3.5-content-safety:free",
         "nvidia/nemotron-3-ultra-550b-a55b:free",
-        "minimax/minimax-m3:free",
         "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
         "google/gemma-4-26b-a4b-it:free",
         "google/gemma-4-31b-it:free",
         "google/lyria-3-pro-preview",
         "google/lyria-3-clip-preview",
-        "minimax/minimax-m2.7:free",
         "nvidia/nemotron-3-super-120b-a12b:free",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-09-07T13:11:59.396Z",
+      "modelsDiscoveredAt": "2026-09-14T13:32:27.849Z",
       "note": null
     },
     "gemini": {
       "id": "gemini",
       "configured": true,
       "status": "ok",
-      "lastCheckedAt": "2026-09-07T13:12:00.727Z",
-      "lastSuccessAt": "2026-09-07T13:12:00.727Z",
-      "latencyMs": 484,
-      "p50LatencyMs": 487,
-      "samples": 2,
+      "lastCheckedAt": "2026-09-14T13:32:32.122Z",
+      "lastSuccessAt": "2026-09-14T13:32:32.122Z",
+      "latencyMs": 3495,
+      "p50LatencyMs": 1991,
+      "samples": 3,
       "errorRate": 0,
       "consecutiveFailures": 0,
       "cooldownUntil": null,
@@ -115,6 +116,7 @@
         "gemini-robotics-er-2-preview",
         "gemini-2.5-computer-use-preview-10-2025",
         "antigravity-preview-05-2026",
+        "antigravity-preview-09-2026",
         "deep-research-max-preview-04-2026",
         "deep-research-preview-04-2026",
         "gemini-2.5-pro",
@@ -125,7 +127,7 @@
         "lyria-3-pro-preview",
         "deep-research-pro-preview-12-2025"
       ],
-      "modelsDiscoveredAt": "2026-09-07T13:12:00.243Z",
+      "modelsDiscoveredAt": "2026-09-14T13:32:28.627Z",
       "note": null
     },
     "huggingface": {
@@ -162,7 +164,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration."
+      "note": "Freebuff has no official public API for third-party integration — see src/agents/freebuffAgent.js."
     },
     "opencode": {
       "id": "opencode",
