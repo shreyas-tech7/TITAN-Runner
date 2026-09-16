@@ -59,11 +59,12 @@ jobs:
         id: run_task
         env:
           # Where and how to call back titan-runner-brain to mark this row
-          # running/done/failed (task brief, section 3, step 1). Both are
-          # repo secrets — TITAN_WORKER_URL isn't sensitive on its own, but
-          # keeping it alongside the token means one place to update if the
-          # Worker's URL ever changes.
-          TITAN_WORKER_URL: ${{ secrets.TITAN_WORKER_URL }}
+          # running/done/failed (task brief, section 3, step 1).
+          # TITAN_WORKER_URL isn't sensitive on its own (the admin token is
+          # what actually gates the Worker) — a repo VARIABLE, the same one
+          # pages-deploy.yml reads for the dashboard build, not a second
+          # secret to keep in sync.
+          TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
           TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
           TITAN_SUBAGENT_ID: ${{ github.event.client_payload.id }}
           TITAN_SUBAGENT_TASK_TYPE: ${{ github.event.client_payload.task_type }}
