@@ -30,13 +30,14 @@ export interface SubagentRow {
   task_type: string;
   brief: string;
   status: SubagentStatus;
-  source: "github-issue" | "dashboard";
+  source: "github-issue" | "dashboard" | "meta-agent";
   provider: string | null;
   queued_at: string;
   started_at: string | null;
   finished_at: string | null;
   result_summary: string | null;
   run_url: string | null;
+  tokens_used: number | null;
 }
 
 export interface ProviderKeyMetaRow {
@@ -45,10 +46,46 @@ export interface ProviderKeyMetaRow {
   updated_at: string | null;
 }
 
+export interface LearningPathRow {
+  id: number;
+  subagent_id: string;
+  topic: string;
+  tree: string; // JSON: {topic, prerequisites:[{topic,reason}], resources:[string]}
+  created_at: string;
+}
+
 export interface StatusResponse {
   subagents: SubagentRow[];
   providers: ProviderKeyMetaRow[];
+  learningPaths: LearningPathRow[];
   generatedAt: string;
+}
+
+export interface OsintToolRow {
+  name: string;
+  category: string;
+  url: string;
+  description: string | null;
+}
+
+export interface GeospatialEventRow {
+  id: number;
+  investigation_id: string;
+  subagent_id: string;
+  label: string;
+  lat: number | null;
+  lon: number | null;
+  ip: string | null;
+  confidence: "low" | "medium" | "high" | null;
+  recorded_at: string;
+}
+
+export interface SystemMemoryRow {
+  id: number;
+  category: string;
+  lesson: string;
+  prompt_injection: string;
+  created_at: string;
 }
 
 export class WorkerApiError extends Error {
@@ -107,6 +144,65 @@ export async function setProviderKey(token: string, provider: string, value: str
     method: "POST",
     body: JSON.stringify({ provider, value }),
   });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+// ---------------------------------------------------------------------
+// Phase 2 — OSINT catalog + owner-gated investigation. Every call here
+// carries the same admin token as everything else — POST /osint/investigate
+// is the ONLY way an OSINT-category task can ever be created (see
+// worker/src/index.js's own doc comment); it is never reachable from a
+// public GitHub issue.
+// ---------------------------------------------------------------------
+
+export async function fetchOsintTools(token: string, category: string, q: string): Promise<{ tools: OsintToolRow[] }> {
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  if (q) params.set("q", q);
+  const res = await callWorker(`/osint/tools?${params.toString()}`, token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function investigateOsint(
+  token: string,
+  targetLabel: string,
+  category: string,
+): Promise<{ ok: true; id: string; tool: string | null }> {
+  const res = await callWorker("/osint/investigate", token, {
+    method: "POST",
+    body: JSON.stringify({ target_label: targetLabel, category }),
+  });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function ingestOsintTools(token: string): Promise<{ ok: true; parsed: number; inserted: number }> {
+  const res = await callWorker("/admin/osint/ingest", token, { method: "POST" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+// ---------------------------------------------------------------------
+// Phase 3 — the God's Eye geospatial feed. Reads only what
+// POST /internal/geospatial-event was willing to write, so this is exactly
+// as gated as that route (see worker/src/index.js).
+// ---------------------------------------------------------------------
+
+export async function fetchGeospatialEvents(token: string): Promise<{ events: GeospatialEventRow[]; generatedAt: string }> {
+  const res = await callWorker("/geospatial/events", token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+// ---------------------------------------------------------------------
+// Phase 5 — Hermes system memory (read-only from the dashboard's side;
+// only run-subagent-task.mjs's meta-lesson analysis ever writes it).
+// ---------------------------------------------------------------------
+
+export async function fetchSystemMemory(token: string): Promise<{ lessons: SystemMemoryRow[] }> {
+  const res = await callWorker("/system-memory", token, { method: "GET" });
   if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
   return res.json();
 }

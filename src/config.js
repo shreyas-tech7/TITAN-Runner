@@ -64,6 +64,17 @@ export const config = Object.freeze({
     apiKey: credential(process.env.OPENCODE_API_KEY),
     baseUrl: (process.env.OPENCODE_BASE_URL?.trim() || 'https://opencode.ai/zen').replace(/\/+$/, ''),
   },
+  // OmniRoute (task brief phase 1): an optional self-hosted gateway,
+  // OFF by default — empty baseUrl means "not configured", the same
+  // fail-soft contract every provider here follows. Never a required
+  // hop: see src/providers/omniroute.js and registry.js for why a
+  // gateway outage falls through to the existing direct-provider
+  // failover instead of breaking the pulse.
+  omniroute: {
+    baseUrl: (process.env.OMNIROUTE_BASE_URL?.trim() || '').replace(/\/+$/, ''),
+    apiKey: credential(process.env.OMNIROUTE_API_KEY),
+    model: process.env.OMNIROUTE_MODEL?.trim() || 'auto',
+  },
 
   orchestrator: {
     maxTasksPerPulse: positiveInt(process.env.TITAN_MAX_TASKS_PER_PULSE, 3),
@@ -102,6 +113,8 @@ export function isProviderConfigured(id) {
       return config.freebuff.apiKey.length > 0;
     case 'opencode':
       return config.opencode.apiKey.length > 0;
+    case 'omniroute':
+      return config.omniroute.baseUrl.length > 0;
     default:
       return false;
   }

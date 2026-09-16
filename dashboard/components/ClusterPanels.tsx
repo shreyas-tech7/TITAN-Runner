@@ -11,6 +11,9 @@ import { useWorkerStatus } from "@/lib/useWorkerStatus";
 import { isWorkerConfigured } from "@/lib/workerApi";
 import SubagentsSection from "./SubagentsSection";
 import ProviderKeysPanel from "./ProviderKeysPanel";
+import OmniRouteStatusPanel from "./OmniRouteStatusPanel";
+import OsintPanel from "./OsintPanel";
+import SystemMemoryPanel from "./SystemMemoryPanel";
 
 export default function ClusterPanels({ token, onUnauthorized }: { token: string; onUnauthorized: () => void }) {
   const status = useWorkerStatus(token);
@@ -57,8 +60,16 @@ export default function ClusterPanels({ token, onUnauthorized }: { token: string
 
   return (
     <>
-      <SubagentsSection token={token} subagents={status.data?.subagents ?? []} onQueued={status.refresh} />
+      <SubagentsSection
+        token={token}
+        subagents={status.data?.subagents ?? []}
+        learningPaths={status.data?.learningPaths ?? []}
+        onQueued={status.refresh}
+      />
       <ProviderKeysPanel token={token} providers={status.data?.providers ?? []} onChanged={status.refresh} />
+      <OmniRouteStatusPanel subagents={status.data?.subagents ?? []} />
+      <OsintPanel token={token} subagents={status.data?.subagents ?? []} onQueued={status.refresh} />
+      <SystemMemoryPanel token={token} />
     </>
   );
 }

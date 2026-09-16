@@ -25,8 +25,11 @@ compatibility_date = "2024-09-23"
 [triggers]
 # Cloudflare's free-plan minimum cron interval — see task brief and
 # docs/RUNTIME.md's "Always-on sub-agent cluster" section for the CPU-time
-# budget reasoning.
-crons = ["* * * * *"]
+# budget reasoning. The second entry is the Hermes self-improvement loop
+# (src/meta-agent.js, task brief phase 5) — every 6 hours, well under the
+# free plan's 5-cron-trigger ceiling with the tick above. index.js's
+# scheduled() branches on event.cron to route each firing correctly.
+crons = ["* * * * *", "0 */6 * * *"]
 
 [[d1_databases]]
 binding = "DB"
