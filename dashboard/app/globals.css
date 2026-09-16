@@ -674,3 +674,43 @@ button {
   align-items: center;
   gap: var(--space-3);
 }
+
+/* ---------------------------------------------------------------------- */
+/* Admin gate — the always-on sub-agent cluster build gates the whole      */
+/* dashboard behind the Worker's admin token, not just the write actions   */
+/* (task brief: "private by default"). Same visual language as .modal-body */
+/* — a flat filled panel on the page canvas, centered, nothing else on     */
+/* screen while locked.                                                    */
+/* ---------------------------------------------------------------------- */
+
+.admin-gate {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.admin-gate-box {
+  background: var(--bg-1);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  width: 100%;
+  max-width: 380px;
+  padding: var(--space-5) var(--space-4);
+}
+
+.admin-unlocked {
+  position: relative;
+}
+
+.admin-lock-btn {
+  position: fixed;
+  bottom: var(--space-3);
+  right: var(--space-3);
+  z-index: 30;
+  opacity: 0.7;
+}
+.admin-lock-btn:hover {
+  opacity: 1;
+}

@@ -1,0 +1,19 @@
+{
+  "name": "titan-runner-brain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker: 1-minute cron coordinator for TITAN-Runner's always-on sub-agent cluster. Reads/writes D1 only; never touches state/ or the private TITAN repo.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "tweetnacl-sealedbox-js": "^1.2.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.132.0"
+  }
+}

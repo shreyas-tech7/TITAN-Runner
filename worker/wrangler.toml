@@ -1,0 +1,38 @@
+# titan-runner-brain — the always-on sub-agent cluster's coordinator.
+#
+# Free-tier only, no card required: Workers free plan (100,000 requests/day,
+# 10ms CPU/invocation, up to 5 cron triggers/account) and D1 free plan
+# (5GB storage, generous read/write row limits). This Worker does no heavy
+# computation itself — it reads/writes D1 and calls the GitHub REST API,
+# then hands actual task execution off to GitHub Actions runners (see
+# ../.github/workflows/spawn-subagent.yml), which is what keeps it inside
+# the 10ms CPU budget tick after tick.
+#
+# Secrets (never in this file — set with `wrangler secret put <NAME>`):
+#   TITAN_ADMIN_TOKEN  a long random string Shreyas generates once; gates
+#                      every route below except GET /.
+#   GITHUB_PAT         a fine-grained PAT scoped to shreyas-tech7/TITAN-Runner
+#                      only, with Contents (read/write), Issues (read), and
+#                      Secrets (read/write). Without it, the Worker still
+#                      accepts /tasks and /admin/keys calls and reads D1 for
+#                      /status, but the cron tick's issue-mirror and
+#                      repository_dispatch steps no-op rather than error —
+#                      see docs/RUNTIME.md.
+name = "titan-runner-brain"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+[triggers]
+# Cloudflare's free-plan minimum cron interval — see task brief and
+# docs/RUNTIME.md's "Always-on sub-agent cluster" section for the CPU-time
+# budget reasoning.
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "titan-runner-brain"
+database_id = "341c3067-7111-4fd3-8fe5-3e25120f0661"
+
+[vars]
+GITHUB_OWNER = "shreyas-tech7"
+GITHUB_REPO = "TITAN-Runner"

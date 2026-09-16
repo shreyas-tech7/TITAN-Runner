@@ -497,6 +497,65 @@ allotment). What still matters, and what this section reports instead:
   for a personal account is generous enough that a 15-minute solo cron
   never approaches it.
 
+## Always-on sub-agent cluster (Cloudflare Worker + D1)
+
+A second, additional dispatch layer on top of everything above — it never
+replaces the 15-minute pulse, `src/issueSync.js`, or the Reviewer Gate, all
+of which are untouched. Free-tier only, no card anywhere: Workers free plan
+(1-minute cron, 100k requests/day, 10ms CPU/invocation) and D1 free plan
+(5GB storage).
+
+**titan-runner-brain** (`worker/`), a Cloudflare Worker, ticks once a
+minute: it mirrors any open `titan-task`-labeled GitHub issue into its own
+D1 `subagents` table (a *separate* queue from `state/tasks.json` — it never
+comments on or closes the issue itself, so it can never race the pulse's
+own comment/close behavior on the same issue), then fires a
+`repository_dispatch` (`spawn-subagent`) for up to 5 `queued` rows,
+marking them `dispatched`. All Worker routes except `GET /` require an
+`X-Titan-Auth` header matching the `TITAN_ADMIN_TOKEN` secret:
+
+| Route | Purpose |
+|---|---|
+| `GET /status` | Every recent `subagents` row + `provider_keys_meta` — what the dashboard polls every ~45s. |
+| `POST /tasks` | Dashboard-filed task -> a new `queued` row, `source: 'dashboard'`. |
+| `POST /admin/keys` | `{provider, value}` -> sealed-box encrypted (`tweetnacl-sealedbox-js`, libsodium-compatible — see `worker/test/sealedbox.test.mjs` for the round-trip proof) with this repo's own Actions public key, `PUT` as a repo secret via `GITHUB_PAT`, then `provider_keys_meta` flips `configured=1`. The raw value is never written to D1, never logged, never echoed back — it exists in exactly one place afterward: GitHub's encrypted secret store. |
+| `POST /internal/status` | Called back by `.github/workflows/spawn-subagent.yml` to mark a row `running`/`done`/`failed`. |
+
+**`.github/workflows/spawn-subagent.yml`** runs `scripts/run-subagent-task.mjs`
+on a standard GitHub-hosted runner for each dispatched task: reports
+`running`, runs the brief **past the same Reviewer Gate `pulse.js` uses**
+(constraint: never bypass it — a `titan-task` issue can be filed by anyone,
+since this repo is public), then calls `src/providers/registry.js`'s
+existing five-provider failover directly — `task_type` from the dispatch
+payload doubles as the routing hint (`groq`/`together`/`openrouter`/
+`gemini`/`huggingface`, or `auto` for full failover). No new adapter was
+written; an unrecognized `task_type` is marked `failed` with a clear reason
+instead. Every string that could reach a log line or the dashboard (a
+result summary, an error message) passes through `scrubForState()` first —
+the same "content survives, secrets don't" rule `state/` already uses,
+since a dashboard result_summary is exactly as world-readable once the
+admin token is entered. The script never calls `providerHealth.save()` and
+the workflow never commits anything, so it cannot collide with the pulse's
+own `state/` commits even though it reads the same checked-out files.
+
+**The dashboard** (`dashboard/components/AdminGate.tsx`) now gates its
+*entire* page, not just these new panels, behind the same admin token —
+pasted once, stored in this browser's `localStorage` only, sent as
+`X-Titan-Auth` on every Worker call. `ClusterPanels` renders
+`SubagentsSection` (the queue-a-task field + live `subagents` list) and
+`ProviderKeysPanel` (configured/not per adapter + the key-set form) once
+unlocked; a 401 mid-session (a rotated/revoked token) re-locks immediately.
+`NEXT_PUBLIC_TITAN_WORKER_URL` (a repo **variable**, not a secret — the
+admin token is what actually gates access) is empty until the Worker is
+deployed, and every panel degrades honestly to a "not configured yet"
+message rather than a broken fetch, the same pattern `NewTaskModal`'s
+no-token fallback already established.
+
+**Not deployed as part of this build** — see the build brief for exactly
+why (no `CLOUDFLARE_API_TOKEN` available in the build environment) and the
+manual steps required. `worker/schema.sql` documents the schema already
+applied live to the `titan-runner-brain` D1 database.
+
 ## Human checkpoints not resolved in this build
 
 - **GitHub Pages is not enabled yet.** Dispatching `pages-deploy.yml` live
