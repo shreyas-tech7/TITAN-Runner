@@ -20,6 +20,14 @@ export const DENYLIST = Object.freeze([
   'src/lib/secretScrub.js',
   'scripts/check-denylist.mjs',
   'scripts/check-secrets-in-state.mjs',
+  // The always-on sub-agent cluster (build brief: "always-on sub-agent
+  // cluster"): worker/ holds the admin-token auth check and the sealed-box
+  // key-encryption flow, and run-subagent-task.mjs is what actually calls
+  // the Reviewer Gate before ever reaching a provider. Neither is covered
+  // by the entries above, and either one would be a quiet way to weaken
+  // this repo's safety net without ever touching src/reviewer/ itself.
+  'worker/',
+  'scripts/run-subagent-task.mjs',
 ]);
 
 /**
