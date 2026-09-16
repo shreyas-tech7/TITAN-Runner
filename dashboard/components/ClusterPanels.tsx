@@ -1,0 +1,64 @@
+"use client";
+
+/**
+ * Wires the two new sub-agent-cluster panels to a single `GET /status`
+ * poll (build brief, section 5) and re-locks the dashboard immediately if
+ * the Worker ever rejects the token mid-session (rotated/revoked by
+ * Shreyas) rather than spinning on 401s forever.
+ */
+import { useEffect } from "react";
+import { useWorkerStatus } from "@/lib/useWorkerStatus";
+import { isWorkerConfigured } from "@/lib/workerApi";
+import SubagentsSection from "./SubagentsSection";
+import ProviderKeysPanel from "./ProviderKeysPanel";
+
+export default function ClusterPanels({ token, onUnauthorized }: { token: string; onUnauthorized: () => void }) {
+  const status = useWorkerStatus(token);
+
+  useEffect(() => {
+    if (status.unauthorized) onUnauthorized();
+  }, [status.unauthorized, onUnauthorized]);
+
+  if (!isWorkerConfigured()) {
+    return (
+      <section className="section">
+        <div className="section-head">
+          <span className="label">Sub-agent cluster</span>
+        </div>
+        <div className="empty">
+          The titan-runner-brain Worker isn&apos;t deployed/configured on this build yet
+          (<span className="mono">NEXT_PUBLIC_TITAN_WORKER_URL</span> is empty) — see docs/RUNTIME.md.
+        </div>
+      </section>
+    );
+  }
+
+  if (status.loading && !status.data) {
+    return (
+      <section className="section">
+        <div className="section-head">
+          <span className="label">Sub-agent cluster</span>
+        </div>
+        <div className="empty">Loading…</div>
+      </section>
+    );
+  }
+
+  if (status.error && !status.data) {
+    return (
+      <section className="section">
+        <div className="section-head">
+          <span className="label">Sub-agent cluster</span>
+        </div>
+        <div className="empty">{status.error}</div>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <SubagentsSection token={token} subagents={status.data?.subagents ?? []} onQueued={status.refresh} />
+      <ProviderKeysPanel token={token} providers={status.data?.providers ?? []} onChanged={status.refresh} />
+    </>
+  );
+}

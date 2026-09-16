@@ -85,11 +85,18 @@ Copy `.env.example` to `.env` (or export the same variables) and unset
 src/            the pulse itself — orchestrator, provider adapters, reviewer gate, state I/O
 state/          the database: tasks.json, agents.json, heartbeat.json, runs/, digests/, reviews/
 dashboard/      static Next.js export published to GitHub Pages
-scripts/        CI gate scripts (denylist, secret scan) and the weekly/dead-man's-switch jobs
+scripts/        CI gate scripts (denylist, secret scan), the weekly/dead-man's-switch jobs, and the sub-agent task runner
+worker/         titan-runner-brain — the always-on sub-agent cluster's Cloudflare Worker + D1 coordinator (see docs/RUNTIME.md)
 test/           unit + integration tests (node:test), zero network required
-.github/        the four workflows (pulse, CI, Pages deploy, keep-alive/dead-man's-switch)
+.github/        the five workflows (pulse, CI, Pages deploy, keep-alive/dead-man's-switch, spawn-subagent)
 docs/RUNTIME.md how the pulse works, minute-budget math, how to add a task, how to kill a runaway agent
 ```
+
+**Always-on sub-agent cluster**: a second, additional layer — a Cloudflare
+Worker ticking every minute, backed by D1, dispatching to GitHub Actions —
+sits alongside the 15-minute pulse above without replacing it. Reuses the
+same five provider adapters and the same Reviewer Gate; never bypasses
+either. See docs/RUNTIME.md's "Always-on sub-agent cluster" section.
 
 ## What this is not
 

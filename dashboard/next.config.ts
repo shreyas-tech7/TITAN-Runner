@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
     // a local dev build falls back to this repo's own name.
     NEXT_PUBLIC_GITHUB_OWNER: process.env.NEXT_PUBLIC_GITHUB_OWNER || "shreyas-tech7",
     NEXT_PUBLIC_GITHUB_REPO: process.env.NEXT_PUBLIC_GITHUB_REPO || "TITAN-Runner",
+    // The titan-runner-brain Worker's URL — empty (not a fallback default)
+    // is the honest "not deployed/configured yet" signal ClusterPanels
+    // reads via lib/workerApi.ts's isWorkerConfigured(). See
+    // .github/workflows/pages-deploy.yml's own comment on this var.
+    NEXT_PUBLIC_TITAN_WORKER_URL: process.env.NEXT_PUBLIC_TITAN_WORKER_URL || "",
   },
 };
 

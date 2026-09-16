@@ -1,0 +1,91 @@
+name: Spawn Sub-agent
+
+# Fired by the titan-runner-brain Cloudflare Worker's 1-minute cron tick via
+# `repository_dispatch` (task brief, section 1b/3) — a separate, additional
+# dispatch path layered on top of the existing 15-minute titan-pulse.yml,
+# never replacing it. Standard GitHub-hosted runner, no self-hosted runner,
+# no paid tier (task brief, section 3: "Standard runners only").
+on:
+  repository_dispatch:
+    types: [spawn-subagent]
+
+# One job per dispatched task id — two different tasks must run
+# concurrently (that's the whole point of a "cluster"), but the same task
+# id should never be picked up twice at once.
+concurrency:
+  group: spawn-subagent-${{ github.event.client_payload.id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run-subagent:
+    runs-on: ubuntu-latest
+    # Each run does one unit of work and stops (task brief, section 3, step
+    # 6) — this ceiling exists so a stuck provider call fails loudly rather
+    # than occupying a runner slot indefinitely, same reasoning as
+    # titan-pulse.yml's own 10-minute ceiling.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # GitHub auto-masks any log text matching a secret referenced via
+      # secrets.* in this workflow, but the task brief asks for this
+      # explicitly as defence in depth (section 4's key-intake rule applied
+      # to every workflow, not just the ones that manage keys) — belt and
+      # suspenders costs nothing here.
+      - name: Mask secret-derived values before anything can log them
+        run: |
+          for v in "$TITAN_ADMIN_TOKEN" "$GROQ_API_KEY" "$TOGETHER_API_KEY" "$OPENROUTER_API_KEY" "$GEMINI_API_KEY" "$HF_API_KEY"; do
+            if [ -n "$v" ]; then echo "::add-mask::$v"; fi
+          done
+        env:
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HF_API_KEY: ${{ secrets.HF_API_KEY }}
+
+      - name: Run the sub-agent task
+        id: run_task
+        env:
+          # Where and how to call back titan-runner-brain to mark this row
+          # running/done/failed (task brief, section 3, step 1).
+          # TITAN_WORKER_URL isn't sensitive on its own (the admin token is
+          # what actually gates the Worker) — a repo VARIABLE, the same one
+          # pages-deploy.yml reads for the dashboard build, not a second
+          # secret to keep in sync.
+          TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          TITAN_SUBAGENT_ID: ${{ github.event.client_payload.id }}
+          TITAN_SUBAGENT_TASK_TYPE: ${{ github.event.client_payload.task_type }}
+          TITAN_SUBAGENT_BRIEF: ${{ github.event.client_payload.brief }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # The exact same five provider secrets titan-pulse.yml already
+          # injects — reusing this repo's existing adapters (task brief,
+          # section 3: never write a new one).
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          TOGETHER_MODEL: ${{ secrets.TOGETHER_MODEL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+          HF_API_KEY: ${{ secrets.HF_API_KEY }}
+          HF_MODEL: ${{ secrets.HF_MODEL }}
+          # Reviewer Gate: `config.js` already defaults this to enabled
+          # with no env var set at all — left unset here on purpose, same
+          # as titan-pulse.yml, rather than re-declaring a default that
+          # could drift out of sync with it (constraint 2: never weaken
+          # the gate).
+        run: node scripts/run-subagent-task.mjs

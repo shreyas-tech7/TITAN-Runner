@@ -16,6 +16,8 @@ import NewTaskModal from "@/components/NewTaskModal";
 import SettingsPanel from "@/components/SettingsPanel";
 import CommandPalette, { type Command } from "@/components/CommandPalette";
 import LastFetchedIndicator from "@/components/LastFetchedIndicator";
+import AdminGate from "@/components/AdminGate";
+import ClusterPanels from "@/components/ClusterPanels";
 
 function readUrlParam(name: string): string {
   if (typeof window === "undefined") return "";
@@ -123,6 +125,8 @@ export default function DashboardPage() {
   };
 
   return (
+    <AdminGate>
+      {(adminToken, lockDashboard) => (
     <div className="shell">
       <div className="topbar">
         <div>
@@ -170,6 +174,8 @@ export default function DashboardPage() {
 
       <ProviderHealthStrip providers={providers.data?.providers} />
 
+      <ClusterPanels token={adminToken} onUnauthorized={lockDashboard} />
+
       <PrPanel />
 
       <p className="footer-note">
@@ -198,5 +204,7 @@ export default function DashboardPage() {
       {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
     </div>
+      )}
+    </AdminGate>
   );
 }

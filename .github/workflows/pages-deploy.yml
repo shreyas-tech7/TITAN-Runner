@@ -56,6 +56,15 @@ jobs:
           GITHUB_PAGES_BASE_PATH: /${{ github.event.repository.name }}
           NEXT_PUBLIC_GITHUB_OWNER: ${{ github.repository_owner }}
           NEXT_PUBLIC_GITHUB_REPO: ${{ github.event.repository.name }}
+          # The titan-runner-brain Worker's URL, e.g.
+          # https://titan-runner-brain.<subdomain>.workers.dev — not
+          # sensitive on its own (the admin token is what actually gates
+          # it), so this is a repo VARIABLE, not a secret. Empty until
+          # Shreyas deploys the Worker and sets it (Settings -> Secrets and
+          # variables -> Actions -> Variables) — the dashboard degrades
+          # honestly with a "not configured yet" panel until then, same as
+          # every other optional-integration pattern in this repo.
+          NEXT_PUBLIC_TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
         run: npm run build
 
       - uses: actions/configure-pages@v5
