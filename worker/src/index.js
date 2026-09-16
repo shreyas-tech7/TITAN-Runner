@@ -25,6 +25,7 @@
 // `module.exports` itself, which already has `.seal`/`.open` as direct
 // properties.
 import sealedbox from 'tweetnacl-sealedbox-js';
+import { runMetaAgent } from './meta-agent.js';
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -144,6 +145,14 @@ async function ghListOpenTitanIssues(env) {
   return res.json();
 }
 
+async function ghFetchRaw(path) {
+  const res = await fetch(`https://raw.githubusercontent.com/${path}`, {
+    headers: { 'User-Agent': 'titan-runner-brain-worker' },
+  });
+  if (!res.ok) throw new Error(`raw.githubusercontent.com fetch failed: ${res.status}`);
+  return res.text();
+}
+
 async function ghDispatch(env, payload) {
   const res = await fetch(`${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/dispatches`, {
     method: 'POST',
@@ -162,15 +171,19 @@ async function ghDispatch(env, payload) {
 
 async function handleStatus(env) {
   const subagents = await env.DB.prepare(
-    `SELECT id, task_type, brief, status, source, provider, queued_at, started_at, finished_at, result_summary, run_url
+    `SELECT id, task_type, brief, status, source, provider, queued_at, started_at, finished_at, result_summary, run_url, tokens_used
      FROM subagents ORDER BY queued_at DESC LIMIT 100`,
   ).all();
   const providers = await env.DB.prepare(
     `SELECT provider, configured, updated_at FROM provider_keys_meta ORDER BY provider ASC`,
   ).all();
+  const learningPaths = await env.DB.prepare(
+    `SELECT id, subagent_id, topic, tree, created_at FROM learning_paths ORDER BY created_at DESC LIMIT 50`,
+  ).all();
   return json({
     subagents: subagents.results,
     providers: providers.results,
+    learningPaths: learningPaths.results,
     generatedAt: new Date().toISOString(),
   });
 }
@@ -242,7 +255,7 @@ async function handleInternalStatus(request, env) {
   } catch {
     return json({ error: 'invalid JSON body' }, 400);
   }
-  const { id, status, provider, result_summary: resultSummary, run_url: runUrl } = body ?? {};
+  const { id, status, provider, result_summary: resultSummary, run_url: runUrl, tokens_used: tokensUsed } = body ?? {};
   const allowed = ['running', 'done', 'failed'];
   if (!id || !allowed.includes(status)) {
     return json({ error: `id is required and status must be one of: ${allowed.join(', ')}` }, 400);
@@ -254,6 +267,10 @@ async function handleInternalStatus(request, env) {
   if (typeof provider === 'string' && provider) {
     sets.push('provider = ?');
     vals.push(provider);
+  }
+  if (Number.isFinite(Number(tokensUsed))) {
+    sets.push('tokens_used = ?');
+    vals.push(Number(tokensUsed));
   }
   if (typeof resultSummary === 'string' && resultSummary) {
     sets.push('result_summary = ?');
@@ -281,6 +298,308 @@ async function handleInternalStatus(request, env) {
 }
 
 // ---------------------------------------------------------------------
+// Phase 2 — OSINT tool catalog + owner-gated investigation/geospatial feed
+// ---------------------------------------------------------------------
+
+/**
+ * Parses Astrosp/Awesome-OSINT-List's README format: `## Category` section
+ * headers, `- [Name](url) - description` (or `— `/no-dash) list items under
+ * each. Tolerant of the minor formatting drift real awesome-lists have —
+ * skips a line it can't parse rather than throwing, since one bad line must
+ * never abort the whole ingestion.
+ * @param {string} markdown
+ * @returns {Array<{name: string, category: string, url: string, description: string}>}
+ */
+export function parseAwesomeOsintList(markdown) {
+  const tools = [];
+  let category = 'Uncategorized';
+  const headingRe = /^#{2,3}\s+(.+?)\s*$/;
+  const itemRe = /^[-*]\s+\[([^\]]+)\]\(([^)]+)\)\s*[-—:]?\s*(.*)$/;
+
+  for (const rawLine of markdown.split('\n')) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    const heading = line.match(headingRe);
+    if (heading) {
+      // Ignore boilerplate section names an awesome-list README always has
+      // that are not tool categories (contributing guide, license, etc.).
+      const name = heading[1].replace(/[*_`]/g, '').trim();
+      if (!/^(contents|table of contents|contributing|license|about|usage)$/i.test(name)) {
+        category = name;
+      }
+      continue;
+    }
+
+    const item = line.match(itemRe);
+    if (!item) continue;
+    const [, name, url, description] = item;
+    if (!/^https?:\/\//i.test(url)) continue; // skip relative/anchor links
+    tools.push({ name: name.trim(), category, url: url.trim(), description: description.trim() });
+  }
+  return tools;
+}
+
+const AWESOME_OSINT_LIST_PATH = 'Astrosp/Awesome-OSINT-List/main/README.md';
+
+/** POST /admin/osint/ingest — one-time (idempotent, re-runnable) catalog
+ * ingestion. Admin-token-gated like every other write route; this is
+ * reference data only (tool name/url/description), never something that
+ * runs anything by itself. */
+async function handleAdminOsintIngest(env) {
+  let markdown;
+  try {
+    markdown = await ghFetchRaw(AWESOME_OSINT_LIST_PATH);
+  } catch (err) {
+    return json({ error: `failed to fetch the source list: ${err instanceof Error ? err.message : 'unknown error'}` }, 502);
+  }
+
+  const tools = parseAwesomeOsintList(markdown);
+  if (tools.length === 0) {
+    return json({ error: 'parsed zero tools from the source list — its format may have changed; see parseAwesomeOsintList()' }, 502);
+  }
+
+  const now = new Date().toISOString();
+  let inserted = 0;
+  for (const tool of tools) {
+    const result = await env.DB.prepare(
+      `INSERT OR IGNORE INTO osint_tools (name, category, url, description, ingested_at) VALUES (?, ?, ?, ?, ?)`,
+    )
+      .bind(tool.name.slice(0, 200), tool.category.slice(0, 100), tool.url.slice(0, 500), tool.description.slice(0, 500), now)
+      .run();
+    inserted += result.meta.changes ?? 0;
+  }
+
+  return json({ ok: true, parsed: tools.length, inserted, alreadyPresent: tools.length - inserted });
+}
+
+/** GET /osint/tools?category=&q= — the retrieval function: the best-match
+ * catalog rows for a category/keyword, ranked by a simple relevance score
+ * (category exact match beats a name/description substring hit). */
+async function handleOsintTools(request, env) {
+  const url = new URL(request.url);
+  const category = (url.searchParams.get('category') || '').trim();
+  const q = (url.searchParams.get('q') || '').trim();
+  const limit = Math.min(Math.max(Number.parseInt(url.searchParams.get('limit') || '10', 10) || 10, 1), 50);
+
+  const like = `%${q}%`;
+  const { results } = await env.DB.prepare(
+    `SELECT name, category, url, description,
+            (CASE WHEN lower(category) = lower(?) THEN 2
+                  WHEN lower(category) LIKE lower(?) THEN 1 ELSE 0 END) AS category_score
+     FROM osint_tools
+     WHERE (? = '' OR lower(category) LIKE lower(?))
+       AND (? = '' OR lower(name) LIKE lower(?) OR lower(description) LIKE lower(?))
+     ORDER BY category_score DESC, name ASC
+     LIMIT ?`,
+  )
+    .bind(category, `%${category}%`, category, `%${category}%`, q, like, like, limit)
+    .all();
+
+  return json({ tools: results, count: results.length });
+}
+
+/**
+ * POST /osint/investigate — the ONLY way an OSINT-category sub-agent task
+ * can ever be created. Gated by the same X-Titan-Auth admin token every
+ * other write route requires, which is what stands between this and the
+ * public, unauthenticated github-issue intake (see README's Security
+ * section, and schema.sql's comment on this table). `mirrorGithubIssues()`
+ * below hardcodes task_type='auto' and source='github-issue' for every
+ * issue-sourced row — it can never produce one of these.
+ */
+async function handleOsintInvestigate(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'invalid JSON body' }, 400);
+  }
+  const targetLabel = typeof body?.target_label === 'string' ? body.target_label.trim().slice(0, 300) : '';
+  const category = typeof body?.category === 'string' ? body.category.trim().slice(0, 100) : '';
+  if (!targetLabel) return json({ error: 'target_label is required' }, 400);
+
+  const toolRow = await env.DB.prepare(
+    `SELECT name, url FROM osint_tools WHERE (? = '' OR lower(category) LIKE lower(?)) ORDER BY name ASC LIMIT 1`,
+  )
+    .bind(category, `%${category}%`)
+    .first();
+  const tool = toolRow ? `${toolRow.name} (${toolRow.url})` : null;
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const brief =
+    `OSINT investigation. Target: "${targetLabel}".` +
+    (tool ? ` Suggested tool: ${tool}.` : '') +
+    ` Respond with STRICT JSON ONLY: {"summary": string, "location": ` +
+    `{"label": string, "lat": number|null, "lon": number|null, "ip": string|null, ` +
+    `"confidence": "low"|"medium"|"high"} | null}. Set "location" to null if no ` +
+    `physical location or IP was found — never invent one.`;
+
+  await env.DB.prepare(
+    `INSERT INTO subagents (id, task_type, brief, status, source, queued_at) VALUES (?, 'osint', ?, 'queued', 'dashboard', ?)`,
+  )
+    .bind(id, brief, now)
+    .run();
+  await env.DB.prepare(
+    `INSERT INTO osint_investigations (id, subagent_id, target_label, category, tool_used, status, created_at) VALUES (?, ?, ?, ?, ?, 'queued', ?)`,
+  )
+    .bind(crypto.randomUUID(), id, targetLabel, category || null, tool, now)
+    .run();
+
+  return json({ ok: true, id, tool });
+}
+
+/** POST /internal/geospatial-event — called by run-subagent-task.mjs after
+ * an 'osint' task's model response resolves a location. Re-validates the
+ * linked subagents row is source='dashboard' AND task_type='osint' before
+ * writing anything — a second, independent gate on top of the fact that
+ * nothing else can create such a row in the first place (defense in depth:
+ * this route, not "the mirror happens not to set this today", is what
+ * actually enforces the invariant). */
+async function handleInternalGeospatialEvent(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'invalid JSON body' }, 400);
+  }
+  const subagentId = typeof body?.subagent_id === 'string' ? body.subagent_id : '';
+  const label = typeof body?.label === 'string' ? body.label.trim().slice(0, 300) : '';
+  if (!subagentId || !label) return json({ error: 'subagent_id and label are required' }, 400);
+
+  const row = await env.DB.prepare(`SELECT source, task_type FROM subagents WHERE id = ?`).bind(subagentId).first();
+  if (!row || row.source !== 'dashboard' || row.task_type !== 'osint') {
+    return json({ error: 'this subagent row is not an approved, dashboard-sourced OSINT investigation — refusing to record a geospatial event' }, 403);
+  }
+
+  const investigation = await env.DB.prepare(`SELECT id FROM osint_investigations WHERE subagent_id = ?`).bind(subagentId).first();
+  if (!investigation) return json({ error: 'no matching osint_investigations row for this subagent_id' }, 403);
+
+  const lat = Number.isFinite(Number(body?.lat)) ? Number(body.lat) : null;
+  const lon = Number.isFinite(Number(body?.lon)) ? Number(body.lon) : null;
+  const ip = typeof body?.ip === 'string' ? body.ip.trim().slice(0, 64) : null;
+  const confidence = ['low', 'medium', 'high'].includes(body?.confidence) ? body.confidence : null;
+
+  await env.DB.prepare(
+    `INSERT INTO geospatial_events (investigation_id, subagent_id, label, lat, lon, ip, confidence, recorded_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(investigation.id, subagentId, label, lat, lon, ip, confidence, new Date().toISOString())
+    .run();
+  await env.DB.prepare(`UPDATE osint_investigations SET status = 'located' WHERE id = ?`).bind(investigation.id).run();
+
+  return json({ ok: true });
+}
+
+/** GET /geospatial/events — what the /ops/geospatial dashboard page polls
+ * to place pins on the globe. Reads only what /internal/geospatial-event
+ * above was willing to write, so this feed is exactly as gated as that
+ * route is. */
+async function handleGeospatialEvents(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT id, investigation_id, subagent_id, label, lat, lon, ip, confidence, recorded_at
+     FROM geospatial_events ORDER BY recorded_at DESC LIMIT 200`,
+  ).all();
+  return json({ events: results, generatedAt: new Date().toISOString() });
+}
+
+// ---------------------------------------------------------------------
+// Phase 4 — "Learn anything" fallback
+// ---------------------------------------------------------------------
+
+/** POST /internal/learning-path — called by run-subagent-task.mjs when a
+ * failed task's own follow-up probe names a specific knowledge gap. See
+ * schema.sql's comment on why this generates the tree via this cluster's
+ * own provider registry rather than a learn-anything.xyz API call that
+ * does not exist. */
+async function handleInternalLearningPath(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'invalid JSON body' }, 400);
+  }
+  const subagentId = typeof body?.subagent_id === 'string' ? body.subagent_id : '';
+  const topic = typeof body?.topic === 'string' ? body.topic.trim().slice(0, 200) : '';
+  const tree = body?.tree;
+  if (!subagentId || !topic || !tree || typeof tree !== 'object') {
+    return json({ error: 'subagent_id, topic, and tree are required' }, 400);
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO learning_paths (subagent_id, topic, tree, created_at) VALUES (?, ?, ?, ?)`,
+  )
+    .bind(subagentId, topic, JSON.stringify(tree).slice(0, 8000), new Date().toISOString())
+    .run();
+
+  return json({ ok: true });
+}
+
+// ---------------------------------------------------------------------
+// Phase 5 — Hermes self-improvement loop
+// ---------------------------------------------------------------------
+
+/**
+ * POST /internal/system-memory — called by run-subagent-task.mjs after a
+ * 'meta-lesson' analysis task completes. This is the ONLY place that ever
+ * writes `system_memory`, and every write here also writes a matching
+ * `system_memory_audit` row in the same request — old value, new value,
+ * timestamp, and the specific task that triggered it — precisely so a
+ * future drift in what this loop is teaching sub-agent tasks is
+ * debuggable from a diffable history, not just observable after the fact.
+ */
+async function handleInternalSystemMemory(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'invalid JSON body' }, 400);
+  }
+  const category = typeof body?.category === 'string' ? body.category.trim().slice(0, 100) : '';
+  const lesson = typeof body?.lesson === 'string' ? body.lesson.trim().slice(0, 500) : '';
+  const promptInjection = typeof body?.promptInjection === 'string' ? body.promptInjection.trim().slice(0, 500) : '';
+  const triggeringTaskId = typeof body?.triggeringTaskId === 'string' ? body.triggeringTaskId : null;
+  if (!category || !lesson || !promptInjection) {
+    return json({ error: 'category, lesson, and promptInjection are required' }, 400);
+  }
+
+  const now = new Date().toISOString();
+  const inserted = await env.DB.prepare(
+    `INSERT INTO system_memory (category, lesson, prompt_injection, active, created_at) VALUES (?, ?, ?, 1, ?)`,
+  )
+    .bind(category, lesson, promptInjection, now)
+    .run();
+  const memoryId = inserted.meta.last_row_id;
+
+  await env.DB.prepare(
+    `INSERT INTO system_memory_audit (memory_id, action, old_value, new_value, triggering_task_id, reason, created_at)
+     VALUES (?, 'created', NULL, ?, ?, ?, ?)`,
+  )
+    .bind(
+      memoryId,
+      JSON.stringify({ category, lesson, promptInjection }),
+      triggeringTaskId,
+      `Hermes meta-agent analysis of ${triggeringTaskId ?? 'an unspecified task'}`,
+      now,
+    )
+    .run();
+
+  return json({ ok: true, memoryId });
+}
+
+/** GET /system-memory — what run-subagent-task.mjs prepends to every
+ * future sub-agent task's context window before calling a provider (task
+ * brief, phase 5: "Future sub-agent tasks MUST read from system_memory"),
+ * and what the dashboard renders as the Hermes panel. */
+async function handleSystemMemory(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT id, category, lesson, prompt_injection, created_at FROM system_memory WHERE active = 1 ORDER BY created_at DESC LIMIT 20`,
+  ).all();
+  return json({ lessons: results });
+}
+
+// ---------------------------------------------------------------------
 // Scheduled tick
 // ---------------------------------------------------------------------
 
@@ -299,6 +618,11 @@ async function mirrorGithubIssues(env) {
     const id = `gh-issue-${issue.number}`;
     const brief = `${issue.title ?? ''}\n\n${issue.body ?? ''}`.trim().slice(0, 4000);
     try {
+      // task_type is hardcoded to 'auto' here, never derived from issue
+      // content — this is the reason an anonymous public GitHub issue can
+      // never become an 'osint' task (see /osint/investigate's doc comment
+      // and schema.sql's note on osint_investigations): the only place
+      // task_type='osint' is ever written is that admin-token-gated route.
       await env.DB.prepare(
         `INSERT OR IGNORE INTO subagents (id, task_type, brief, status, source, queued_at) VALUES (?, 'auto', ?, 'queued', 'github-issue', ?)`,
       )
@@ -362,6 +686,58 @@ export default {
       return handleAdminKeys(request, env);
     }
 
+    // Phase 2 — OSINT catalog + owner-gated investigation/geospatial feed.
+    // Every route below (including the GET ones) requires the admin token:
+    // this data is exactly as world-readable-if-unguarded as everything
+    // else the Worker holds, and /osint/investigate in particular is the
+    // one and only path that can ever create an OSINT-category task — see
+    // its own doc comment above.
+    if (url.pathname === '/admin/osint/ingest' && request.method === 'POST') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleAdminOsintIngest(env);
+    }
+
+    if (url.pathname === '/osint/tools' && request.method === 'GET') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleOsintTools(request, env);
+    }
+
+    if (url.pathname === '/osint/investigate' && request.method === 'POST') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleOsintInvestigate(request, env);
+    }
+
+    if (url.pathname === '/geospatial/events' && request.method === 'GET') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleGeospatialEvents(env);
+    }
+
+    // Called back by scripts/run-subagent-task.mjs — same admin-token gate
+    // as /internal/status, plus its own independent re-validation inside
+    // the handler (see handleInternalGeospatialEvent's doc comment).
+    if (url.pathname === '/internal/geospatial-event' && request.method === 'POST') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleInternalGeospatialEvent(request, env);
+    }
+
+    // Phase 4 — "learn anything" fallback (see handleInternalLearningPath).
+    if (url.pathname === '/internal/learning-path' && request.method === 'POST') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleInternalLearningPath(request, env);
+    }
+
+    // Phase 5 — Hermes self-improvement loop (see meta-agent.js and
+    // handleInternalSystemMemory's doc comment).
+    if (url.pathname === '/internal/system-memory' && request.method === 'POST') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleInternalSystemMemory(request, env);
+    }
+
+    if (url.pathname === '/system-memory' && request.method === 'GET') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleSystemMemory(env);
+    }
+
     // Called back by .github/workflows/spawn-subagent.yml to report
     // running/done/failed — gated by the same admin token, which that
     // workflow reads from its own repo secret of the same name (task
@@ -376,7 +752,15 @@ export default {
     return json({ error: 'not found' }, 404);
   },
 
-  async scheduled(_event, env, ctx) {
+  async scheduled(event, env, ctx) {
+    // Two cron entries share this one handler (see wrangler.toml) —
+    // branch on which fired rather than running both on every tick, since
+    // the meta-agent's D1 scan is real work this Worker only wants to do
+    // once every 6 hours, not once a minute.
+    if (event.cron === '0 */6 * * *') {
+      ctx.waitUntil(runMetaAgent(env));
+      return;
+    }
     ctx.waitUntil(handleTick(env));
   },
 };

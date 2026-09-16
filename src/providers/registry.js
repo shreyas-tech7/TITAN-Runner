@@ -12,6 +12,7 @@ import { TogetherProvider } from './together.js';
 import { OpenRouterProvider } from './openrouter.js';
 import { GeminiProvider } from './gemini.js';
 import { HuggingFaceProvider } from './huggingface.js';
+import { OmniRouteProvider } from './omniroute.js';
 import { providerHealth } from './health.js';
 import { createLogger } from '../lib/logger.js';
 
@@ -30,8 +31,14 @@ export class Registry {
    *   defaults (the five real provider instances, the shared `providerHealth`
    *   singleton). See `test/registry-health.test.js`.
    */
-  constructor({ providers, healthStore = providerHealth } = {}) {
+  #omniroute;
+
+  constructor({ providers, omniroute, healthStore = providerHealth } = {}) {
     this.#health = healthStore;
+    // Injectable for tests, same as `providers` below; production code
+    // always uses the real adapter (config-gated, off unless
+    // OMNIROUTE_BASE_URL is set).
+    this.#omniroute = omniroute ?? new OmniRouteProvider();
     if (providers) {
       this.#providers = providers;
       return;
@@ -56,6 +63,13 @@ export class Registry {
     return FAILOVER_ORDER.filter((id) => this.#providers.get(id)?.isConfigured());
   }
 
+  /** Whether the optional OmniRoute gateway is configured — used by
+   * run-subagent-task.mjs to report the OmniRoute Status panel's
+   * "configured" state without needing its own env-var lookup. */
+  omniRouteConfigured() {
+    return this.#omniroute.isConfigured();
+  }
+
   /**
    * @param {{role:string,content:string}[]} messages
    * @param {{service?: string, signal?: AbortSignal, temperature?: number, maxTokens?: number}} [opts]
@@ -68,6 +82,24 @@ export class Registry {
 
     const tried = [];
     const skipped = [];
+
+    // OmniRoute goes first, but only for an "auto" (unhinted) request and
+    // only when configured — an explicit `service` name is a caller asking
+    // for that exact direct provider, which OmniRoute should not intercept.
+    // Any failure here (unreachable gateway, bad response) falls straight
+    // through to the ordinary failover below rather than aborting the call.
+    if (service === 'auto' && this.#omniroute.isConfigured()) {
+      tried.push('omniroute');
+      try {
+        return await this.#omniroute.chat(messages, { temperature, maxTokens, signal });
+      } catch (err) {
+        if (signal?.aborted) throw err;
+        log.debug('omniroute attempt failed, falling back to direct providers', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
     for (const id of order) {
       const provider = this.#providers.get(id);
       if (!provider || !provider.isConfigured()) continue;

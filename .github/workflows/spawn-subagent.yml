@@ -37,6 +37,28 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      # Opt-in only (task brief, "OmniRoute Gateway Setup"): off unless a
+      # maintainer sets the `OMNIROUTE_ENABLED` repo variable to "true".
+      # Pinned to a specific tag+digest, never `latest` — this container
+      # would sit in front of every provider credential this cluster has,
+      # so an unpinned `latest` pull is a supply-chain single point of
+      # failure for all of them. Re-pin deliberately (new tag AND digest)
+      # after auditing a version bump, never by dropping the digest.
+      - name: Start OmniRoute gateway (pinned, opt-in)
+        if: vars.OMNIROUTE_ENABLED == 'true'
+        run: |
+          docker run -d --name omniroute -p 20128:20128 \
+            diegosouzapw/omniroute:3.8.50@sha256:085c57adf499a8aaa9f35ccde95c0df9c11bd9ecd18d6c9edbf3b68b8079ba9d
+          for i in $(seq 1 15); do
+            if curl -fsS http://localhost:20128/ >/dev/null 2>&1; then
+              echo "OmniRoute is up."
+              echo "OMNIROUTE_BASE_URL=http://localhost:20128/v1" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::warning::OmniRoute did not become healthy in time — this run falls back to direct providers." >&2
+
       # GitHub auto-masks any log text matching a secret referenced via
       # secrets.* in this workflow, but the task brief asks for this
       # explicitly as defence in depth (section 4's key-intake rule applied

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { usePolledJson } from "@/lib/usePolledJson";
 import type { HeartbeatState, TasksState, ProvidersState, PulseHistoryState, TaskRecord } from "@/lib/types";
 import { listOptimisticTasks, reconcileOptimisticTasks } from "@/lib/optimisticTasks";
@@ -140,6 +141,9 @@ export default function DashboardPage() {
           <button className="btn btn-quiet" onClick={() => setPaletteOpen(true)}>
             <span className="kbd">⌘K</span>
           </button>
+          <Link className="btn btn-quiet" href="/ops/geospatial">
+            God&apos;s Eye View
+          </Link>
           <button className="btn btn-quiet" onClick={() => setSettingsOpen(true)}>
             Settings
           </button>

@@ -8,7 +8,7 @@
  */
 import { useState } from "react";
 import { relative } from "@/lib/time";
-import { queueTask, KNOWN_PROVIDERS, WorkerApiError, type SubagentRow, type SubagentStatus } from "@/lib/workerApi";
+import { queueTask, KNOWN_PROVIDERS, WorkerApiError, type SubagentRow, type SubagentStatus, type LearningPathRow } from "@/lib/workerApi";
 
 const STATUS_META: Record<SubagentStatus, { label: string; dot: string; text: string }> = {
   queued: { label: "Queued", dot: "dot-idle", text: "text-muted" },
@@ -18,7 +18,40 @@ const STATUS_META: Record<SubagentStatus, { label: string; dot: string; text: st
   failed: { label: "Failed", dot: "dot-fail", text: "text-failure" },
 };
 
-function SubagentRowView({ row }: { row: SubagentRow }) {
+/**
+ * Renders a learning path's stored tree (task brief, phase 4: "render this
+ * generated learning/execution path in the TITAN dashboard under the task
+ * status UI"). `tree` is opaque JSON from the model, so this degrades to a
+ * plain "couldn't render" message rather than crashing on a shape it
+ * doesn't recognize — the same defensive spirit `parseProbeJson`'s caller
+ * already applies server-side.
+ */
+function LearningPathView({ path }: { path: LearningPathRow }) {
+  let tree: { prerequisites?: Array<{ topic: string; reason: string }>; resources?: string[] } | null = null;
+  try {
+    tree = JSON.parse(path.tree);
+  } catch {
+    tree = null;
+  }
+  return (
+    <div className="field-hint" style={{ width: "100%", marginTop: 4, paddingLeft: 12, borderLeft: "2px solid var(--warning-dim)" }}>
+      <strong>Learning gap: {path.topic}</strong>
+      {tree?.prerequisites && tree.prerequisites.length > 0 && (
+        <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+          {tree.prerequisites.map((p, i) => (
+            <li key={i}>
+              {p.topic} — {p.reason}
+            </li>
+          ))}
+        </ul>
+      )}
+      {tree?.resources && tree.resources.length > 0 && <div>Resources: {tree.resources.join(", ")}</div>}
+      {!tree && <div>(learning path recorded but not renderable)</div>}
+    </div>
+  );
+}
+
+function SubagentRowView({ row, learningPath }: { row: SubagentRow; learningPath: LearningPathRow | undefined }) {
   const meta = STATUS_META[row.status] ?? STATUS_META.queued;
   return (
     <div className="row" style={{ flexWrap: "wrap" }}>
@@ -41,6 +74,7 @@ function SubagentRowView({ row }: { row: SubagentRow }) {
           {row.result_summary}
         </div>
       )}
+      {learningPath && <LearningPathView path={learningPath} />}
     </div>
   );
 }
@@ -48,10 +82,12 @@ function SubagentRowView({ row }: { row: SubagentRow }) {
 export default function SubagentsSection({
   token,
   subagents,
+  learningPaths,
   onQueued,
 }: {
   token: string;
   subagents: SubagentRow[];
+  learningPaths: LearningPathRow[];
   onQueued: () => void;
 }) {
   const [taskType, setTaskType] = useState("auto");
@@ -123,7 +159,7 @@ export default function SubagentsSection({
       ) : (
         <div>
           {subagents.map((row) => (
-            <SubagentRowView key={row.id} row={row} />
+            <SubagentRowView key={row.id} row={row} learningPath={learningPaths.find((p) => p.subagent_id === row.id)} />
           ))}
         </div>
       )}
