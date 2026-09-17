@@ -519,6 +519,7 @@ marking them `dispatched`. All Worker routes except `GET /` require an
 | `GET /status` | Every recent `subagents` row + `provider_keys_meta` — what the dashboard polls every ~45s. |
 | `POST /tasks` | Dashboard-filed task -> a new `queued` row, `source: 'dashboard'`. |
 | `POST /admin/keys` | `{provider, value}` -> sealed-box encrypted (`tweetnacl-sealedbox-js`, libsodium-compatible — see `worker/test/sealedbox.test.mjs` for the round-trip proof) with this repo's own Actions public key, `PUT` as a repo secret via `GITHUB_PAT`, then `provider_keys_meta` flips `configured=1`. The raw value is never written to D1, never logged, never echoed back — it exists in exactly one place afterward: GitHub's encrypted secret store. If the public-key fetch or the secret `PUT` comes back non-2xx (most commonly a 403 — `GITHUB_PAT` missing the fine-grained "Secrets" repository permission, or a 401 — the PAT expired/revoked), the route returns `502` with a status- and hint-specific message (`describeGithubFailure()` in `worker/src/index.js`, covered by `worker/test/github-errors.test.mjs`); the full response headers and body are logged server-side via `console.error` (visible with `wrangler tail`) for debugging, but never echoed into the API response or D1. |
+| `GET /admin/diagnose` | Read-only `GITHUB_PAT` self-test: calls the same `ghGetPublicKey()` `/admin/keys` uses, but never writes anything, so it can be checked before ever pasting a real provider key. Always `200`: `{ok: true}` or `{ok: false, error}` with the same hinted message `describeGithubFailure()` produces. Surfaced in the dashboard's Provider keys panel as a "Test GitHub connection" button. |
 | `POST /internal/status` | Called back by `.github/workflows/spawn-subagent.yml` to mark a row `running`/`done`/`failed`. |
 
 **`.github/workflows/spawn-subagent.yml`** runs `scripts/run-subagent-task.mjs`
@@ -555,6 +556,34 @@ no-token fallback already established.
 why (no `CLOUDFLARE_API_TOKEN` available in the build environment) and the
 manual steps required. `worker/schema.sql` documents the schema already
 applied live to the `titan-runner-brain` D1 database.
+
+**Getting the Worker live and keeping it live — the one-time runbook.**
+`.github/workflows/worker-deploy.yml` now deploys `worker/` automatically on
+every push to `main` that touches it (`npx wrangler deploy`, using the exact
+wrangler version pinned in `worker/package.json`'s devDependencies) — but it
+degrades to a `::warning::` no-op, never a hard CI failure, until this
+one-time setup is done:
+
+1. **Generate the `GITHUB_PAT`**: GitHub → Settings → Developer settings →
+   Fine-grained tokens → Generate new token. Repository access: only this
+   repo. Repository permissions: **Contents** (Read and write), **Issues**
+   (Read-only), **Secrets** (Read and write) — exactly what
+   `worker/wrangler.toml`'s header comment documents.
+2. **Set the two Worker secrets** from `worker/`: `wrangler secret put
+   GITHUB_PAT` (paste the token from step 1) and `wrangler secret put
+   TITAN_ADMIN_TOKEN` (a long random string you generate once).
+3. **Add two GitHub repo secrets** (Settings → Secrets and variables →
+   Actions, on this repo — separate from the Worker secrets in step 2):
+   `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Once both exist,
+   `worker-deploy.yml` deploys on the next push to `worker/**` — or trigger
+   it immediately via Actions → Deploy Worker → Run workflow.
+4. **Confirm before trusting a pasted key**: open the dashboard's Provider
+   keys panel and click "Test GitHub connection" (or `curl -H "X-Titan-Auth:
+   $TITAN_ADMIN_TOKEN" https://<worker-url>/admin/diagnose`). It calls
+   `GET /admin/diagnose` (read-only — never writes a secret) and reports
+   `{ok: true}` or the same hinted `describeGithubFailure()` message
+   `/admin/keys` would give, so a bad PAT shows up immediately instead of on
+   the next real key paste.
 
 ## Human checkpoints not resolved in this build
 
