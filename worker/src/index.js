@@ -274,6 +274,23 @@ async function handleAdminKeys(request, env) {
   return json({ ok: true, provider, secretName });
 }
 
+/** A read-only self-test for GITHUB_PAT — reuses ghGetPublicKey(), which
+ * never mutates anything, so the human wiring up this Worker can confirm
+ * the PAT actually works (right scope, not expired, right owner/repo)
+ * before ever pasting a real provider key into /admin/keys. Always 200: a
+ * failed diagnosis is still a successful diagnosis, not a request error. */
+export async function handleAdminDiagnose(env) {
+  if (!env.GITHUB_PAT) {
+    return json({ ok: false, error: 'GITHUB_PAT is not configured on this Worker yet — see docs/RUNTIME.md.' });
+  }
+  try {
+    await ghGetPublicKey(env);
+    return json({ ok: true });
+  } catch (err) {
+    return json({ ok: false, error: err instanceof Error ? err.message : 'unknown error' });
+  }
+}
+
 async function handleInternalStatus(request, env) {
   let body;
   try {
@@ -710,6 +727,11 @@ export default {
     if (url.pathname === '/admin/keys' && request.method === 'POST') {
       if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
       return handleAdminKeys(request, env);
+    }
+
+    if (url.pathname === '/admin/diagnose' && request.method === 'GET') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleAdminDiagnose(env);
     }
 
     // Phase 2 — OSINT catalog + owner-gated investigation/geospatial feed.

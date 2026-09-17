@@ -11,7 +11,13 @@
  */
 import { useState } from "react";
 import { relative } from "@/lib/time";
-import { setProviderKey, KNOWN_PROVIDERS, WorkerApiError, type ProviderKeyMetaRow } from "@/lib/workerApi";
+import {
+  setProviderKey,
+  diagnoseGithubPat,
+  KNOWN_PROVIDERS,
+  WorkerApiError,
+  type ProviderKeyMetaRow,
+} from "@/lib/workerApi";
 
 export default function ProviderKeysPanel({
   token,
@@ -27,8 +33,22 @@ export default function ProviderKeysPanel({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedFor, setSavedFor] = useState<string | null>(null);
+  const [diagnosing, setDiagnosing] = useState(false);
+  const [diagnosis, setDiagnosis] = useState<{ ok: boolean; error?: string } | null>(null);
 
   const byProvider = new Map(providers.map((p) => [p.provider, p]));
+
+  async function handleDiagnose() {
+    setDiagnosing(true);
+    setDiagnosis(null);
+    try {
+      setDiagnosis(await diagnoseGithubPat(token));
+    } catch (err) {
+      setDiagnosis({ ok: false, error: err instanceof WorkerApiError ? err.message : "Could not reach the Worker." });
+    } finally {
+      setDiagnosing(false);
+    }
+  }
 
   async function handleSubmit() {
     const trimmed = value.trim();
@@ -69,6 +89,23 @@ export default function ProviderKeysPanel({
             </div>
           );
         })}
+      </div>
+
+      <div className="field" style={{ marginTop: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button className="btn" onClick={handleDiagnose} disabled={diagnosing}>
+            {diagnosing ? "Testing…" : "Test GitHub connection"}
+          </button>
+          {diagnosis && (
+            <span className={diagnosis.ok ? "text-signal" : "text-quiet"}>
+              {diagnosis.ok ? "✓ GITHUB_PAT works" : diagnosis.error}
+            </span>
+          )}
+        </div>
+        <div className="field-hint" style={{ marginTop: 4 }}>
+          Confirms the Worker&apos;s GITHUB_PAT can reach GitHub&apos;s secrets API — check this before pasting a real
+          key below.
+        </div>
       </div>
 
       <div className="field" style={{ marginTop: 16 }}>

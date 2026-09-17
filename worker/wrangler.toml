@@ -17,7 +17,14 @@
 #                      accepts /tasks and /admin/keys calls and reads D1 for
 #                      /status, but the cron tick's issue-mirror and
 #                      repository_dispatch steps no-op rather than error —
-#                      see docs/RUNTIME.md.
+#                      see docs/RUNTIME.md. Verify it works with
+#                      GET /admin/diagnose before trusting a real key paste.
+#
+# Separately, ../.github/workflows/worker-deploy.yml deploys THIS directory
+# on every push to worker/** — that needs its own two **GitHub repo**
+# secrets (Settings > Secrets and variables > Actions on the repo, not
+# `wrangler secret put`): CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+# See docs/RUNTIME.md's runbook for the full one-time setup.
 name = "titan-runner-brain"
 main = "src/index.js"
 compatibility_date = "2024-09-23"

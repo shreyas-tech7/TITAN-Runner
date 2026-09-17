@@ -148,6 +148,16 @@ export async function setProviderKey(token: string, provider: string, value: str
   return res.json();
 }
 
+/** A read-only GITHUB_PAT self-test (GET /admin/diagnose) — lets the admin
+ * confirm the Worker can actually reach GitHub's secrets API before
+ * pasting a real provider key. Always resolves with {ok, error?}: a failed
+ * diagnosis is a successful diagnosis, not a thrown WorkerApiError. */
+export async function diagnoseGithubPat(token: string): Promise<{ ok: boolean; error?: string }> {
+  const res = await callWorker("/admin/diagnose", token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
 // ---------------------------------------------------------------------
 // Phase 2 — OSINT catalog + owner-gated investigation. Every call here
 // carries the same admin token as everything else — POST /osint/investigate
