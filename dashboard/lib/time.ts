@@ -18,6 +18,20 @@ export function formatDuration(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+/** Elapsed-time display for something still running (a live task, a
+ * sub-agent) — coarser and longer-range than `formatDuration`, which is
+ * tuned for sub-minute pulse timings. */
+export function formatElapsed(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "0s";
+  const totalSeconds = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  if (m > 0) return `${m}m ${String(s).padStart(2, "0")}s`;
+  return `${s}s`;
+}
+
 export function formatCountdown(ms: number): string {
   if (ms <= 0) return "due now";
   const totalSeconds = Math.ceil(ms / 1000);

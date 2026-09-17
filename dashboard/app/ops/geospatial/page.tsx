@@ -1,75 +1,78 @@
 "use client";
 
 /**
- * /ops/geospatial — the God's Eye View-style page (task brief, phase 3).
- * Reuses AdminGate exactly as the main dashboard does: this data is exactly
- * as sensitive as everything else behind the admin token, and every event
- * it can ever show was already gated at the point it was written (see
- * worker/src/index.js's POST /internal/geospatial-event and OsintPanel's
- * doc comment) — this page adds no additional trust boundary, it just
- * visualizes what already passed through the real one.
+ * /ops/geospatial — the full God's Eye View investigation log. The globe
+ * itself is now also embedded directly on the main dashboard
+ * (GodsEyeSection) as the redesign brief asks; this page remains as the
+ * deep-dive view for the full event list and per-event detail, reusing the
+ * same `useGeospatialEvents` polling hook and the same globe component so
+ * the two views never drift apart.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import AdminGate from "@/components/AdminGate";
 import GeospatialGlobe from "@/components/GeospatialGlobe";
-import { fetchGeospatialEvents, WorkerApiError, isWorkerConfigured, type GeospatialEventRow } from "@/lib/workerApi";
+import { useGeospatialEvents } from "@/lib/useGeospatialEvents";
+import { buildProviderNetwork } from "@/lib/geoNetwork";
+import { usePolledJson } from "@/lib/usePolledJson";
+import type { ProvidersState, AgentsState } from "@/lib/types";
 import { relative } from "@/lib/time";
 
 function GeospatialContent({ token }: { token: string }) {
-  const [events, setEvents] = useState<GeospatialEventRow[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { events, error, configured } = useGeospatialEvents(token);
+  const providers = usePolledJson<ProvidersState>("state/providers.json", 60_000);
+  const agents = usePolledJson<AgentsState>("state/agents.json", 60_000);
+  const networkNodes = useMemo(
+    () => buildProviderNetwork(providers.data?.providers, agents.data ?? undefined),
+    [providers.data, agents.data],
+  );
 
-  const load = useCallback(async () => {
-    try {
-      const result = await fetchGeospatialEvents(token);
-      setEvents(result.events);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof WorkerApiError ? err.message : "Could not reach the Worker.");
-    }
-  }, [token]);
-
-  useEffect(() => {
-    void load();
-    const id = window.setInterval(() => void load(), 20_000);
-    return () => window.clearInterval(id);
-  }, [load]);
-
-  if (!isWorkerConfigured()) {
-    return <div className="empty">The titan-runner-brain Worker isn&apos;t configured yet — see docs/RUNTIME.md.</div>;
-  }
-  if (error) return <div className="empty">{error}</div>;
-  if (events === null) return <div className="empty">Loading…</div>;
-
-  const located = events.filter((e) => typeof e.lat === "number" && typeof e.lon === "number");
-  const unlocated = events.filter((e) => !(typeof e.lat === "number" && typeof e.lon === "number"));
+  const list = events ?? [];
+  const located = list.filter((e) => typeof e.lat === "number" && typeof e.lon === "number");
+  const unlocated = list.filter((e) => !(typeof e.lat === "number" && typeof e.lon === "number"));
 
   return (
     <>
       <section className="section">
         <div className="section-head">
-          <span className="label">Live tracking ({located.length} located)</span>
+          <span className="label">Live tracking {configured ? `(${located.length} located)` : ""}</span>
         </div>
-        {located.length === 0 ? (
-          <div className="empty">
-            No located events yet — run an investigation from the dashboard&apos;s OSINT panel that resolves a
-            coordinate.
+        <div className="panel globe-panel" style={{ marginBottom: 0 }}>
+          <div className="globe-stage">
+            <GeospatialGlobe events={list} networkNodes={networkNodes} />
           </div>
-        ) : (
-          <GeospatialGlobe events={events} />
+        </div>
+        {!configured && (
+          <div className="field-hint" style={{ marginTop: 8 }}>
+            The provider mesh above is always live. OSINT investigation pins need the titan-runner-brain Worker
+            deployed (<span className="mono">NEXT_PUBLIC_TITAN_WORKER_URL</span>) — see docs/RUNTIME.md.
+          </div>
+        )}
+        {configured && located.length === 0 && (
+          <div className="field-hint" style={{ marginTop: 8 }}>
+            No located OSINT events yet — the provider mesh above is still live. Run an investigation from the
+            dashboard&apos;s OSINT panel that resolves a coordinate to see it pinned here.
+          </div>
+        )}
+        {configured && error && located.length === 0 && (
+          <div className="field-hint text-failure" style={{ marginTop: 8 }}>
+            {error}
+          </div>
         )}
       </section>
 
+      {configured && (
       <section className="section">
         <div className="section-head">
-          <span className="label">Events ({events.length})</span>
+          <span className="label">Events ({list.length})</span>
         </div>
-        {events.length === 0 ? (
+        {events === null ? (
+          <div className="empty">Loading…</div>
+        ) : list.length === 0 ? (
           <div className="empty">Nothing recorded yet.</div>
         ) : (
           <div>
-            {events.map((e) => (
+            {list.map((e) => (
               <div className="row" key={e.id} style={{ flexWrap: "wrap" }}>
                 <span className={`dot ${e.confidence === "high" ? "dot-live" : e.confidence === "low" ? "dot-fail" : "dot-warn"}`} aria-hidden />
                 <span className="row-title" style={{ flex: 1 }}>
@@ -93,6 +96,7 @@ function GeospatialContent({ token }: { token: string }) {
           </p>
         )}
       </section>
+      )}
     </>
   );
 }
