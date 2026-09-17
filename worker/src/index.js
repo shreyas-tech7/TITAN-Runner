@@ -112,12 +112,41 @@ function ghHeaders(env, extra = {}) {
   };
 }
 
+/** Turns a failed GitHub API response into a safe-to-return, actionable
+ * error message, and logs the full status/headers/body server-side (visible
+ * via `wrangler tail`) for debugging. A bare `${res.status}` (the previous
+ * behavior) can't tell "GITHUB_PAT lacks the Secrets permission" apart from
+ * "token expired" apart from "wrong repo" — the response body and the
+ * rate-limit/request-id headers can. Never includes the request's own
+ * Authorization header (ghHeaders() is never passed in). */
+export async function describeGithubFailure(label, res) {
+  const headers = {};
+  for (const [key, value] of res.headers.entries()) headers[key] = value;
+  const body = await res.text().catch(() => '');
+  console.error(`${label}: GitHub API ${res.status} ${res.url}`, { headers, body: body.slice(0, 500) });
+
+  const hints = {
+    401: 'GITHUB_PAT is missing, expired, or revoked',
+    403: 'GITHUB_PAT lacks the "Secrets" repository permission (fine-grained PAT) or the "repo" scope (classic PAT) — see worker/wrangler.toml',
+    404: 'check GITHUB_OWNER/GITHUB_REPO in wrangler.toml, or the PAT cannot see this repo',
+  };
+  const requestId = headers['x-github-request-id'];
+  return [
+    `${label} failed: ${res.status}`,
+    hints[res.status],
+    requestId ? `request-id: ${requestId}` : null,
+    body ? body.slice(0, 200) : null,
+  ]
+    .filter(Boolean)
+    .join(' — ');
+}
+
 async function ghGetPublicKey(env) {
   const res = await fetch(
     `${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/secrets/public-key`,
     { headers: ghHeaders(env) },
   );
-  if (!res.ok) throw new Error(`GitHub public-key fetch failed: ${res.status}`);
+  if (!res.ok) throw new Error(await describeGithubFailure('GitHub public-key fetch', res));
   return res.json();
 }
 
@@ -130,10 +159,7 @@ async function ghPutSecret(env, name, encryptedValue, keyId) {
       body: JSON.stringify({ encrypted_value: encryptedValue, key_id: keyId }),
     },
   );
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
-    throw new Error(`GitHub secret PUT failed: ${res.status} ${detail.slice(0, 200)}`);
-  }
+  if (!res.ok) throw new Error(await describeGithubFailure('GitHub secret PUT', res));
 }
 
 async function ghListOpenTitanIssues(env) {
