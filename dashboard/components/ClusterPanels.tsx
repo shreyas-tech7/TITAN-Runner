@@ -5,9 +5,15 @@
  * poll (build brief, section 5) and re-locks the dashboard immediately if
  * the Worker ever rejects the token mid-session (rotated/revoked by
  * Shreyas) rather than spinning on 401s forever.
+ *
+ * The poll itself now lives one level up, in `app/page.tsx` — the
+ * command-center redesign's Running Tasks and Agents panels need the same
+ * `subagents` rows this component does, and a second independent
+ * `useWorkerStatus` call here would just double the polling traffic for no
+ * benefit. This component is now a pure view over the status it's handed.
  */
 import { useEffect } from "react";
-import { useWorkerStatus } from "@/lib/useWorkerStatus";
+import type { WorkerStatusResult } from "@/lib/useWorkerStatus";
 import { isWorkerConfigured } from "@/lib/workerApi";
 import SubagentsSection from "./SubagentsSection";
 import ProviderKeysPanel from "./ProviderKeysPanel";
@@ -15,9 +21,15 @@ import OmniRouteStatusPanel from "./OmniRouteStatusPanel";
 import OsintPanel from "./OsintPanel";
 import SystemMemoryPanel from "./SystemMemoryPanel";
 
-export default function ClusterPanels({ token, onUnauthorized }: { token: string; onUnauthorized: () => void }) {
-  const status = useWorkerStatus(token);
-
+export default function ClusterPanels({
+  token,
+  status,
+  onUnauthorized,
+}: {
+  token: string;
+  status: WorkerStatusResult;
+  onUnauthorized: () => void;
+}) {
   useEffect(() => {
     if (status.unauthorized) onUnauthorized();
   }, [status.unauthorized, onUnauthorized]);

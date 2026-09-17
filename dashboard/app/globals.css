@@ -9,15 +9,26 @@
  * not from putting every section in its own equal-weight rounded card —
  * see the *panel*-less section headers below.
  *
+ * Command-center pass: the flat/hairline system above stays exactly as-is
+ * for dense technical listings (task rows, provider rows, run history) —
+ * it reads fast and it isn't broken. Layered on top is a second, glass/metal
+ * surface (`--accent`, `.panel`, `.hero-grid`, `.bento-grid`) reserved for
+ * the small set of summary/centerpiece panels (clock, weather, God's Eye,
+ * running tasks, agent roster) that should visually lead the page. One new
+ * accent hue (cool azure) marks "featured/live centerpiece" only — it never
+ * competes with signal/warning/failure, which keep their existing meaning
+ * everywhere else.
+ *
  * No Tailwind, no component library, no new runtime dependency: this is
  * still a static export with a "zero maintenance" mandate — see this
  * file's own history for why the previous version of this comment made
  * the same call.
  */
 :root {
-  --bg-0: #16181c; /* page canvas */
+  --bg-0: #121316; /* page canvas */
   --bg-1: #1b1e23; /* section fill (drawer, modal, palette — not every block) */
   --bg-2: #22262c; /* raised/hover surface */
+  --bg-3: #292e35; /* glass panel fill */
   --line: #2b2f36; /* hairline divider */
   --line-strong: #3a3f47;
 
@@ -32,18 +43,27 @@
   --failure: #b5563c; /* failure ONLY */
   --failure-dim: #7a3a28;
 
+  --accent: #5aa9e6; /* featured/live-centerpiece ONLY — God's Eye, clock, hero glows */
+  --accent-dim: #3a6d94;
+  --accent-soft: rgba(90, 169, 230, 0.14);
+
   --focus-ring: #d9a441;
 
   --font-sans: var(--font-body-loaded), "Inter Tight", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-data-loaded), "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   --radius: 3px;
+  --radius-lg: 14px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 20px;
   --space-5: 32px;
   --space-6: 48px;
+
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 24px 48px -28px rgba(0, 0, 0, 0.65);
+  --shadow-panel-lift: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 28px 56px -24px rgba(0, 0, 0, 0.72);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * {
@@ -60,6 +80,26 @@ body {
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Faint ambient depth behind the whole shell — two soft, fixed radial glows
+   that never move and never brighten past ~6% opacity. This is the entire
+   "atmosphere" budget for the redesign; everything else earns its glow. */
+body {
+  background-image:
+    radial-gradient(60vw 60vw at 12% -10%, rgba(90, 169, 230, 0.07), transparent 60%),
+    radial-gradient(50vw 50vw at 105% 10%, rgba(95, 184, 148, 0.05), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out), color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out), transform 120ms var(--ease-out), opacity 160ms var(--ease-out);
 }
 
 a {
@@ -122,7 +162,7 @@ button {
 /* ---------------------------------------------------------------------- */
 
 .shell {
-  max-width: 1040px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: var(--space-4) var(--space-4) var(--space-6);
 }
@@ -139,6 +179,171 @@ button {
     justify-content: space-between;
     width: 100%;
   }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Command-center surfaces — glass/metal panels for the summary +          */
+/* centerpiece sections (clock, weather, God's Eye, running tasks, agents) */
+/* ---------------------------------------------------------------------- */
+
+.panel {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 45%), var(--bg-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-4);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .panel {
+    backdrop-filter: blur(14px) saturate(1.1);
+  }
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.panel-accent {
+  border-color: var(--accent-dim);
+  box-shadow: var(--shadow-panel), 0 0 0 1px rgba(90, 169, 230, 0.08), 0 0 60px -20px rgba(90, 169, 230, 0.35);
+}
+
+.panel:hover {
+  border-color: var(--line-strong);
+}
+
+.panel-interactive {
+  transition: border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+.panel-interactive:hover {
+  box-shadow: var(--shadow-panel-lift);
+  transform: translateY(-1px);
+}
+
+/* Command-center grids */
+.vitals-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.3fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: var(--space-4);
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .vitals-grid,
+  .hero-grid,
+  .bento-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel-enter {
+    animation: titan-rise 420ms var(--ease-out) both;
+  }
+}
+@keyframes titan-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-2);
+  border-radius: var(--radius);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+    animation: titan-shimmer 1.6s ease-in-out infinite;
+  }
+}
+@keyframes titan-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.stat-tile .label {
+  margin-bottom: 4px;
+}
+.stat-tile .value {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.progress-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .progress-fill-indeterminate {
+    width: 40% !important;
+    animation: titan-indeterminate 1.4s ease-in-out infinite;
+  }
+}
+@keyframes titan-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+[title] {
+  cursor: default;
 }
 
 .topbar {
@@ -197,11 +402,12 @@ button {
    "the pulse status is the loudest thing on the page" (task brief). Every
    other section stays flat against the page canvas. */
 .pulse-band {
-  background: var(--bg-1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 45%), var(--bg-1);
   border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: var(--space-4);
   margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-panel);
 }
 
 .pulse-band-top {
@@ -261,15 +467,22 @@ button {
 }
 .dot-live {
   background: var(--signal);
+  box-shadow: 0 0 0 3px rgba(95, 184, 148, 0.15);
 }
 .dot-warn {
   background: var(--warning);
+  box-shadow: 0 0 0 3px rgba(217, 164, 65, 0.15);
 }
 .dot-fail {
   background: var(--failure);
+  box-shadow: 0 0 0 3px rgba(181, 86, 60, 0.15);
 }
 .dot-idle {
   background: var(--text-2);
+}
+.dot-accent {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -380,6 +593,9 @@ button {
 }
 .btn:hover {
   border-color: var(--text-1);
+}
+.btn:active {
+  transform: translateY(1px);
 }
 .btn-primary {
   background: var(--text-0);
@@ -713,4 +929,315 @@ button {
 }
 .admin-lock-btn:hover {
   opacity: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Clock + Weather — the vitals row                                        */
+/* ---------------------------------------------------------------------- */
+
+.clock-panel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.clock-face {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text-0);
+  text-shadow: 0 0 24px var(--accent-soft);
+}
+
+.clock-meridiem {
+  font-size: 16px;
+  color: var(--text-1);
+  margin-left: 4px;
+}
+
+.clock-date {
+  color: var(--text-1);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.clock-tz {
+  color: var(--text-2);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.weather-panel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.weather-icon {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  filter: drop-shadow(0 0 10px var(--accent-soft));
+}
+
+.weather-temp {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.weather-cond {
+  color: var(--text-1);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.weather-hilo {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.weather-extra {
+  display: flex;
+  gap: var(--space-4);
+  margin-left: auto;
+  text-align: right;
+}
+
+.weather-extra .label {
+  margin-bottom: 2px;
+}
+.weather-extra .value {
+  font-size: 14px;
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 560px) {
+  .clock-face {
+    font-size: 30px;
+  }
+  .weather-extra {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* God's Eye View — hero globe                                             */
+/* ---------------------------------------------------------------------- */
+
+.globe-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.globe-panel .panel-head {
+  padding: var(--space-4) var(--space-4) 0;
+  margin-bottom: var(--space-2);
+}
+
+.globe-stage {
+  position: relative;
+  width: 100%;
+  height: 460px;
+}
+
+@media (max-width: 900px) {
+  .globe-stage {
+    height: 340px;
+  }
+}
+
+.globe-canvas-mount {
+  position: absolute;
+  inset: 0;
+}
+
+.globe-tooltip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  background: rgba(19, 21, 25, 0.92);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-0);
+  box-shadow: var(--shadow-panel-lift);
+  transform: translate(-50%, calc(-100% - 12px));
+  white-space: nowrap;
+  max-width: 260px;
+  white-space: normal;
+}
+
+.globe-tooltip .label {
+  margin-bottom: 2px;
+}
+
+.globe-legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-left: 1px solid var(--line);
+}
+
+@media (max-width: 900px) {
+  .globe-legend {
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
+
+.globe-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-1);
+}
+
+.globe-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.globe-stat-row:last-child {
+  border-bottom: none;
+}
+.globe-stat-row .value {
+  font-family: var(--font-mono);
+  font-size: 16px;
+}
+
+.globe-event-list {
+  margin-top: var(--space-2);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.globe-hint {
+  font-size: 11px;
+  color: var(--text-2);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Running tasks + Agents roster                                           */
+/* ---------------------------------------------------------------------- */
+
+.live-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.live-row:last-child {
+  border-bottom: none;
+}
+
+.live-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.live-row-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.live-row-meta {
+  color: var(--text-2);
+  font-size: 11px;
+  margin-top: 3px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.live-row-progress {
+  margin-top: 6px;
+  max-width: 220px;
+}
+
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.agent-card {
+  position: relative;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: default;
+  transition: border-color 180ms var(--ease-out), transform 180ms var(--ease-out), background 180ms var(--ease-out);
+}
+.agent-card:hover {
+  border-color: var(--line-strong);
+  background: #262b32;
+  transform: translateY(-1px);
+}
+.agent-card:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.agent-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.agent-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-status {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.agent-purpose {
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.agent-detail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--text-1);
 }

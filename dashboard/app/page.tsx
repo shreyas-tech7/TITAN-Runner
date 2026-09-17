@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { usePolledJson } from "@/lib/usePolledJson";
-import type { HeartbeatState, TasksState, ProvidersState, PulseHistoryState, TaskRecord } from "@/lib/types";
+import { useWorkerStatus } from "@/lib/useWorkerStatus";
+import { isWorkerConfigured } from "@/lib/workerApi";
+import type { HeartbeatState, TasksState, ProvidersState, PulseHistoryState, TaskRecord, AgentsState, ProviderHealthRecord } from "@/lib/types";
 import { listOptimisticTasks, reconcileOptimisticTasks } from "@/lib/optimisticTasks";
 import { OWNER, REPO } from "@/lib/githubApi";
 import StalenessBanner from "@/components/StalenessBanner";
@@ -19,6 +20,11 @@ import CommandPalette, { type Command } from "@/components/CommandPalette";
 import LastFetchedIndicator from "@/components/LastFetchedIndicator";
 import AdminGate from "@/components/AdminGate";
 import ClusterPanels from "@/components/ClusterPanels";
+import CommandClock from "@/components/CommandClock";
+import WeatherPanel from "@/components/WeatherPanel";
+import GodsEyeSection from "@/components/GodsEyeSection";
+import RunningTasksPanel from "@/components/RunningTasksPanel";
+import AgentsPanel from "@/components/AgentsPanel";
 
 function readUrlParam(name: string): string {
   if (typeof window === "undefined") return "";
@@ -35,11 +41,52 @@ function writeUrlParams(params: Record<string, string>) {
   window.history.replaceState({}, "", url.toString());
 }
 
+/**
+ * Everything that needs the titan-runner-brain Worker's `/status` poll —
+ * God's Eye, the live Running Tasks / Agents roster, and the existing
+ * sub-agent cluster panels. Pulled into its own component (rather than
+ * calling `useWorkerStatus` inline inside the AdminGate render-prop) so the
+ * hook has a real component instance to attach to: the render-prop is
+ * invoked conditionally by AdminGate itself, and a hook can't live there
+ * directly without breaking React's rules of hooks the moment the
+ * dashboard is locked again.
+ */
+function WorkerScopedPanels({
+  token,
+  onUnauthorized,
+  tasks,
+  providers,
+  agents,
+}: {
+  token: string;
+  onUnauthorized: () => void;
+  tasks: TaskRecord[];
+  providers: Record<string, ProviderHealthRecord> | undefined;
+  agents: AgentsState | undefined;
+}) {
+  const workerStatus = useWorkerStatus(token);
+  const subagents = workerStatus.data?.subagents ?? [];
+
+  return (
+    <>
+      <GodsEyeSection token={token} providers={providers} agents={agents} />
+
+      <div className="bento-grid">
+        <RunningTasksPanel tasks={tasks} subagents={subagents} workerConfigured={isWorkerConfigured()} />
+        <AgentsPanel providers={providers} agents={agents} subagents={subagents} />
+      </div>
+
+      <ClusterPanels token={token} status={workerStatus} onUnauthorized={onUnauthorized} />
+    </>
+  );
+}
+
 export default function DashboardPage() {
   const heartbeat = usePolledJson<HeartbeatState>("state/heartbeat.json", 20_000);
   const tasks = usePolledJson<TasksState>("state/tasks.json", 20_000);
   const providers = usePolledJson<ProvidersState>("state/providers.json", 60_000);
   const pulseHistory = usePolledJson<PulseHistoryState>("state/pulse-history.json", 30_000);
+  const agents = usePolledJson<AgentsState>("state/agents.json", 60_000);
 
   const [query, setQuery] = useState(() => readUrlParam("q"));
   const [selectedTaskId, setSelectedTaskId] = useState(() => readUrlParam("task"));
@@ -141,9 +188,6 @@ export default function DashboardPage() {
           <button className="btn btn-quiet" onClick={() => setPaletteOpen(true)}>
             <span className="kbd">⌘K</span>
           </button>
-          <Link className="btn btn-quiet" href="/ops/geospatial">
-            God&apos;s Eye View
-          </Link>
           <button className="btn btn-quiet" onClick={() => setSettingsOpen(true)}>
             Settings
           </button>
@@ -155,7 +199,14 @@ export default function DashboardPage() {
 
       <StalenessBanner lastPulseAt={heartbeat.data?.lastPulseAt ?? null} />
 
+      <div className="vitals-grid">
+        <CommandClock />
+        <WeatherPanel />
+      </div>
+
       <PulseBand heartbeat={heartbeat.data} pulses={pulseHistory.data?.pulses ?? []} loading={heartbeat.loading} />
+
+      <WorkerScopedPanels token={adminToken} onUnauthorized={lockDashboard} tasks={allTasks} providers={providers.data?.providers} agents={agents.data ?? undefined} />
 
       <div className="field" style={{ maxWidth: 320, marginBottom: 8 }}>
         <input
@@ -177,8 +228,6 @@ export default function DashboardPage() {
       <RunHistorySection tasks={filteredTasks} onSelectTask={setSelectedTaskId} />
 
       <ProviderHealthStrip providers={providers.data?.providers} />
-
-      <ClusterPanels token={adminToken} onUnauthorized={lockDashboard} />
 
       <PrPanel />
 
