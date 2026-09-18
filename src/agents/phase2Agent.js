@@ -14,16 +14,9 @@
  * only ever exercise the ALL_PROVIDERS_FAILED path (see registry.test.js) —
  * that is not sufficient to prove this adapter's happy path works.
  *
- * NOTE on `_buildTaskPrompt`: `AgentAdapter.js` was expected to provide a
- * shared `this._buildTaskPrompt(task, sharedContext)` helper, but as of this
- * writing it does not define one (checked by reading the file in full — no
- * such method exists on `main` or `phase-3-orchestrator`). Rather than add a
- * method to a base class that two other in-flight adapters
- * (`freebuffAgent.js`, `opencodeAgent.js`) extend in parallel — risking an
- * uncoordinated three-way merge conflict on shared infrastructure — this file
- * defines its own equivalent `buildTaskPrompt()` below, scoped to this pool
- * only. If the base class later grows a real `_buildTaskPrompt`, this local
- * copy should be deleted in favour of it.
+ * Prompts come from the base class's `_buildTaskPrompt` (the file-envelope
+ * contract plus any repair hint) so every pool asks the same question the
+ * same way.
  */
 
 import { AgentAdapter } from './AgentAdapter.js';
@@ -67,28 +60,6 @@ function stripPoolPrefix(modelId) {
 }
 
 /**
- * Format a task and its shared run context into one user-turn prompt. Local
- * stand-in for a base-class `_buildTaskPrompt()` that does not exist yet —
- * see the file header note.
- * @param {import('./AgentAdapter.js').AdapterTask} task
- * @param {string} sharedContext
- * @returns {string}
- */
-function buildTaskPrompt(task, sharedContext) {
-  const body = [
-    `Task: ${task?.title ?? task?.id ?? 'untitled'}`,
-    `Aspect: ${task?.aspect ?? 'unspecified'}`,
-    '',
-    task?.description ?? '',
-    '',
-    `Deliverable: ${task?.deliverable ?? ''}`,
-  ]
-    .join('\n')
-    .trim();
-  return sharedContext ? `${sharedContext}\n\n${body}` : body;
-}
-
-/**
  * Adapts `services/registry.js`'s five-provider chat routing to the
  * `AgentAdapter` interface. See the file header for the DI rationale.
  */
@@ -119,7 +90,11 @@ export class Phase2Agent extends AgentAdapter {
    */
   async _doExecute(task, sharedContext, options) {
     /** @type {import('../services/base.js').ChatMessage[]} */
-    const messages = [{ role: 'user', content: buildTaskPrompt(task, sharedContext) }];
+    // The shared base-class prompt: the file-envelope contract and the
+    // repair hint reach phase2 workers exactly as they reach every other
+    // pool (the local copy this file used to carry had silently diverged
+    // and never asked for the envelope at all — see AS_FOUND.md).
+    const messages = [{ role: 'user', content: this._buildTaskPrompt(task, sharedContext) }];
     const service = /** @type {import('../services/registry.js').RouteTarget} */ (
       options.modelId ? stripPoolPrefix(options.modelId) : 'auto'
     );

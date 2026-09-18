@@ -109,76 +109,105 @@ commit/push left to the workflow shell steps around it.
 
 ### What one pulse actually does
 
-1. `ensureStateFiles()` — seed `state/*.json` if this is a fresh checkout.
-   `primeProviderHealth()` also stamps every provider's `configured`/
-   `not_configured`/`no_public_api` status in `state/providers.json` before
-   anything else runs — see "Provider health, discovery, and the weekly
-   self-test" below.
-2. Sync GitHub issues labeled `titan-task` into the task queue
-   (`src/issueSync.js`) — skips anything already tracked by issue number.
-   A dashboard-filed issue carries a `<!-- titan-task-v1 -->` YAML block
-   (title/description/priority/routingHint); `src/lib/taskYaml.js` parses
-   *only* that block, never the surrounding prose. An issue with no such
-   block (the original issue template, or anything filed directly on
-   GitHub) falls back to the pre-existing whole-body-as-prompt behavior.
-3. `reconcileIssueState()` — the dashboard's Cancel (closes the issue) and
-   Retry (reopens it + posts a comment) act on the GitHub issue directly
-   from the browser, not on `state/tasks.json` (a static export can't write
-   that file itself). This step is what makes those actions actually take
-   effect: a still-`pending` task whose issue is no longer open is marked
-   `cancelled`; a terminal task (`complete`/`failed`/`blocked`/`cancelled`)
-   whose issue is open again *and* was updated (a comment, a reopen) after
-   the task's own `completedAt` is reset to `pending` for this same pulse
-   (or the next one) to claim fresh.
-4. If `workflow_dispatch` supplied a `task-text` input, add it as a
-   one-off manual task (not tied to any issue, so nothing to comment on or
-   close).
-5. Revisit any task awaiting a self-improvement PR's CI result
-   (`src/selfImprove.js#checkSelfImprovePrStatus`) — closes the PR and
-   marks the task failed if CI concluded failure; marks it complete and
-   closes the issue if the PR was merged; otherwise leaves it for the next
-   pulse.
-6. Claim up to `TITAN_MAX_TASKS_PER_PULSE` (default 3) pending tasks.
-7. For each claimed task: run it past the Reviewer Gate, then
-   decompose -> schedule -> synthesize across the three agent pools
-   (`freebuff`, `opencode`, `phase2` — the last wrapping the five free-tier
-   HTTP providers, each skipped by the router while unhealthy — see below).
-   A task's `routingHint` (`fast`/`cheap`/`careful`/`any`, from the
-   dashboard modal) is copied onto every subtask and nudges — never
-   overrides — the router's model choice. A `self-improve`-typed task's
-   synthesis result (the proposed files) goes to `src/selfImprove.js`
-   instead of an issue comment — see "Self-improvement" below.
-8. Write a scrubbed run record to `state/runs/<runId>.json` — now
-   including `actionsRunUrl` (this exact Actions run, for the dashboard's
-   task detail drawer) and per-attempt `tokensUsed` — comment the outcome
-   on the originating issue, and close it on success.
-9. Persist the capability registry (`state/agents.json`) and the provider
-   health table (`state/providers.json`), prune old run records
-   (`state/runs/` capped at 60 files — older ones are rolled into
-   `state/digests/<date>-rollup.md` and deleted, never silently lost),
-   append this pulse's outcome to `state/pulse-history.json` (capped at 60
-   entries — the dashboard's pulse timeline strip), and write
-   `state/heartbeat.json`.
+`src/pulse.js` is a thin wrapper; the engine is `src/engine/pulse.js`
+(`runPulse(deps)`), one whole pulse as a function of its dependencies. In
+order:
+
+1. **Open the state.** `src/state/store.js` reads every file through its
+   schema (`schemas/*.schema.json`), migrates `tasks.json` v1 → v2 on the
+   fly, repairs a corrupt file from `state/backup/` (quarantining the bad
+   bytes), and opens the append-only event log (`state/events/<date>.jsonl`),
+   the lease manager, the pulse budget, and the git checkpointer.
+2. **Read `state/control.json`.** Kill switch on → reconcile, heartbeat,
+   exit. Drain on → intake happens, nothing is claimed. Safe mode and the
+   autonomy level are handed to the policy engine.
+3. **Reconcile** (`src/task/reconcile.js`): a task still `running` whose
+   lease expired (the previous job died) goes back to `pending` with its
+   checkpoint kept; `waiting` tasks past their wake time wake; a task
+   waiting on a dependency that failed is dead-lettered; approvals and
+   pauses past their TTL expire; orphan leases are removed.
+4. **Intake** (`src/issueSync.js`): open `titan-task` issues by
+   **authorized** authors only (`src/security/authorization.js`: the
+   owner, GitHub-verified collaborators, `TITAN_TASK_AUTHORS`; never a
+   bot). The `<!-- titan-task-v1 -->` block gives title, description,
+   priority (`low`…`urgent`), routing hint, `dependsOn`, `deadline`,
+   `ttlHours`. An idempotency key over type+title+prompt cancels a
+   duplicate submission with one comment. Then issue controls: a closed
+   issue cancels its task; `/titan retry|cancel|pause|resume|priority|
+   approve|deny` comments from authorized users are applied and audited.
+5. **Revisit** self-improve PRs (merged → complete; CI failed → closed and
+   failed).
+6. **Claim**: runnable `pending` tasks by effective priority (priority,
+   age, deadline, dependents), dependencies satisfied, up to
+   `TITAN_MAX_TASKS_PER_PULSE`, while the time budget and the model-call
+   ceiling allow. A claim is an O_EXCL lease file (`state/leases/`) with a
+   TTL; a task another live pulse holds is skipped.
+7. **Run each task** (`src/engine/orchestrate.js`), checkpointing at every
+   boundary (`state/checkpoints/<taskId>.json`; with `TITAN_CHECKPOINT=git`
+   also committed and pushed, rate-limited):
+   - the **Reviewer Gate** verdict is recorded once per run, never re-asked
+     on a resume;
+   - **plan**: decompose into a step graph (a provider-side failure parks
+     the task rather than degrading the plan);
+   - **execute**: the scheduler runs steps by dependency order; every
+     attempt's failure is classified (`src/reliability/failures.js`) and
+     the per-class policy decides — retry the same model, hop to the next
+     candidate, park (`waiting(provider|quota)` with a wake time), or give
+     up; an unusable answer (empty, refusal, broken envelope) is repaired
+     with a hint; the same failure recurring verbatim is poisoned. A step
+     may call a **tool** (`src/tools/`: jailed repo reads and search, a
+     per-task workspace write, an SSRF-guarded fetch), one per turn,
+     policy-gated, loop-detected; a call that needs approval parks the task
+     on `waiting(approval)` with one request comment;
+   - **synthesize** the steps' files and summary;
+   - **verify** (`src/verify/`): deterministic checks (code steps produced
+     files, nothing blank, no placeholders, no secret-shaped content, JSON
+     parses, JS parses), then a **judge** model drawn from the providers
+     that produced no part of the run; a failed verdict sends the steps at
+     fault back once with the feedback in the prompt; a run that still
+     fails is failed with the reason on the issue;
+   - **deliver** through the idempotent side-effect ledger (a comment or
+     close that already landed is never repeated, even after a crash), and
+     only if the **policy engine** allows it at the current autonomy level
+     (`propose`/`approval` ask first; `dry-run` and safe mode suppress and
+     audit); self-improve results become a draft PR the same way.
+   The pulse budget (`TITAN_PULSE_BUDGET_MS`, default 7 min of the job's
+   10) and the call ceiling drain a long task to `waiting(pulse-budget)`;
+   the next pulse resumes from the checkpoint and re-runs nothing that
+   finished.
+8. **Housekeeping**: retention (runs → digests, terminal tasks →
+   `state/archive/`, events compacted after 14 days), the quota ledger,
+   provider health, the capability cache, the derived views
+   (`state/views/`), heartbeat, pulse history, `pulse.finished`, a final
+   forced checkpoint.
+
+Every status change goes through one transition table
+(`src/task/lifecycle.js`); every side effect through the ledger; every
+decision is an event. `titan explain <taskId>` and `titan replay <taskId>`
+read those back.
 
 ## State — the repo IS the database
 
 A GitHub Actions runner is a clean, stateless VM that is wiped on exit.
-Nothing survives between pulses except what got committed. So:
+Nothing survives between pulses except what got committed. The full
+contract, with schemas and versions, is `docs/DATA_CONTRACT.md`; in short:
 
 | File / directory | What it holds |
 |---|---|
-| `state/tasks.json` | The queue: every task ever seen, its status, its issue link, its run id, its priority/routingHint if it carried one. |
-| `state/agents.json` | The capability registry — which model is good at what, plus rolling observed success rate/latency per category. Same file `capabilityRegistry.js` always wrote to; just committed here instead of gitignored. |
-| `state/providers.json` | Live provider health (`src/providers/health.js`) — status (`ok`/`not_configured`/`misconfigured`/`rate_limited`/`exhausted`/`model_invalid`/`no_public_api`/`error`/`unknown`), cooldown, rolling p50 latency/error rate, and the live-discovered model catalog per provider. Updated both by every real call during a pulse and by the weekly self-test. This is what the dashboard's provider health strip and the router's "skip an unhealthy provider" logic both read. |
-| `state/heartbeat.json` | Last pulse time/status/duration, consecutive-failure count, total pulses — what the dead-man's-switch and the dashboard both read. |
-| `state/pulse-history.json` | The last 60 pulses — time, duration, outcome, tasks claimed/completed/failed. Rolling telemetry for the dashboard's pulse timeline strip; no digest step for entries that age out (state/runs/ is the durable record). |
-| `state/runs/<runId>.json` | One record per completed orchestration run: the task graph, per-subtask assignment/attempts (now including `tokensUsed`)/output preview, the merged file list, the markdown summary, and `actionsRunUrl` linking back to the exact Actions run. Capped at 60 files. |
-| `state/digests/*.md` | Rolled-up summaries of pruned runs, plus the weekly keep-alive commit's own rollup. |
-| `state/reviews/*.jsonl` | Reviewer Gate verdicts, one JSONL file per day. |
+| `state/tasks.json` (v2) | The queue and the record: status (11 states), wait reason and wake time, lease, attempts, dependencies, deadline/TTL, idempotency key, last failure (class/code), usage across pulses, approvals, bounded history. |
+| `state/control.json` | Operator controls: kill switch, drain, safe mode, autonomy level; who changed it last and why. Written only by the control workflow/CLI. |
+| `state/checkpoints/<taskId>.json` | A task in flight: plan, finished steps, side effects fired, tool calls made, verification verdict, usage. The next pulse resumes from it. Deleted when the task ends. |
+| `state/leases/<taskId>.json` | Who holds a running task, until when. |
+| `state/events/<date>.jsonl` | The append-only, redacted event record (audit entries carry `audit: true`); compacted to counts after 14 days. |
+| `state/quota.json` | Per-provider call windows the registry consults before a call. |
+| `state/views/*.json` | Derived every pulse: queue, analytics, providers. Never read back by the engine. |
+| `state/agents.json`, `state/providers.json`, `state/heartbeat.json`, `state/pulse-history.json`, `state/runs/`, `state/digests/`, `state/reviews/` | As before: capability cache, provider health and breakers, last pulse, pulse strip, run records, digests, gate verdicts. |
+| `state/backup/`, `state/archive/` | The previous good copy of a validated file (repair source); archived terminal tasks. |
 
 Every value under `state/` passes through `src/lib/secretScrub.js` before
 it's written — a value-only redaction (see below for why it's deliberately
-*not* the same function used for log lines).
+*not* the same function used for log lines) — and every file is validated
+against its schema on the way in and out.
 
 ### Why redaction has two different shapes in this codebase
 
@@ -409,6 +438,16 @@ Layer-1-`destructive` action if Layer 2 can't be reached (blocks rather
 than guesses); fail-open for a merely-`caution` one (allows, but the gap is
 logged to `state/reviews/`).
 
+**The policy engine sits beside it, never instead of it.** `src/policy/engine.js`
+decides, per side effect (a tool call, a comment, a close, a PR), whether
+the effective autonomy level — the stricter of `state/control.json` and the
+task's own — lets it happen now (`autonomous`), needs `/titan approve <key>`
+first (`propose` for external effects, `approval` for every non-read
+effect), or forbids it (`dry-run`; safe mode for anything external). Tool
+calls also pass the gate's deterministic layer: a destructive pattern in a
+tool argument is refused outright. Every decision is a `policy.decision`
+audit event.
+
 ## Keeping it alive
 
 GitHub auto-disables a scheduled workflow after **60 days with no commit
@@ -431,8 +470,20 @@ activity on the repo at all** — not just on that workflow. Two safety nets:
 
 ## Killing a runaway agent
 
-- **Stop it immediately**: Actions tab -> "TITAN Pulse" -> cancel the
-  in-progress run. `concurrency: cancel-in-progress: false` means this
+The short version is `docs/RUNBOOK.md`. The control plane is
+`.github/workflows/titan-control.yml` (Actions → *TITAN Control* → Run
+workflow — only a user with write access can, and GitHub records who did)
+or `titan control …` locally, both applying one audited action to
+`state/control.json` / `state/tasks.json` through the validated store:
+`kill-switch on` (the pulse reconciles and heartbeats, claims nothing),
+`drain on` (finish what runs, take nothing new), `safe-mode on` (no
+external effects), `autonomy dry-run|propose|approval|autonomous`, and the
+task actions `cancel|pause|resume|retry|priority|approve|deny <taskId>`.
+
+- **Stop it immediately**: `kill-switch on`, then Actions tab -> "TITAN
+  Pulse" -> cancel the in-progress run. The task it held keeps its
+  checkpoint; its lease expires and nothing reclaims it while the switch is
+  on. `concurrency: cancel-in-progress: false` means this
   never races a second pulse — cancelling the current one just lets the
   next scheduled tick start clean.
 - **Stop it from running again**: Actions tab -> "TITAN Pulse" -> "..." ->

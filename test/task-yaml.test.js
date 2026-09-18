@@ -37,6 +37,10 @@ test('parses a single-line task filed through the dashboard', () => {
     priority: 'high',
     routingHint: 'fast',
     filedVia: 'dashboard',
+    dependsOn: [],
+    deadline: null,
+    ttlHours: null,
+    autonomy: null,
   });
 });
 

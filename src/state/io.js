@@ -10,19 +10,23 @@
  * human) to trip over.
  */
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { createLogger } from '../lib/logger.js';
+import { DEFAULT_PATHS } from './paths.js';
 
 const log = createLogger('state:io');
 
-export const STATE_DIR = join(process.cwd(), 'state');
-export const TASKS_PATH = join(STATE_DIR, 'tasks.json');
-export const AGENTS_PATH = join(STATE_DIR, 'agents.json');
-export const HEARTBEAT_PATH = join(STATE_DIR, 'heartbeat.json');
-export const PULSE_HISTORY_PATH = join(STATE_DIR, 'pulse-history.json');
-export const RUNS_DIR = join(STATE_DIR, 'runs');
-export const DIGESTS_DIR = join(STATE_DIR, 'digests');
-export const REVIEWS_DIR = join(STATE_DIR, 'reviews');
+// Resolved through state/paths.js so TITAN_STATE_DIR can point the whole
+// engine at a scratch directory; with nothing set these are exactly the
+// old `<cwd>/state/...` values.
+export const STATE_DIR = DEFAULT_PATHS.stateDir;
+export const TASKS_PATH = DEFAULT_PATHS.tasks;
+export const AGENTS_PATH = DEFAULT_PATHS.agents;
+export const HEARTBEAT_PATH = DEFAULT_PATHS.heartbeat;
+export const PULSE_HISTORY_PATH = DEFAULT_PATHS.pulseHistory;
+export const RUNS_DIR = DEFAULT_PATHS.runs;
+export const DIGESTS_DIR = DEFAULT_PATHS.digests;
+export const REVIEWS_DIR = DEFAULT_PATHS.reviews;
 
 /** How many recent pulses the timeline strip (dashboard, task instructions
  *  section 3) keeps — enough to show a slow drift or a run of failures at a

@@ -1,0 +1,86 @@
+{
+  "$id": "titan-runner/state/checkpoints/<taskId>.json",
+  "title": "state/checkpoints/<taskId>.json",
+  "version": 1,
+  "description": "A task in flight: plan, finished steps, side effects fired, verification, usage. Deleted when the task ends.",
+  "type": "object",
+  "required": [
+    "version",
+    "taskId",
+    "runId",
+    "phase",
+    "updatedAt"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer"
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "runId": {
+      "type": "string"
+    },
+    "phase": {
+      "enum": [
+        "planned",
+        "executing",
+        "executed",
+        "verifying",
+        "verified",
+        "delivering",
+        "done"
+      ]
+    },
+    "graph": {
+      "type": "object",
+      "nullable": true
+    },
+    "subtasks": {
+      "type": "object"
+    },
+    "sideEffects": {
+      "type": "object"
+    },
+    "verification": {
+      "type": "object",
+      "nullable": true
+    },
+    "remediations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stepUsage": {
+      "type": "object"
+    },
+    "usage": {
+      "type": "object",
+      "nullable": true,
+      "properties": {
+        "calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wallMs": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "nullable": true
+    },
+    "tools": {
+      "type": "object"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -9,8 +9,8 @@ import { closeIssue, reopenIssueWithRetryMarker, GitHubApiError } from "@/lib/gi
 import { relative } from "@/lib/time";
 import { STATUS_META } from "@/lib/statusMeta";
 
-const ACTIVE_STATUSES = new Set<TaskStatus>(["pending", "claimed", "running", "pr-open"]);
-const CANCELLABLE_STATUSES = new Set<TaskStatus>(["pending", "claimed"]);
+const ACTIVE_STATUSES = new Set<TaskStatus>(["pending", "running", "waiting", "paused", "pr-open"]);
+const CANCELLABLE_STATUSES = new Set<TaskStatus>(["pending", "waiting", "paused"]);
 const RETRYABLE_STATUSES = new Set<TaskStatus>(["failed", "blocked", "cancelled"]);
 
 function OptimisticRow({ task, onSelect }: { task: OptimisticTask; onSelect: () => void }) {

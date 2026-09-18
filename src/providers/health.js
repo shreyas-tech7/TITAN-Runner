@@ -23,13 +23,15 @@
  * telemetry, not a ledger.
  */
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { redactString } from '../lib/redact.js';
+import { now as clockNow, nowMs } from '../lib/clock.js';
 import { createLogger } from '../lib/logger.js';
+import { DEFAULT_PATHS } from '../state/paths.js';
 
 const log = createLogger('providers:health');
 
-export const DEFAULT_PROVIDERS_PATH = join(process.cwd(), 'state', 'providers.json');
+export const DEFAULT_PROVIDERS_PATH = DEFAULT_PATHS.providers;
 
 /** @type {readonly string[]} Every status this module ever assigns. */
 export const PROVIDER_STATUSES = Object.freeze([
@@ -69,6 +71,7 @@ function emptyRecord(id) {
     discoveredModels: [],
     modelsDiscoveredAt: null,
     note: null,
+    lastFailureClass: null,
   };
 }
 
@@ -86,6 +89,25 @@ export class ProviderHealthStore {
   /** @param {string} [path] Injectable for tests; defaults to the real state file. */
   constructor(path = DEFAULT_PROVIDERS_PATH) {
     this.#path = path;
+  }
+
+  get path() {
+    return this.#path;
+  }
+
+  /**
+   * Re-point the shared store at another state directory's file and reload
+   * from it. The engine calls this when it is given an explicit state dir
+   * (the harness, the tests, `titan simulate`) so the singletons every
+   * provider records into and the directory the pulse saves to are the same
+   * place. A no-op when the path is unchanged — production never moves.
+   * @param {string} path
+   */
+  usePath(path) {
+    if (path === this.#path) return;
+    this.#path = path;
+    this.#records = new Map();
+    this.#loaded = false;
   }
 
   load() {
@@ -127,8 +149,41 @@ export class ProviderHealthStore {
     const rec = this.get(id);
     if (!rec.configured) return false;
     if (rec.status === 'misconfigured' || rec.status === 'no_public_api') return false;
-    if (rec.cooldownUntil && Date.parse(rec.cooldownUntil) > Date.now()) return false;
+    if (rec.cooldownUntil && Date.parse(rec.cooldownUntil) > nowMs()) return false;
     return true;
+  }
+
+  /**
+   * The circuit-breaker view of a provider's health, derived from the same
+   * record the router already reads: `open` while cooling down (calls are
+   * skipped), `half-open` once the cooldown just elapsed after failures (the
+   * next call is a probe), `closed` when healthy, and `disabled` for a
+   * provider that will never recover on its own (bad key, no API, no key).
+   * @param {string} id
+   * @returns {{ state: 'closed'|'open'|'half-open'|'disabled', until: string|null, reason: string }}
+   */
+  breakerState(id) {
+    const rec = this.get(id);
+    if (!rec.configured || rec.status === 'not_configured') return { state: 'disabled', until: null, reason: 'no API key configured' };
+    if (rec.status === 'no_public_api') return { state: 'disabled', until: null, reason: 'no public API to call' };
+    if (rec.status === 'misconfigured') return { state: 'disabled', until: null, reason: 'the key was rejected (401/403); needs a human to rotate it' };
+    if (rec.cooldownUntil && Date.parse(rec.cooldownUntil) > nowMs()) {
+      return { state: 'open', until: rec.cooldownUntil, reason: `${rec.status} — cooling down after ${rec.consecutiveFailures} consecutive failure(s)` };
+    }
+    if (rec.consecutiveFailures > 0) return { state: 'half-open', until: null, reason: `cooldown over after ${rec.consecutiveFailures} failure(s); next call is a probe` };
+    return { state: 'closed', until: null, reason: rec.status === 'ok' ? 'healthy' : 'never attempted' };
+  }
+
+  /** One line a human can read about why the router will or will not use this provider. */
+  explain(id) {
+    const rec = this.get(id);
+    const breaker = this.breakerState(id);
+    const parts = [`${id}: breaker ${breaker.state} (${breaker.reason})`];
+    if (rec.p50LatencyMs != null) parts.push(`p50 ${rec.p50LatencyMs} ms`);
+    if (rec.errorRate > 0) parts.push(`error rate ${Math.round(rec.errorRate * 100)}%`);
+    if (rec.lastFailureClass) parts.push(`last failure ${rec.lastFailureClass}`);
+    if (rec.model) parts.push(`model ${rec.model}`);
+    return parts.join('; ');
   }
 
   /**
@@ -196,7 +251,7 @@ export class ProviderHealthStore {
   recordOutcome(id, outcome) {
     this.load();
     const prev = this.get(id);
-    const now = new Date();
+    const now = clockNow();
     /** @type {any} */
     const next = { ...prev, id, configured: true, lastCheckedAt: now.toISOString(), samples: prev.samples + 1 };
     // Exponential moving average, not a true rolling window — same
@@ -224,6 +279,7 @@ export class ProviderHealthStore {
     } else {
       next.consecutiveFailures = prev.consecutiveFailures + 1;
       if (outcome.message) next.lastError = redactString(outcome.message).slice(0, MAX_ERROR_CHARS);
+      if (typeof outcome.failureClass === 'string') next.lastFailureClass = outcome.failureClass;
 
       const status = outcome.status ?? null;
       const code = outcome.code ?? '';

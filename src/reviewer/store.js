@@ -6,11 +6,12 @@
  * queue this repo doesn't have, so the (small) sharding logic is inlined
  * here instead of carrying a shared abstraction for a single caller.
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, appendFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, unlinkSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { config } from '../config.js';
+import { DEFAULT_PATHS } from '../state/paths.js';
 
-export const REVIEWS_DIR = join(process.cwd(), 'state', 'reviews');
+export const REVIEWS_DIR = DEFAULT_PATHS.reviews;
 const FILE_PREFIX = 'reviews-';
 
 function dayStamp(date) {

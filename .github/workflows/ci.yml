@@ -13,11 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
 
@@ -29,11 +29,32 @@ jobs:
       - name: Secret scan of state/
         run: node scripts/check-secrets-in-state.mjs
 
+      - name: Static workflow checks (SHA pins, no untrusted text in run:, permissions)
+        run: node scripts/check-workflows.mjs
+
+      - name: Data contract (schemas/ in sync with src/state/schema.js)
+        run: node scripts/export-schemas.mjs --check
+
       # Every self-authored pull request (and every other one) runs the
-      # full test suite above, plus this denylist gate — a PR that touches
-      # .github/workflows/, the reviewer gate, the secret-handling code, or
-      # the denylist itself fails CI outright, whether or not it came from
-      # the self-improve flow (see src/denylist.js, src/selfImprove.js).
+      # full test suite above, plus this denylist gate. A PR opened by the
+      # self-improve flow (head ref self-improve/*, or authored by the
+      # Actions bot) that touches .github/, the reviewer gate, the
+      # secret-handling code, or the denylist itself fails CI outright;
+      # a human-authored PR touching the same paths gets a warning
+      # annotation and a maintainer reviews it by hand (see
+      # scripts/check-denylist.mjs and docs/runner-upgrade/DECISIONS.md D-5).
+      # Event fields reach the script through env, never a shell line.
       - name: Denylist gate (pull requests only)
         if: github.event_name == 'pull_request'
-        run: node scripts/check-denylist.mjs "origin/${{ github.event.pull_request.base.ref }}" "HEAD"
+        env:
+          TITAN_BASE_REF: origin/${{ github.event.pull_request.base.ref }}
+          TITAN_HEAD_REF: HEAD
+          TITAN_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          TITAN_PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: node scripts/check-denylist.mjs "$TITAN_BASE_REF" "$TITAN_HEAD_REF"
+
+      - name: Secret scan of the pull request diff
+        if: github.event_name == 'pull_request'
+        env:
+          TITAN_BASE_REF: origin/${{ github.event.pull_request.base.ref }}
+        run: node scripts/check-secrets-in-diff.mjs "$TITAN_BASE_REF" HEAD

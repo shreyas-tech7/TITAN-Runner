@@ -104,6 +104,18 @@ export function isRetryableError(err) {
 }
 
 /**
+ * A retryable failure with no HTTP status behind it: the network misbehaved
+ * (reset, refused, DNS, socket timeout) and nothing upstream has "spoken".
+ * The one class of fault a provider retries inline; everything with a
+ * status is handed to the failure taxonomy instead.
+ * @param {unknown} err
+ */
+export function isNetworkFault(err) {
+  if (!isRetryableError(err)) return false;
+  return statusOf(/** @type {any} */ (err)) === undefined;
+}
+
+/**
  * Parse a `Retry-After` header value into milliseconds.
  * Accepts both documented forms: delta-seconds (`120`) and an HTTP-date
  * (`Wed, 21 Oct 2026 07:28:00 GMT`).

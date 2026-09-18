@@ -36,7 +36,9 @@ const DEFAULT_TIMEOUT_MS = 30_000;
  * @returns {Promise<Response>}
  */
 export async function guardedFetch(url, init = {}) {
-  if (config.dryRun) {
+  // `TITAN_NETWORK=off` is the simulator's belt-and-braces: fake pools never
+  // call this, but if anything real slipped through it fails loudly here.
+  if (config.dryRun || process.env.TITAN_NETWORK === 'off') {
     throw new DryRunViolationError(String(url));
   }
   const { timeoutMs = DEFAULT_TIMEOUT_MS, signal: callerSignal, ...rest } = init;

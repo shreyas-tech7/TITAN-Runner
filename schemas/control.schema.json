@@ -1,0 +1,46 @@
+{
+  "$id": "titan-runner/state/control.json",
+  "title": "state/control.json",
+  "version": 1,
+  "description": "Operator controls: kill switch, drain, safe mode, autonomy level. Changed only through the control workflow or CLI.",
+  "type": "object",
+  "required": [
+    "version"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer"
+    },
+    "killSwitch": {
+      "type": "boolean"
+    },
+    "drain": {
+      "type": "boolean"
+    },
+    "safeMode": {
+      "type": "boolean"
+    },
+    "autonomy": {
+      "enum": [
+        "dry-run",
+        "propose",
+        "approval",
+        "autonomous"
+      ]
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+    },
+    "updatedBy": {
+      "type": "string",
+      "nullable": true
+    },
+    "reason": {
+      "type": "string",
+      "nullable": true,
+      "maxLength": 300
+    }
+  }
+}

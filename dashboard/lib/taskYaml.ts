@@ -14,7 +14,7 @@
  * parser is not needed to round-trip four flat fields plus one block
  * scalar. See `src/lib/taskYaml.js`'s header for the matching parser.
  */
-export type Priority = "low" | "normal" | "high";
+export type Priority = "low" | "normal" | "high" | "urgent";
 export type RoutingHint = "fast" | "cheap" | "careful" | "any";
 
 export interface TaskInput {
@@ -22,6 +22,12 @@ export interface TaskInput {
   description: string;
   priority: Priority;
   routingHint: RoutingHint;
+  /** Lifecycle fields (optional; parsed by src/lib/taskYaml.js in lockstep). */
+  dependsOn?: string[];
+  deadline?: string | null;
+  ttlHours?: number | null;
+  /** Only ever stricter than the repo's control file: dry-run | propose | approval | autonomous. */
+  autonomy?: "dry-run" | "propose" | "approval" | "autonomous" | null;
 }
 
 const FENCE_START = "<!-- titan-task-v1";
@@ -39,16 +45,20 @@ function blockScalar(value: string): string {
 }
 
 export function buildYamlBlock(input: TaskInput): string {
-  return [
+  const lines = [
     FENCE_START,
     `title: ${quoteScalar(input.title)}`,
     `priority: ${input.priority}`,
     `routingHint: ${input.routingHint}`,
     `filedVia: dashboard`,
-    `description: |`,
-    blockScalar(input.description),
-    FENCE_END,
-  ].join("\n");
+  ];
+  const deps = (input.dependsOn ?? []).filter((id) => /^[A-Za-z0-9_-]{1,64}$/.test(id));
+  if (deps.length > 0) lines.push(`dependsOn: ${deps.join(", ")}`);
+  if (input.deadline) lines.push(`deadline: ${input.deadline}`);
+  if (input.ttlHours && input.ttlHours > 0) lines.push(`ttlHours: ${Math.round(input.ttlHours)}`);
+  if (input.autonomy) lines.push(`autonomy: ${input.autonomy}`);
+  lines.push(`description: |`, blockScalar(input.description), FENCE_END);
+  return lines.join("\n");
 }
 
 /**

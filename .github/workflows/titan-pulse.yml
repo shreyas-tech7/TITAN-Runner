@@ -38,11 +38,11 @@ jobs:
     # block the next scheduled pulse from ever starting.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
 
@@ -55,6 +55,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           TITAN_MANUAL_TASK: ${{ inputs.task-text }}
+          # Who may file tasks besides the repository owner and GitHub-verified
+          # collaborators — a repo VARIABLE (Settings -> Secrets and variables
+          # -> Actions -> Variables), comma-separated logins, empty by default.
+          # See src/security/authorization.js.
+          TITAN_TASK_AUTHORS: ${{ vars.TITAN_TASK_AUTHORS }}
+          # Durable checkpoints: the engine commits and pushes state/ at step
+          # boundaries (rate-limited, state files only, rebase-retry) so a
+          # killed job loses at most one step, not the whole pulse. The commit
+          # step below remains the final safety net. See
+          # src/engine/checkpointer.js. Pushed with GITHUB_TOKEN, so it can
+          # never re-trigger this workflow.
+          TITAN_CHECKPOINT: git
+          # Stop taking work well before timeout-minutes (10) kills the job,
+          # leaving time to checkpoint. Milliseconds.
+          TITAN_PULSE_BUDGET_MS: "420000"
+          # Hosts the http_fetch tool may reach (repo VARIABLE, comma-separated,
+          # `.example.com` allows subdomains). Empty = the tool allows nothing.
+          # See src/tools/ssrf.js and docs/CONFIG.md.
+          TITAN_EGRESS_ALLOWLIST: ${{ vars.TITAN_EGRESS_ALLOWLIST }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}

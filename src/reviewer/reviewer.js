@@ -39,7 +39,7 @@ export async function reviewAction(action, opts = {}) {
 
   if (classification === 'safe') {
     const result = { verdict: 'allow', classification, layer: 1, reason: null, suggestion: null, matchedRules };
-    persist(action, result);
+    persist(action, result, opts.reviewsDir);
     return result;
   }
 
@@ -100,11 +100,11 @@ export async function reviewAction(action, opts = {}) {
     rules: matchedRules.join(',') || undefined,
   });
 
-  persist(action, result);
+  persist(action, result, opts.reviewsDir);
   return result;
 }
 
-function persist(action, result) {
+function persist(action, result, reviewsDir) {
   appendReview({
     ts: new Date().toISOString(),
     toolId: action.toolId,
@@ -115,7 +115,7 @@ function persist(action, result) {
     failMode: result.failMode ?? null,
     reason: result.reason,
     suggestion: result.suggestion,
-  });
+  }, reviewsDir ? { dir: reviewsDir } : {});
 }
 
 export default { reviewAction };

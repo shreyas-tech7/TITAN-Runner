@@ -30,4 +30,15 @@ for (const entry of readdirSync(SRC, { withFileTypes: true })) {
     copied += 1;
   }
 }
+// The derived views (state/views/*.json) the v2 engine writes every pulse.
+const VIEWS = join(SRC, 'views');
+if (existsSync(VIEWS)) {
+  mkdirSync(join(DEST, 'views'), { recursive: true });
+  for (const entry of readdirSync(VIEWS, { withFileTypes: true })) {
+    if (entry.isFile() && entry.name.endsWith('.json')) {
+      copyFileSync(join(VIEWS, entry.name), join(DEST, 'views', entry.name));
+      copied += 1;
+    }
+  }
+}
 console.log(`Copied ${copied} state file(s) into dashboard/public/state/.`);

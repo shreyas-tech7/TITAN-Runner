@@ -8,14 +8,14 @@
  * per-provider circuit breaker, sliding quota tracker, and health-check
  * ring buffer are complexity this repo does not need to carry or maintain.
  * What's kept, because it matters even for a low-volume caller: the
- * not-configured short circuit, a hard per-call deadline, retry with full
- * jitter on 429/5xx/network faults (`lib/retry.js`, ported unchanged), and
+ * not-configured short circuit, a hard per-call deadline, one inline retry
+ * on a network fault only (HTTP statuses are the taxonomy's business), and
  * redacting anything upstream before it can reach a log line or state file.
  *
  * Subclasses override `_doChat`, never `chat`.
  */
 import { config } from '../config.js';
-import { RetryableError, isRetryableError, withRetry } from '../lib/retry.js';
+import { RetryableError, isNetworkFault, withRetry } from '../lib/retry.js';
 import { redactString } from '../lib/redact.js';
 import { Semaphore } from '../lib/semaphore.js';
 import { createLogger } from '../lib/logger.js';
@@ -148,6 +148,7 @@ export function parseOpenAiChat(json, ctx) {
 
 export class BaseProvider {
   #gate;
+  #health;
 
   constructor(init) {
     if (new.target === BaseProvider) {
@@ -158,6 +159,9 @@ export class BaseProvider {
     this.apiKey = init.apiKey || null;
     this.model = init.model || '';
     this.#gate = new Semaphore(MAX_CONCURRENT_PER_PROVIDER);
+    // Injectable for the fakes/tests; production providers use the shared
+    // store, exactly as before.
+    this.#health = init.health ?? providerHealth;
   }
 
   isConfigured() {
@@ -171,7 +175,7 @@ export class BaseProvider {
    */
   async chat(messages, opts = {}) {
     if (!this.isConfigured()) {
-      providerHealth.markNotConfigured(this.id);
+      this.#health.markNotConfigured(this.id);
       throw new ProviderError(`${this.label} is not configured (missing API key)`, {
         code: 'NOT_CONFIGURED', service: this.id, retryable: false,
       });
@@ -188,12 +192,18 @@ export class BaseProvider {
 
       let raw;
       try {
+        // One inline retry, and only for a network-level fault (a reset
+        // socket, a DNS hiccup). An HTTP status is the provider saying
+        // something — 429/5xx/402 belong to the failure taxonomy and the
+        // scheduler's per-class policy (`reliability/`), which is the single
+        // retry authority; retrying them here as well was a hidden ×3 under
+        // every attempt the policy made.
         raw = await withRetry(() => this._doChat(messages, opts, signal), {
-          attempts: 3,
+          attempts: 2,
           baseDelayMs: 300,
-          maxDelayMs: 8000,
+          maxDelayMs: 2000,
           signal,
-          isRetryable: isRetryableError,
+          isRetryable: isNetworkFault,
           onRetry: (info) => {
             attempts += 1;
             log.debug('retrying provider call', { service: this.id, attempt: attempts, error: redactString(String(info.error)) });
@@ -205,7 +215,7 @@ export class BaseProvider {
 
       const latencyMs = Math.round(performance.now() - started);
       const model = raw.model || this.model;
-      providerHealth.recordOutcome(this.id, { ok: true, latencyMs, model });
+      this.#health.recordOutcome(this.id, { ok: true, latencyMs, model });
       return {
         text: raw.text,
         service: this.id,
@@ -215,7 +225,7 @@ export class BaseProvider {
         attempts,
       };
     } catch (err) {
-      providerHealth.recordOutcome(this.id, {
+      this.#health.recordOutcome(this.id, {
         ok: false,
         code: err?.code,
         status: err?.status ?? null,

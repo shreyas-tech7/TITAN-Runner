@@ -11,6 +11,7 @@
  * number.
  */
 import { useEffect, useState } from "react";
+import { WAIT_REASON_LABEL } from "@/lib/statusMeta";
 import type { TaskRecord } from "@/lib/types";
 import type { SubagentRow } from "@/lib/workerApi";
 import { formatElapsed } from "@/lib/time";
@@ -39,13 +40,13 @@ function taskToLiveItem(t: TaskRecord): LiveItem | null {
       startedAt: t.startedAt ?? t.claimedAt ?? t.createdAt,
     };
   }
-  if (t.status === "claimed" || t.status === "pending") {
+  if (t.status === "pending" || t.status === "waiting" || t.status === "paused") {
     return {
       id: `task-${t.id}`,
       title: t.title || t.id,
       source: t.type === "self-improve" ? "self-improvement" : "task",
       status: "waiting",
-      statusLabel: t.status === "claimed" ? "Claimed" : "Queued",
+      statusLabel: t.status === "waiting" ? `Waiting on ${WAIT_REASON_LABEL[t.waitReason ?? ""] ?? t.waitReason ?? "…"}` : t.status === "paused" ? "Paused" : "Queued",
       dotClass: "dot-idle",
       startedAt: t.claimedAt ?? t.createdAt,
     };

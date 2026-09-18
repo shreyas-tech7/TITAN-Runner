@@ -6,7 +6,7 @@ import { createIssue, GitHubApiError, OWNER, REPO } from "@/lib/githubApi";
 import { buildIssueBody, TITAN_TASK_LABEL, type Priority, type RoutingHint } from "@/lib/taskYaml";
 import { addOptimisticTask } from "@/lib/optimisticTasks";
 
-const PRIORITIES: Priority[] = ["low", "normal", "high"];
+const PRIORITIES: Priority[] = ["low", "normal", "high", "urgent"];
 const ROUTING_HINTS: RoutingHint[] = ["fast", "cheap", "careful", "any"];
 
 type Phase = "form" | "submitting" | "success" | "fallback" | "error";

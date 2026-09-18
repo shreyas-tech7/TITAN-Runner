@@ -1,0 +1,2634 @@
+{
+  "meta": {
+    "at": "2026-09-18T11:21:10.429Z",
+    "commit": "3000beb89556774eea374a1c841aa93db3843fc8",
+    "node": "v22.22.2",
+    "platform": "linux x64",
+    "repeat": 5,
+    "capabilities": [
+      "lifecycle-state-machine",
+      "leases",
+      "checkpoint-resume",
+      "pulse-budget",
+      "state-repair",
+      "event-log",
+      "idempotency-keys",
+      "idempotent-side-effects",
+      "failure-taxonomy",
+      "waiting-state",
+      "output-repair",
+      "quota-ledger",
+      "breakers",
+      "budgets",
+      "task-dependencies",
+      "verification",
+      "tools",
+      "loop-detection",
+      "policy-engine",
+      "approvals"
+    ],
+    "note": "Fake-provider latency is synthetic (2-8 ms); timings measure Runner overhead, not model speed."
+  },
+  "summary": {
+    "scenarios": 23,
+    "pass": 23,
+    "fail": 0,
+    "notSupported": 0,
+    "corpusCompletionRate": 1,
+    "faultRecoveryRate": 1,
+    "duplicateSideEffectsTotal": 2,
+    "modelCallsTotal": 73,
+    "idlePulseWallMsMedian": 96.8,
+    "idlePulseStateBytesMedian": 10558,
+    "singleStepWallMsMedian": 187.6,
+    "peakRssKbMax": 66772,
+    "tests": {
+      "tests": 269,
+      "pass": 269,
+      "fail": 0
+    }
+  },
+  "scenarios": [
+    {
+      "id": "single-step",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": "1 comments"
+        },
+        {
+          "name": "issue closed once",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "done in one pulse",
+          "ok": true,
+          "detail": "1 pulses"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 4,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 166.3,
+        "peakRssKb": 66640,
+        "stateBytesChangedPerPulse": [
+          23965,
+          17619
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 166.3,
+          "peakRssKb": 66640,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-e10743",
+            "durationMs": 96,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 3,
+            "upstreamCalls": 4,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 95,
+              "remainingMs": 419905,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 23965,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 80,
+          "peakRssKb": 64528,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-2-1-4fcaa1",
+            "durationMs": 9,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 10,
+              "remainingMs": 419990,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 17619,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": {
+        "firstPulseWallMs": {
+          "median": 187.6,
+          "min": 166.3,
+          "max": 227.5,
+          "n": 5
+        },
+        "allPulsesWallMs": {
+          "median": 138.4,
+          "min": 80,
+          "max": 227.5,
+          "n": 10
+        },
+        "peakRssKb": {
+          "median": 66320,
+          "min": 66256,
+          "max": 66640,
+          "n": 5
+        },
+        "stateBytesChangedPerPulse": {
+          "median": 20797.5,
+          "min": 17619,
+          "max": 23971,
+          "n": 10
+        },
+        "repeats": 5
+      },
+      "allStatuses": [
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "multi-step",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "every sub-task ran exactly once",
+          "ok": true,
+          "detail": "5 model calls (1 decompose + 4 sub-tasks expected)"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 3,
+        "pulsesToTerminal": 1,
+        "modelCalls": 5,
+        "providerCallsTotal": 7,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 219.8,
+        "peakRssKb": 66772,
+        "stateBytesChangedPerPulse": [
+          29651,
+          20591,
+          19070
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 219.8,
+          "peakRssKb": 66772,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-cd0762",
+            "durationMs": 149,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 6,
+            "upstreamCalls": 7,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 147,
+              "remainingMs": 419853,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 29651,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 102.7,
+          "peakRssKb": 64436,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-2-1-14b637",
+            "durationMs": 11,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 12,
+              "remainingMs": 419988,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 20591,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 101.7,
+          "peakRssKb": 64420,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-3-1-5f86e7",
+            "durationMs": 11,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 12,
+              "remainingMs": 419988,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 19070,
+          "stateFilesChanged": 6,
+          "stderrTail": ""
+        }
+      ],
+      "timing": {
+        "firstPulseWallMs": {
+          "median": 219.8,
+          "min": 205.8,
+          "max": 252.5,
+          "n": 5
+        },
+        "allPulsesWallMs": {
+          "median": 103.9,
+          "min": 96.6,
+          "max": 252.5,
+          "n": 15
+        },
+        "peakRssKb": {
+          "median": 66600,
+          "min": 66288,
+          "max": 66772,
+          "n": 5
+        },
+        "stateBytesChangedPerPulse": {
+          "median": 20592,
+          "min": 19067,
+          "max": 29652,
+          "n": 15
+        },
+        "repeats": 5
+      },
+      "allStatuses": [
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "dependent-tasks",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "both tasks succeeded",
+          "ok": true,
+          "detail": "complete, complete"
+        },
+        {
+          "name": "consumer did not start before producer finished",
+          "ok": true,
+          "detail": "{\"producerDone\":23,\"consumerStarted\":24}"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 4,
+        "providerCallsTotal": 8,
+        "githubMutations": 4,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 258.6,
+        "peakRssKb": 66452,
+        "stateBytesChangedPerPulse": [
+          33604
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          },
+          {
+            "id": "issue-2",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 258.6,
+          "peakRssKb": 66452,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-2c3d41",
+            "durationMs": 170,
+            "tasksClaimed": 2,
+            "tasksCompleted": 2,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 6,
+            "upstreamCalls": 8,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 168,
+              "remainingMs": 419832,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 33604,
+          "stateFilesChanged": 16,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "fails-then-recovers",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded after a transient failure",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 3,
+        "providerCallsTotal": 5,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 183.4,
+        "peakRssKb": 66392,
+        "stateBytesChangedPerPulse": [
+          25603
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 183.4,
+          "peakRssKb": 66392,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-adc898",
+            "durationMs": 105,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 4,
+            "upstreamCalls": 5,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 103,
+              "remainingMs": 419897,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 25603,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "fails-permanently",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task reached a terminal failure",
+          "ok": true,
+          "detail": "failed"
+        },
+        {
+          "name": "bounded attempts on a permanent error (<= 3 sub-task calls)",
+          "ok": true,
+          "detail": "3 sub-task calls"
+        },
+        {
+          "name": "the filer was told once",
+          "ok": true,
+          "detail": "1 comments"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 4,
+        "providerCallsTotal": 5,
+        "githubMutations": 1,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 154.5,
+        "peakRssKb": 66304,
+        "stateBytesChangedPerPulse": [
+          26297
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "failed"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 154.5,
+          "peakRssKb": 66304,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-07346f",
+            "durationMs": 74,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 1,
+            "tasksParked": 0,
+            "modelCalls": 4,
+            "upstreamCalls": 5,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 74,
+              "remainingMs": 419926,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 26297,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "spans-pulses",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded across pulses",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "took more than one pulse",
+          "ok": true,
+          "detail": "5 pulses"
+        },
+        {
+          "name": "no sub-task ran twice",
+          "ok": true,
+          "detail": "6 sub-task calls"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 5,
+        "pulsesToTerminal": 5,
+        "modelCalls": 7,
+        "providerCallsTotal": 9,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 248.8,
+        "peakRssKb": 66428,
+        "stateBytesChangedPerPulse": [
+          21921,
+          27420,
+          36474,
+          42324,
+          49265
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 248.8,
+          "peakRssKb": 65280,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-e8461c",
+            "durationMs": 159,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 1,
+            "modelCalls": 1,
+            "upstreamCalls": 2,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 120,
+              "elapsedMs": 158,
+              "remainingMs": 0,
+              "draining": true
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 21921,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 177,
+          "peakRssKb": 65704,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-2-1-d7cbc0",
+            "durationMs": 89,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 1,
+            "modelCalls": 1,
+            "upstreamCalls": 1,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 120,
+              "elapsedMs": 91,
+              "remainingMs": 29,
+              "draining": true
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 27420,
+          "stateFilesChanged": 13,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 223.3,
+          "peakRssKb": 66084,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-3-1-ee211e",
+            "durationMs": 149,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 1,
+            "modelCalls": 3,
+            "upstreamCalls": 3,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 120,
+              "elapsedMs": 150,
+              "remainingMs": 0,
+              "draining": true
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 36474,
+          "stateFilesChanged": 13,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 4,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 177.6,
+          "peakRssKb": 66128,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-4-1-b374b0",
+            "durationMs": 91,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 1,
+            "modelCalls": 1,
+            "upstreamCalls": 1,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 120,
+              "elapsedMs": 92,
+              "remainingMs": 28,
+              "draining": true
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 42324,
+          "stateFilesChanged": 13,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 5,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 374,
+          "peakRssKb": 66428,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-5-1-3a9319",
+            "durationMs": 301,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 2,
+            "upstreamCalls": 2,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 120,
+              "elapsedMs": 302,
+              "remainingMs": 0,
+              "draining": true
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 49265,
+          "stateFilesChanged": 13,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "duplicate-submission",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "first submission succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "duplicate did not run a second orchestration",
+          "ok": true,
+          "detail": "1 decompositions"
+        },
+        {
+          "name": "duplicate was answered, not silently dropped",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 4,
+        "githubMutations": 3,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 186,
+        "peakRssKb": 66280,
+        "stateBytesChangedPerPulse": [
+          27107
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          },
+          {
+            "id": "issue-2",
+            "status": "cancelled"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 186,
+          "peakRssKb": 66280,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-816938",
+            "durationMs": 102,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 3,
+            "upstreamCalls": 4,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 101,
+              "remainingMs": 419899,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 27107,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "hostile-input",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "no forbidden path was written to the checkout",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no pull request was opened",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "policy/autonomy unchanged by task text",
+          "ok": true,
+          "detail": "control before {\"killSwitch\":false,\"drain\":false,\"safeMode\":false,\"autonomy\":\"autonomous\"} after {\"killSwitch\":false,\"drain\":false,\"safeMode\":false,\"autonomy\":\"autonomous\"}"
+        },
+        {
+          "name": "task ended in a terminal failure/refusal, not success",
+          "ok": true,
+          "detail": "failed"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 4,
+        "githubMutations": 1,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 167.4,
+        "peakRssKb": 66584,
+        "stateBytesChangedPerPulse": [
+          24755
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "failed"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 167.4,
+          "peakRssKb": 66584,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-771e37",
+            "durationMs": 81,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 1,
+            "tasksParked": 0,
+            "modelCalls": 3,
+            "upstreamCalls": 4,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 79,
+              "remainingMs": 419921,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 24755,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "unauthorized-author",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "zero model calls",
+          "ok": true,
+          "detail": "0 calls"
+        },
+        {
+          "name": "zero comments",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no task was created",
+          "ok": true,
+          "detail": "0 tasks"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": null,
+        "modelCalls": 0,
+        "providerCallsTotal": 0,
+        "githubMutations": 0,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 106.6,
+        "peakRssKb": 64432,
+        "stateBytesChangedPerPulse": [
+          13769,
+          9898
+        ],
+        "taskOutcomes": []
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 106.6,
+          "peakRssKb": 64408,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-cbae03",
+            "durationMs": 13,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 13,
+              "remainingMs": 419987,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 13769,
+          "stateFilesChanged": 12,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 95,
+          "peakRssKb": 64432,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-2-1-5ff7bc",
+            "durationMs": 11,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 12,
+              "remainingMs": 419988,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 9898,
+          "stateFilesChanged": 6,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "kill-between-steps",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "pulse 1 was killed",
+          "ok": true,
+          "detail": "SIGKILL"
+        },
+        {
+          "name": "task finished on a later pulse",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "completed steps were not re-run after the crash",
+          "ok": true,
+          "detail": "0 completed sub-task(s) re-executed"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": "1 comments"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": 2,
+        "modelCalls": 6,
+        "providerCallsTotal": 8,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 142.3,
+        "peakRssKb": 66144,
+        "stateBytesChangedPerPulse": [
+          11323,
+          31154
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": null,
+          "signal": "SIGKILL",
+          "wallMs": 142.3,
+          "peakRssKb": 65256,
+          "summary": null,
+          "stateBytesChanged": 11323,
+          "stateFilesChanged": 9,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 173,
+          "peakRssKb": 66144,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-2-1-93db01",
+            "durationMs": 99,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 3,
+            "upstreamCalls": 3,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 100,
+              "remainingMs": 419900,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 31154,
+          "stateFilesChanged": 13,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "kill-after-side-effect",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "pulse 1 was killed",
+          "ok": true,
+          "detail": "SIGKILL"
+        },
+        {
+          "name": "task ends succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "the completion comment was posted exactly once",
+          "ok": true,
+          "detail": "1 comments"
+        },
+        {
+          "name": "issue closed",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": 2,
+        "modelCalls": 2,
+        "providerCallsTotal": 4,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 178.5,
+        "peakRssKb": 65400,
+        "stateBytesChangedPerPulse": [
+          13000,
+          23735
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": null,
+          "signal": "SIGKILL",
+          "wallMs": 178.5,
+          "peakRssKb": 65400,
+          "summary": null,
+          "stateBytesChanged": 13000,
+          "stateFilesChanged": 10,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 111.9,
+          "peakRssKb": 65224,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-2-1-cdc3d7",
+            "durationMs": 23,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 24,
+              "remainingMs": 419976,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 23735,
+          "stateFilesChanged": 11,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "overlapping-pulses",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "orchestrated once, not twice",
+          "ok": true,
+          "detail": "1 decompositions"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": "1 comments"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 4,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 324.5,
+        "peakRssKb": 66136,
+        "stateBytesChangedPerPulse": [
+          24936,
+          17492
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 324.5,
+          "peakRssKb": 66136,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-1-249c0e",
+            "durationMs": 254,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 3,
+            "upstreamCalls": 4,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 253,
+              "remainingMs": 419747,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 24936,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 94.5,
+          "peakRssKb": 64372,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-2-1-1103f8",
+            "durationMs": 10,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 10,
+              "remainingMs": 419990,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 17492,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "corrupted-state",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "pulse still completed",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "previous tasks survived the corruption",
+          "ok": true,
+          "detail": "2 tasks after repair"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 0,
+        "providerCallsTotal": 0,
+        "githubMutations": 0,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 95.6,
+        "peakRssKb": 64376,
+        "stateBytesChangedPerPulse": [
+          15458
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-7",
+            "status": "complete"
+          },
+          {
+            "id": "issue-8",
+            "status": "failed"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 95.6,
+          "peakRssKb": 64376,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-fcd5b0",
+            "durationMs": 12,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 11,
+              "remainingMs": 419989,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 15458,
+          "stateFilesChanged": 14,
+          "stderrTail": "{\"ts\":\"2026-09-18T11:20:52.991Z\",\"level\":\"error\",\"scope\":\"state:store\",\"message\":\"state file corrupt\",\"meta\":{\"file\":\"tasks.json\",\"reason\":\"parse error: Unexpected token '<', \\\"<<<<<<< HE\\\"... is not valid JSON\"}}\n"
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "stale-lease",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "zombie task was reclaimed and finished",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "reclaimed within the first pulse",
+          "ok": true,
+          "detail": "1"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 4,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 192.4,
+        "peakRssKb": 66492,
+        "stateBytesChangedPerPulse": [
+          24325
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-3",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 192.4,
+          "peakRssKb": 66492,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-b241b0",
+            "durationMs": 104,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 3,
+            "upstreamCalls": 4,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 102,
+              "remainingMs": 419898,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 24325,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "provider-outage",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task survived the outage and succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "did not fail permanently during the outage",
+          "ok": true,
+          "detail": "[\"running\",\"waiting\",\"pending\",\"running\",\"waiting\",\"pending\",\"running\",\"complete\"]"
+        },
+        {
+          "name": "bounded calls during the outage (<= 8 in the first two pulses)",
+          "ok": true,
+          "detail": "7 calls"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 3,
+        "pulsesToTerminal": 3,
+        "modelCalls": 8,
+        "providerCallsTotal": 10,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 132.9,
+        "peakRssKb": 66076,
+        "stateBytesChangedPerPulse": [
+          21510,
+          24444,
+          33888
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 132.9,
+          "peakRssKb": 65256,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-980dac",
+            "durationMs": 59,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 1,
+            "modelCalls": 1,
+            "upstreamCalls": 4,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 57,
+              "remainingMs": 419943,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 21510,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 129.7,
+          "peakRssKb": 65040,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-2-1-d6f032",
+            "durationMs": 45,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 1,
+            "modelCalls": 1,
+            "upstreamCalls": 3,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 45,
+              "remainingMs": 419955,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 24444,
+          "stateFilesChanged": 12,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 172.5,
+          "peakRssKb": 66076,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-3-1-f583ee",
+            "durationMs": 86,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 3,
+            "upstreamCalls": 3,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 87,
+              "remainingMs": 419913,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 33888,
+          "stateFilesChanged": 13,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "looping-task",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "loop was detected and the task stopped",
+          "ok": true,
+          "detail": "dead-lettered"
+        },
+        {
+          "name": "bounded model calls (<= 12)",
+          "ok": true,
+          "detail": "5 calls"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 4,
+        "providerCallsTotal": 5,
+        "githubMutations": 1,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 146.1,
+        "peakRssKb": 66556,
+        "stateBytesChangedPerPulse": [
+          25648
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "dead-lettered"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 146.1,
+          "peakRssKb": 66556,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-bd39e9",
+            "durationMs": 75,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 1,
+            "tasksParked": 0,
+            "modelCalls": 4,
+            "upstreamCalls": 5,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 74,
+              "remainingMs": 419926,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 25648,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "rate-limited",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded after the 429",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "Retry-After was honored (>= 200 ms between attempts)",
+          "ok": true,
+          "detail": "209 ms"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 3,
+        "providerCallsTotal": 5,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 395.9,
+        "peakRssKb": 66724,
+        "stateBytesChangedPerPulse": [
+          25082
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 395.9,
+          "peakRssKb": 66724,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-a356ce",
+            "durationMs": 312,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 4,
+            "upstreamCalls": 5,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 310,
+              "remainingMs": 419690,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 25082,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "malformed-output",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded after repair attempts",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "bounded repair attempts (<= 4 sub-task calls)",
+          "ok": true,
+          "detail": "3"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 4,
+        "providerCallsTotal": 6,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 203.2,
+        "peakRssKb": 66324,
+        "stateBytesChangedPerPulse": [
+          26180
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 203.2,
+          "peakRssKb": 66324,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-fdaf2e",
+            "durationMs": 116,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 5,
+            "upstreamCalls": 6,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 115,
+              "remainingMs": 419885,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 26180,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "refusal",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "refusal was not accepted as done",
+          "ok": true,
+          "detail": "complete, 2 sub-task calls"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 3,
+        "providerCallsTotal": 5,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 194.5,
+        "peakRssKb": 66748,
+        "stateBytesChangedPerPulse": [
+          25032
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 194.5,
+          "peakRssKb": 66748,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-ec47fd",
+            "durationMs": 110,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 4,
+            "upstreamCalls": 5,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 108,
+              "remainingMs": 419892,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 25032,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "quota-exhausted",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task waited out the exhausted quota and succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "no retry storm on a quota error (<= 2 sub-task calls in pulse 1)",
+          "ok": true,
+          "detail": "2"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": 2,
+        "modelCalls": 4,
+        "providerCallsTotal": 6,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 150.3,
+        "peakRssKb": 66392,
+        "stateBytesChangedPerPulse": [
+          25812,
+          31635
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 150.3,
+          "peakRssKb": 65548,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-f15dc6",
+            "durationMs": 70,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 1,
+            "modelCalls": 3,
+            "upstreamCalls": 4,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 69,
+              "remainingMs": 419931,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 25812,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 160.3,
+          "peakRssKb": 66392,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-2-1-3fdba9",
+            "durationMs": 74,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 2,
+            "upstreamCalls": 2,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 74,
+              "remainingMs": 419926,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 31635,
+          "stateFilesChanged": 13,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "tool-approval",
+      "group": "autonomy",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task completed once both approvals were given",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "the tool write waited for approval (it was asked for, not done)",
+          "ok": true,
+          "detail": "2 approval requests"
+        },
+        {
+          "name": "exactly one request per gated effect (tool, then delivery)",
+          "ok": true,
+          "detail": "2 approval requests"
+        },
+        {
+          "name": "the write landed in the task workspace under state/",
+          "ok": true,
+          "detail": "state/workspaces/issue-1/draft.md"
+        },
+        {
+          "name": "the result was posted once after delivery approval",
+          "ok": true,
+          "detail": "3 comments, 1 closes"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 3,
+        "pulsesToTerminal": 3,
+        "modelCalls": 4,
+        "providerCallsTotal": 6,
+        "githubMutations": 4,
+        "duplicateComments": 2,
+        "firstPulseWallMs": 146,
+        "peakRssKb": 66564,
+        "stateBytesChangedPerPulse": [
+          24063,
+          34857,
+          34212
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 146,
+          "peakRssKb": 66048,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-7d5edc",
+            "durationMs": 61,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 1,
+            "modelCalls": 2,
+            "upstreamCalls": 3,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 62,
+              "remainingMs": 419938,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 24063,
+          "stateFilesChanged": 14,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 149.6,
+          "peakRssKb": 66564,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-2-1-e0d45d",
+            "durationMs": 63,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 1,
+            "modelCalls": 3,
+            "upstreamCalls": 3,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 63,
+              "remainingMs": 419937,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 34857,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 139,
+          "peakRssKb": 65756,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-3-1-b355e4",
+            "durationMs": 33,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 34,
+              "remainingMs": 419966,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 34212,
+          "stateFilesChanged": 11,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "quota-ledger",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "groq was called at most once this minute (the ledger, not a 429, stopped the second)",
+          "ok": true,
+          "detail": "1 groq calls"
+        },
+        {
+          "name": "a routing decision recorded the quota skip",
+          "ok": true,
+          "detail": "2 decisions skipped groq"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 4,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 178.1,
+        "peakRssKb": 66640,
+        "stateBytesChangedPerPulse": [
+          25654
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 178.1,
+          "peakRssKb": 66640,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-18644b",
+            "durationMs": 104,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 4,
+            "upstreamCalls": 4,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 103,
+              "remainingMs": 419897,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 25654,
+          "stateFilesChanged": 15,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "idle-pulse",
+      "group": "cost",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "idle pulses exit cleanly",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "zero model calls",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 3,
+        "pulsesToTerminal": null,
+        "modelCalls": 0,
+        "providerCallsTotal": 0,
+        "githubMutations": 0,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 82.8,
+        "peakRssKb": 64356,
+        "stateBytesChangedPerPulse": [
+          13618,
+          9595,
+          10551
+        ],
+        "taskOutcomes": []
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 82.8,
+          "peakRssKb": 63900,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-1-1-590684",
+            "durationMs": 10,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 10,
+              "remainingMs": 419990,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 13618,
+          "stateFilesChanged": 12,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 97.1,
+          "peakRssKb": 64324,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-2-1-718d8d",
+            "durationMs": 9,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 11,
+              "remainingMs": 419989,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 9595,
+          "stateFilesChanged": 6,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 91.5,
+          "peakRssKb": 64356,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-3-1-453be5",
+            "durationMs": 9,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 10,
+              "remainingMs": 419990,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 10551,
+          "stateFilesChanged": 6,
+          "stderrTail": ""
+        }
+      ],
+      "timing": {
+        "firstPulseWallMs": {
+          "median": 96.8,
+          "min": 80.1,
+          "max": 101.7,
+          "n": 5
+        },
+        "allPulsesWallMs": {
+          "median": 96.8,
+          "min": 80.1,
+          "max": 102.8,
+          "n": 15
+        },
+        "peakRssKb": {
+          "median": 64408,
+          "min": 64356,
+          "max": 64448,
+          "n": 5
+        },
+        "stateBytesChangedPerPulse": {
+          "median": 10558,
+          "min": 9595,
+          "max": 13620,
+          "n": 15
+        },
+        "repeats": 5
+      },
+      "allStatuses": [
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass"
+      ]
+    }
+  ]
+}

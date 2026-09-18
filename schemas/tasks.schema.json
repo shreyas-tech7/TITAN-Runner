@@ -1,0 +1,314 @@
+{
+  "$id": "titan-runner/state/tasks.json",
+  "title": "state/tasks.json",
+  "version": 2,
+  "description": "The task queue and record. Written only by the pulse and the control CLI, through the validated store.",
+  "type": "object",
+  "required": [
+    "version",
+    "tasks"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2
+    },
+    "updatedAt": {
+      "type": "string"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "title",
+          "prompt",
+          "status",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "type": {
+            "enum": [
+              "task",
+              "self-improve"
+            ]
+          },
+          "issueNumber": {
+            "type": "integer",
+            "nullable": true
+          },
+          "issueUrl": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "author": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 80
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 16000
+          },
+          "priority": {
+            "enum": [
+              "low",
+              "normal",
+              "high",
+              "urgent",
+              null
+            ],
+            "nullable": true
+          },
+          "routingHint": {
+            "enum": [
+              "fast",
+              "cheap",
+              "careful",
+              "any",
+              null
+            ],
+            "nullable": true
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "running",
+              "waiting",
+              "paused",
+              "complete",
+              "failed",
+              "blocked",
+              "cancelled",
+              "expired",
+              "dead-lettered",
+              "pr-open"
+            ]
+          },
+          "waitReason": {
+            "enum": [
+              "backoff",
+              "dependency",
+              "approval",
+              "budget",
+              "quota",
+              "pulse-budget",
+              "provider",
+              null
+            ],
+            "nullable": true
+          },
+          "wakeAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "claimedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "runId": {
+            "type": "string",
+            "nullable": true
+          },
+          "prNumber": {
+            "type": "integer",
+            "nullable": true
+          },
+          "prUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 4000
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "lease": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "owner",
+              "acquiredAt",
+              "expiresAt"
+            ],
+            "properties": {
+              "owner": {
+                "type": "string"
+              },
+              "acquiredAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 64
+          },
+          "failure": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "class": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string",
+                "nullable": true
+              },
+              "message": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "at": {
+                "type": "string"
+              }
+            }
+          },
+          "history": {
+            "type": "array",
+            "maxItems": 40,
+            "items": {
+              "type": "object",
+              "required": [
+                "at",
+                "to"
+              ],
+              "properties": {
+                "at": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "to": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string",
+                  "nullable": true,
+                  "maxLength": 300
+                }
+              }
+            }
+          },
+          "autonomy": {
+            "enum": [
+              "dry-run",
+              "propose",
+              "approval",
+              "autonomous",
+              null
+            ],
+            "nullable": true
+          },
+          "parks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "usage": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "calls": {
+                "type": "integer"
+              },
+              "tokens": {
+                "type": "integer"
+              },
+              "wallMs": {
+                "type": "integer"
+              }
+            }
+          },
+          "cancelRequested": {
+            "type": "boolean"
+          },
+          "pauseRequested": {
+            "type": "boolean"
+          },
+          "approvals": {
+            "type": "object",
+            "nullable": true
+          },
+          "duplicateOf": {
+            "type": "string",
+            "nullable": true
+          },
+          "retriedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "issueUpdatedAtSeen": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  }
+}

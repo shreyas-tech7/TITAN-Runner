@@ -1,0 +1,1737 @@
+{
+  "meta": {
+    "at": "2026-09-18T03:58:31.560Z",
+    "commit": "b8ac7083774e4b603713310b8f5421ce00e8e0e4",
+    "node": "v22.22.2",
+    "platform": "linux x64",
+    "repeat": 5,
+    "capabilities": [],
+    "note": "Fake-provider latency is synthetic (2-8 ms); timings measure Runner overhead, not model speed."
+  },
+  "summary": {
+    "scenarios": 21,
+    "pass": 7,
+    "fail": 4,
+    "notSupported": 10,
+    "corpusCompletionRate": 0.556,
+    "faultRecoveryRate": 0.091,
+    "duplicateSideEffectsTotal": 2,
+    "modelCallsTotal": 132,
+    "idlePulseWallMsMedian": 74.8,
+    "idlePulseStateBytesMedian": 4224,
+    "singleStepWallMsMedian": 114,
+    "peakRssKbMax": 62880,
+    "tests": {
+      "tests": 119,
+      "pass": 119,
+      "fail": 0
+    }
+  },
+  "scenarios": [
+    {
+      "id": "single-step",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": "1 comments"
+        },
+        {
+          "name": "issue closed once",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "done in one pulse",
+          "ok": true,
+          "detail": "1 pulses"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 3,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 122.3,
+        "peakRssKb": 62184,
+        "stateBytesChangedPerPulse": [
+          8017,
+          4759
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 122.3,
+          "peakRssKb": 62184,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 44,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 8017,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 74.4,
+          "peakRssKb": 60836,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 2,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 4759,
+          "stateFilesChanged": 4,
+          "stderrTail": ""
+        }
+      ],
+      "timing": {
+        "firstPulseWallMs": {
+          "median": 114,
+          "min": 109.8,
+          "max": 122.3,
+          "n": 5
+        },
+        "allPulsesWallMs": {
+          "median": 92.8,
+          "min": 70.4,
+          "max": 122.3,
+          "n": 10
+        },
+        "peakRssKb": {
+          "median": 62128,
+          "min": 62052,
+          "max": 62184,
+          "n": 5
+        },
+        "stateBytesChangedPerPulse": {
+          "median": 6388,
+          "min": 4759,
+          "max": 8017,
+          "n": 10
+        },
+        "repeats": 5
+      },
+      "allStatuses": [
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "multi-step",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "every sub-task ran exactly once",
+          "ok": true,
+          "detail": "5 model calls (1 decompose + 4 sub-tasks expected)"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 3,
+        "pulsesToTerminal": 1,
+        "modelCalls": 5,
+        "providerCallsTotal": 6,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 126.2,
+        "peakRssKb": 62292,
+        "stateBytesChangedPerPulse": [
+          10450,
+          4858,
+          5031
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 126.2,
+          "peakRssKb": 62292,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 57,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 10450,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 73.1,
+          "peakRssKb": 60904,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 2,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 4858,
+          "stateFilesChanged": 4,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 70.3,
+          "peakRssKb": 61008,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 2,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 5031,
+          "stateFilesChanged": 4,
+          "stderrTail": ""
+        }
+      ],
+      "timing": {
+        "firstPulseWallMs": {
+          "median": 126.2,
+          "min": 126.1,
+          "max": 137.4,
+          "n": 5
+        },
+        "allPulsesWallMs": {
+          "median": 73.3,
+          "min": 67.4,
+          "max": 137.4,
+          "n": 15
+        },
+        "peakRssKb": {
+          "median": 62276,
+          "min": 62184,
+          "max": 62316,
+          "n": 5
+        },
+        "stateBytesChangedPerPulse": {
+          "median": 5031,
+          "min": 4858,
+          "max": 10450,
+          "n": 15
+        },
+        "repeats": 5
+      },
+      "allStatuses": [
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass"
+      ]
+    },
+    {
+      "id": "dependent-tasks",
+      "group": "corpus",
+      "status": "not-supported",
+      "missingCapabilities": [
+        "task-dependencies"
+      ],
+      "checks": [
+        {
+          "name": "both tasks succeeded",
+          "ok": true,
+          "detail": "complete, complete"
+        },
+        {
+          "name": "consumer did not start before producer finished",
+          "ok": false,
+          "detail": "{\"producerDone\":0}"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 4,
+        "providerCallsTotal": 6,
+        "githubMutations": 4,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 127.5,
+        "peakRssKb": 62304,
+        "stateBytesChangedPerPulse": [
+          10314
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          },
+          {
+            "id": "issue-2",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 127.5,
+          "peakRssKb": 62304,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 58,
+            "tasksClaimed": 2,
+            "tasksCompleted": 2,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 10314,
+          "stateFilesChanged": 8,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "not-supported"
+      ]
+    },
+    {
+      "id": "fails-then-recovers",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded after a transient failure",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 3,
+        "providerCallsTotal": 4,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 140.1,
+        "peakRssKb": 62168,
+        "stateBytesChangedPerPulse": [
+          8027
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 140.1,
+          "peakRssKb": 62168,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 70,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 8027,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "fails-permanently",
+      "group": "corpus",
+      "status": "fail",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task reached a terminal failure",
+          "ok": true,
+          "detail": "failed"
+        },
+        {
+          "name": "bounded attempts on a permanent error (<= 3 sub-task calls)",
+          "ok": false,
+          "detail": "15 sub-task calls"
+        },
+        {
+          "name": "the filer was told once",
+          "ok": true,
+          "detail": "1 comments"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 16,
+        "providerCallsTotal": 17,
+        "githubMutations": 1,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 186.7,
+        "peakRssKb": 62248,
+        "stateBytesChangedPerPulse": [
+          8575
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "failed"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 186.7,
+          "peakRssKb": 62248,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 119,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 1,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 8575,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "fail"
+      ]
+    },
+    {
+      "id": "spans-pulses",
+      "group": "corpus",
+      "status": "not-supported",
+      "missingCapabilities": [
+        "pulse-budget",
+        "checkpoint-resume"
+      ],
+      "checks": [
+        {
+          "name": "task succeeded across pulses",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "took more than one pulse",
+          "ok": false,
+          "detail": "1 pulses"
+        },
+        {
+          "name": "no sub-task ran twice",
+          "ok": true,
+          "detail": "6 sub-task calls"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 7,
+        "providerCallsTotal": 8,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 515.6,
+        "peakRssKb": 62336,
+        "stateBytesChangedPerPulse": [
+          11381
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 515.6,
+          "peakRssKb": 62336,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 448,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 11381,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "not-supported"
+      ]
+    },
+    {
+      "id": "duplicate-submission",
+      "group": "corpus",
+      "status": "not-supported",
+      "missingCapabilities": [
+        "idempotency-keys"
+      ],
+      "checks": [
+        {
+          "name": "first submission succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "duplicate did not run a second orchestration",
+          "ok": false,
+          "detail": "2 decompositions"
+        },
+        {
+          "name": "duplicate was answered, not silently dropped",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 4,
+        "providerCallsTotal": 6,
+        "githubMutations": 4,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 129.1,
+        "peakRssKb": 62312,
+        "stateBytesChangedPerPulse": [
+          10317
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          },
+          {
+            "id": "issue-2",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 129.1,
+          "peakRssKb": 62312,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 60,
+            "tasksClaimed": 2,
+            "tasksCompleted": 2,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 10317,
+          "stateFilesChanged": 8,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "not-supported"
+      ]
+    },
+    {
+      "id": "hostile-input",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "no forbidden path was written to the checkout",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no pull request was opened",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "policy/autonomy unchanged by task text",
+          "ok": true,
+          "detail": "no control file on this engine"
+        },
+        {
+          "name": "task ended in a terminal failure/refusal, not success",
+          "ok": true,
+          "detail": "failed"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 3,
+        "githubMutations": 1,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 111.9,
+        "peakRssKb": 62152,
+        "stateBytesChangedPerPulse": [
+          8462
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "failed"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 111.9,
+          "peakRssKb": 62152,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 40,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 1,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 8462,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "unauthorized-author",
+      "group": "corpus",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "zero model calls",
+          "ok": true,
+          "detail": "0 calls"
+        },
+        {
+          "name": "zero comments",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "no task was created",
+          "ok": true,
+          "detail": "0 tasks"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": null,
+        "modelCalls": 0,
+        "providerCallsTotal": 0,
+        "githubMutations": 0,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 76.7,
+        "peakRssKb": 61028,
+        "stateBytesChangedPerPulse": [
+          5567,
+          4051
+        ],
+        "taskOutcomes": []
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 76.7,
+          "peakRssKb": 60836,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 4,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 5567,
+          "stateFilesChanged": 5,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 71.3,
+          "peakRssKb": 61028,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 3,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 4051,
+          "stateFilesChanged": 4,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "kill-between-steps",
+      "group": "fault",
+      "status": "fail",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "pulse 1 was killed",
+          "ok": true,
+          "detail": "SIGKILL"
+        },
+        {
+          "name": "task finished on a later pulse",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "completed steps were not re-run after the crash",
+          "ok": false,
+          "detail": "2 completed sub-task(s) re-executed"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": true,
+          "detail": "1 comments"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": 2,
+        "modelCalls": 9,
+        "providerCallsTotal": 11,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 121.5,
+        "peakRssKb": 62320,
+        "stateBytesChangedPerPulse": [
+          2390,
+          10691
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": null,
+          "signal": "SIGKILL",
+          "wallMs": 121.5,
+          "peakRssKb": 62112,
+          "summary": null,
+          "stateBytesChanged": 2390,
+          "stateFilesChanged": 3,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 127.1,
+          "peakRssKb": 62320,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 59,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 10691,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "fail"
+      ]
+    },
+    {
+      "id": "kill-after-side-effect",
+      "group": "fault",
+      "status": "fail",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "pulse 1 was killed",
+          "ok": true,
+          "detail": "SIGKILL"
+        },
+        {
+          "name": "task ends succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "the completion comment was posted exactly once",
+          "ok": false,
+          "detail": "2 comments"
+        },
+        {
+          "name": "issue closed",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": 2,
+        "modelCalls": 4,
+        "providerCallsTotal": 6,
+        "githubMutations": 3,
+        "duplicateComments": 1,
+        "firstPulseWallMs": 109,
+        "peakRssKb": 62068,
+        "stateBytesChangedPerPulse": [
+          3732,
+          8299
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": null,
+          "signal": "SIGKILL",
+          "wallMs": 109,
+          "peakRssKb": 62068,
+          "summary": null,
+          "stateBytesChanged": 3732,
+          "stateFilesChanged": 4,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 120.8,
+          "peakRssKb": 62012,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 42,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 8299,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "fail"
+      ]
+    },
+    {
+      "id": "overlapping-pulses",
+      "group": "fault",
+      "status": "fail",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "orchestrated once, not twice",
+          "ok": false,
+          "detail": "2 decompositions"
+        },
+        {
+          "name": "exactly one completion comment",
+          "ok": false,
+          "detail": "2 comments"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": 1,
+        "modelCalls": 4,
+        "providerCallsTotal": 6,
+        "githubMutations": 4,
+        "duplicateComments": 1,
+        "firstPulseWallMs": 264.3,
+        "peakRssKb": 62188,
+        "stateBytesChangedPerPulse": [
+          9730,
+          9730
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 264.3,
+          "peakRssKb": 62188,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 187,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 9730,
+          "stateFilesChanged": 8,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 263.4,
+          "peakRssKb": 62088,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 186,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 9730,
+          "stateFilesChanged": 8,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "fail"
+      ]
+    },
+    {
+      "id": "corrupted-state",
+      "group": "fault",
+      "status": "not-supported",
+      "missingCapabilities": [
+        "state-repair"
+      ],
+      "checks": [
+        {
+          "name": "pulse still completed",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "previous tasks survived the corruption",
+          "ok": false,
+          "detail": "0 tasks after repair"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 2,
+        "pulsesToTerminal": null,
+        "modelCalls": 0,
+        "providerCallsTotal": 0,
+        "githubMutations": 0,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 75.8,
+        "peakRssKb": 61020,
+        "stateBytesChangedPerPulse": [
+          5567,
+          4051
+        ],
+        "taskOutcomes": []
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 75.8,
+          "peakRssKb": 61020,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 4,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 5567,
+          "stateFilesChanged": 5,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 70.5,
+          "peakRssKb": 60920,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 2,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 4051,
+          "stateFilesChanged": 4,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "not-supported"
+      ]
+    },
+    {
+      "id": "stale-lease",
+      "group": "fault",
+      "status": "not-supported",
+      "missingCapabilities": [
+        "leases"
+      ],
+      "checks": [
+        {
+          "name": "zombie task was reclaimed and finished",
+          "ok": false,
+          "detail": "running"
+        },
+        {
+          "name": "reclaimed within the first pulse",
+          "ok": false,
+          "detail": "null"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 3,
+        "pulsesToTerminal": null,
+        "modelCalls": 0,
+        "providerCallsTotal": 0,
+        "githubMutations": 0,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 71.1,
+        "peakRssKb": 61028,
+        "stateBytesChangedPerPulse": [
+          6164,
+          4648,
+          4821
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-3",
+            "status": "running"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 71.1,
+          "peakRssKb": 60976,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 3,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 6164,
+          "stateFilesChanged": 5,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 76.4,
+          "peakRssKb": 61028,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 3,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 4648,
+          "stateFilesChanged": 4,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 72.1,
+          "peakRssKb": 60844,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 2,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 4821,
+          "stateFilesChanged": 4,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "not-supported"
+      ]
+    },
+    {
+      "id": "provider-outage",
+      "group": "fault",
+      "status": "not-supported",
+      "missingCapabilities": [
+        "waiting-state"
+      ],
+      "checks": [
+        {
+          "name": "task survived the outage and succeeded",
+          "ok": false,
+          "detail": "failed"
+        },
+        {
+          "name": "did not fail permanently during the outage",
+          "ok": false,
+          "detail": "[\"failed\"]"
+        },
+        {
+          "name": "bounded calls during the outage (<= 8 in the first two pulses)",
+          "ok": false,
+          "detail": "48 calls"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 47,
+        "providerCallsTotal": 48,
+        "githubMutations": 1,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 6971.1,
+        "peakRssKb": 62880,
+        "stateBytesChangedPerPulse": [
+          8962
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "failed"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 6971.1,
+          "peakRssKb": 62880,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 6896,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 1,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 8962,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "not-supported"
+      ]
+    },
+    {
+      "id": "looping-task",
+      "group": "fault",
+      "status": "not-supported",
+      "missingCapabilities": [
+        "loop-detection"
+      ],
+      "checks": [
+        {
+          "name": "loop was detected and the task stopped",
+          "ok": false,
+          "detail": "complete"
+        },
+        {
+          "name": "bounded model calls (<= 12)",
+          "ok": true,
+          "detail": "3 calls"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 3,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 120.7,
+        "peakRssKb": 62160,
+        "stateBytesChangedPerPulse": [
+          7942
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 120.7,
+          "peakRssKb": 62160,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 44,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 7942,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "not-supported"
+      ]
+    },
+    {
+      "id": "rate-limited",
+      "group": "fault",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "task succeeded after the 429",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "Retry-After was honored (>= 200 ms between attempts)",
+          "ok": true,
+          "detail": "206 ms"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 3,
+        "providerCallsTotal": 4,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 319.1,
+        "peakRssKb": 62112,
+        "stateBytesChangedPerPulse": [
+          8033
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 319.1,
+          "peakRssKb": 62112,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 247,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 8033,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "pass"
+      ]
+    },
+    {
+      "id": "malformed-output",
+      "group": "fault",
+      "status": "not-supported",
+      "missingCapabilities": [
+        "output-repair"
+      ],
+      "checks": [
+        {
+          "name": "task succeeded after repair attempts",
+          "ok": true,
+          "detail": "complete"
+        },
+        {
+          "name": "bounded repair attempts (<= 4 sub-task calls)",
+          "ok": true,
+          "detail": "1"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 3,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 112.2,
+        "peakRssKb": 62148,
+        "stateBytesChangedPerPulse": [
+          7950
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 112.2,
+          "peakRssKb": 62148,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 42,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 7950,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "not-supported"
+      ]
+    },
+    {
+      "id": "refusal",
+      "group": "fault",
+      "status": "not-supported",
+      "missingCapabilities": [
+        "verification"
+      ],
+      "checks": [
+        {
+          "name": "refusal was not accepted as done",
+          "ok": false,
+          "detail": "complete, 1 sub-task calls"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 2,
+        "providerCallsTotal": 3,
+        "githubMutations": 2,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 118.9,
+        "peakRssKb": 62036,
+        "stateBytesChangedPerPulse": [
+          7802
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "complete"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 118.9,
+          "peakRssKb": 62036,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 43,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 7802,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "not-supported"
+      ]
+    },
+    {
+      "id": "quota-exhausted",
+      "group": "fault",
+      "status": "not-supported",
+      "missingCapabilities": [
+        "waiting-state"
+      ],
+      "checks": [
+        {
+          "name": "task waited out the exhausted quota and succeeded",
+          "ok": false,
+          "detail": "failed"
+        },
+        {
+          "name": "no retry storm on a quota error (<= 2 sub-task calls in pulse 1)",
+          "ok": false,
+          "detail": "15"
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 1,
+        "pulsesToTerminal": 1,
+        "modelCalls": 16,
+        "providerCallsTotal": 17,
+        "githubMutations": 1,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 189.8,
+        "peakRssKb": 62216,
+        "stateBytesChangedPerPulse": [
+          8729
+        ],
+        "taskOutcomes": [
+          {
+            "id": "issue-1",
+            "status": "failed"
+          }
+        ]
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 189.8,
+          "peakRssKb": 62216,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 121,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 1,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 8729,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        }
+      ],
+      "timing": null,
+      "allStatuses": [
+        "not-supported"
+      ]
+    },
+    {
+      "id": "idle-pulse",
+      "group": "cost",
+      "status": "pass",
+      "missingCapabilities": [],
+      "checks": [
+        {
+          "name": "idle pulses exit cleanly",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "zero model calls",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "metrics": {
+        "pulsesRun": 3,
+        "pulsesToTerminal": null,
+        "modelCalls": 0,
+        "providerCallsTotal": 0,
+        "githubMutations": 0,
+        "duplicateComments": 0,
+        "firstPulseWallMs": 74.8,
+        "peakRssKb": 60968,
+        "stateBytesChangedPerPulse": [
+          5567,
+          4051,
+          4224
+        ],
+        "taskOutcomes": []
+      },
+      "pulses": [
+        {
+          "pulse": 1,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 74.8,
+          "peakRssKb": 60708,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 2,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 5567,
+          "stateFilesChanged": 5,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 2,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 71.1,
+          "peakRssKb": 60968,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 2,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 4051,
+          "stateFilesChanged": 4,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 76.3,
+          "peakRssKb": 60944,
+          "summary": {
+            "pulse": "complete",
+            "durationMs": 2,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "dryRun": false,
+            "error": null
+          },
+          "stateBytesChanged": 4224,
+          "stateFilesChanged": 4,
+          "stderrTail": ""
+        }
+      ],
+      "timing": {
+        "firstPulseWallMs": {
+          "median": 74.8,
+          "min": 73.1,
+          "max": 79,
+          "n": 5
+        },
+        "allPulsesWallMs": {
+          "median": 74.8,
+          "min": 70.2,
+          "max": 80,
+          "n": 15
+        },
+        "peakRssKb": {
+          "median": 60968,
+          "min": 60944,
+          "max": 61008,
+          "n": 5
+        },
+        "stateBytesChangedPerPulse": {
+          "median": 4224,
+          "min": 4051,
+          "max": 5567,
+          "n": 15
+        },
+        "repeats": 5
+      },
+      "allStatuses": [
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "pass"
+      ]
+    }
+  ]
+}

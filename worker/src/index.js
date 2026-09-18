@@ -646,6 +646,23 @@ async function handleSystemMemory(env) {
 // Scheduled tick
 // ---------------------------------------------------------------------
 
+/** GitHub-computed `author_association` values this Worker trusts — the
+ * same rule as src/security/authorization.js in the pulse: a label is not
+ * authorization on a public repo. Exported for worker/test. */
+export const TRUSTED_ASSOCIATIONS = Object.freeze(['OWNER', 'MEMBER', 'COLLABORATOR']);
+
+/**
+ * @param {{ user?: {login?: string, type?: string}, author_association?: string }} issue
+ * @param {{ GITHUB_OWNER?: string }} env
+ * @returns {boolean}
+ */
+export function isTrustedIssueAuthor(issue, env) {
+  const login = typeof issue?.user?.login === 'string' ? issue.user.login.toLowerCase() : '';
+  if (!login || issue?.user?.type === 'Bot') return false;
+  if (env?.GITHUB_OWNER && login === String(env.GITHUB_OWNER).toLowerCase()) return true;
+  return TRUSTED_ASSOCIATIONS.includes(String(issue?.author_association ?? '').toUpperCase());
+}
+
 async function mirrorGithubIssues(env) {
   if (!env.GITHUB_PAT) return;
   let issues;
@@ -658,6 +675,11 @@ async function mirrorGithubIssues(env) {
   const now = new Date().toISOString();
   for (const issue of issues) {
     if (issue.pull_request) continue; // GitHub's issues endpoint also returns PRs with this label
+    // Anyone can file a titan-task issue through the template on a public
+    // repo. Only the owner or a GitHub-verified collaborator's issue becomes
+    // a queued row; everything else is skipped silently (no dispatch, no
+    // provider call, no comment). Same rule as the pulse's src/issueSync.js.
+    if (!isTrustedIssueAuthor(issue, env)) continue;
     const id = `gh-issue-${issue.number}`;
     const brief = `${issue.title ?? ''}\n\n${issue.body ?? ''}`.trim().slice(0, 4000);
     try {

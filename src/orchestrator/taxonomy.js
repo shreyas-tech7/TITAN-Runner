@@ -94,6 +94,9 @@ export const RUN_STATES = Object.freeze([
   'complete',
   'failed',
   'cancelled',
+  // The pulse budget ran out with sub-tasks still pending; the engine parks
+  // the task and a later pulse resumes from the checkpoint.
+  'drained',
 ]);
 
 /** @param {string} value @returns {boolean} */

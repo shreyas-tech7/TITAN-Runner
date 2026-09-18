@@ -1,0 +1,96 @@
+name: TITAN Control
+
+# The operator's control plane. Only a user with write access to this
+# repository can dispatch it, and GitHub records who did; the action is
+# applied to state/ by src/control/cli.js (validated, audited in the event
+# log) and committed. Nothing here reads an issue, a comment, or the
+# network, and no provider key is available to the job.
+#
+#   kill-switch on|off   the pulse reconciles and heartbeats, claims nothing
+#   drain on|off         intake continues, nothing new is claimed
+#   safe-mode on|off     no external side effects (comments, PRs, fetches)
+#   autonomy <level>     dry-run | propose | approval | autonomous
+#   cancel|pause|resume|retry <taskId>
+#   priority <taskId> <low|normal|high|urgent>
+#   approve|deny <taskId> <key|all>
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "What to do"
+        required: true
+        type: choice
+        options:
+          - kill-switch
+          - drain
+          - safe-mode
+          - autonomy
+          - cancel
+          - pause
+          - resume
+          - retry
+          - priority
+          - approve
+          - deny
+      target:
+        description: "Task id (issue-12) for a task action; on/off or a level for a switch"
+        required: false
+        type: string
+      argument:
+        description: "Second argument: on/off, an autonomy level, a priority, or an approval key"
+        required: false
+        type: string
+      reason:
+        description: "Why (recorded in control.json and the audit log)"
+        required: false
+        type: string
+
+# One control change at a time, and never while a pulse is committing state.
+concurrency:
+  group: titan-pulse
+  cancel-in-progress: false
+
+permissions:
+  contents: write # commit state/control.json and state/tasks.json
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+
+      - name: Apply the control action
+        env:
+          # Inputs reach the script only through the environment, never
+          # interpolated into the shell (scripts/check-workflows.mjs).
+          TITAN_CONTROL_ACTION: ${{ inputs.action }}
+          TITAN_CONTROL_TARGET: ${{ inputs.target }}
+          TITAN_CONTROL_ARGUMENT: ${{ inputs.argument }}
+          TITAN_CONTROL_REASON: ${{ inputs.reason }}
+          TITAN_CONTROL_ACTOR: ${{ github.actor }}
+        run: node src/control/cli.js "$TITAN_CONTROL_ACTION" "$TITAN_CONTROL_TARGET" "$TITAN_CONTROL_ARGUMENT" --reason "$TITAN_CONTROL_REASON"
+
+      - name: Verify state before committing
+        run: node scripts/check-secrets-in-state.mjs
+
+      - name: Commit the change
+        run: |
+          git config user.name "titan-runner-bot"
+          git config user.email "titan-runner@users.noreply.github.com"
+          git add state/
+          if git diff --cached --quiet; then
+            echo "No state change."
+          else
+            git commit -m "chore(control): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            if ! git pull --rebase origin "${GITHUB_REF_NAME}"; then
+              echo "::error::Rebase conflict against origin/${GITHUB_REF_NAME}; re-run the control action."
+              git rebase --abort
+              exit 1
+            fi
+            git push
+          fi

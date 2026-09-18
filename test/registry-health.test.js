@@ -111,7 +111,7 @@ test('every provider unhealthy or unconfigured throws ALL_PROVIDERS_FAILED namin
       () => registry.chat([{ role: 'user', content: 'hi' }]),
       (err) => {
         assert.equal(err.code, 'ALL_PROVIDERS_FAILED');
-        assert.match(err.message, /skipped, unhealthy: groq/);
+        assert.match(err.message, /skipped: groq/);
         return true;
       },
     );

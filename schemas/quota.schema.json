@@ -1,0 +1,27 @@
+{
+  "$id": "titan-runner/state/quota.json",
+  "title": "state/quota.json",
+  "version": 1,
+  "description": "Per-provider call windows (minute, day) the registry consults before every call.",
+  "type": "object",
+  "required": [
+    "version",
+    "providers"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer"
+    },
+    "updatedAt": {
+      "type": "string"
+    },
+    "reserveFraction": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "providers": {
+      "type": "object"
+    }
+  }
+}
