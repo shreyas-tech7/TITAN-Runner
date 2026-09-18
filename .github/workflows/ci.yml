@@ -32,6 +32,9 @@ jobs:
       - name: Static workflow checks (SHA pins, no untrusted text in run:, permissions)
         run: node scripts/check-workflows.mjs
 
+      - name: Data contract (schemas/ in sync with src/state/schema.js)
+        run: node scripts/export-schemas.mjs --check
+
       # Every self-authored pull request (and every other one) runs the
       # full test suite above, plus this denylist gate. A PR opened by the
       # self-improve flow (head ref self-improve/*, or authored by the

@@ -9,6 +9,7 @@
  *                         place across pulses); `memory` for an empty one.
  *   TITAN_FAKE_LOG_DIR    where the fakes append their call logs
  *                         (`provider-calls.jsonl`, `github-calls.jsonl`).
+ *   TITAN_FAKE_QUIET      `1` keeps the fakes' call lines off stdout.
  *
  * Setting TITAN_FAKE_PROVIDER also turns the network off (`TITAN_NETWORK=off`
  * is enforced by lib/net.js) — a simulation must never reach a real
@@ -39,7 +40,7 @@ export function fakeDepsFromEnv(env = process.env) {
     const script = loadScript(providerSpec);
     // Health persists next to the real state so cooldowns survive across the
     // separate pulse processes of a simulation, like a real provider's would.
-    const fake = new FakeProviderAgent({ script, logPath: logDir ? join(logDir, 'provider-calls.jsonl') : null, pulseIndex, healthPath: join(resolveStateDir(), 'providers-fake.json') });
+    const fake = new FakeProviderAgent({ script, logPath: logDir ? join(logDir, 'provider-calls.jsonl') : null, pulseIndex, quiet: env.TITAN_FAKE_QUIET === '1', healthPath: join(resolveStateDir(), 'providers-fake.json') });
     deps.fakeProvider = fake;
     deps.pools = { phase2: fake };
     deps.reviewerChat = fake.chat.bind(fake);

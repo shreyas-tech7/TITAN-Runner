@@ -168,8 +168,25 @@ Built, wired end to end, tested:
   asks; both approved; write lands in `state/workspaces/`).
 - Tests: 244/244 (+13). Harness (repeat 1, 23 scenarios): 23 pass.
 
+## Wave 6 — CLI and docs (done)
+
+- `bin/titan.js` (`npm run simulate`, `npm run doctor`, `npm run bench`):
+  `pulse`, `simulate` (fakes, no network, clock advanced per pulse),
+  `explain`, `replay`, `queue|analytics|providers`, `control`, `doctor`
+  (state validity, schema sync, keys, gate, allowlist, last pulse), `bench`.
+  `--json` prints one line of JSON as the last line of output.
+- Docs: `docs/RUNTIME.md` (pulse walkthrough, state table, policy engine,
+  control plane rewritten for the v2 engine), `docs/CONFIG.md` (every
+  `TITAN_*` variable with its default), `docs/DATA_CONTRACT.md` (every file,
+  schema, version, writer, reader; versioning rules), `docs/RUNBOOK.md`
+  (stop / brake / stuck task / provider / state / reproduce), README
+  (security, commands, layout), `docs/runner-upgrade/STRATEGY.md`.
+- Workflows: CI checks `schemas/` sync; the pulse passes
+  `TITAN_EGRESS_ALLOWLIST` from a repo variable; `.env.example` extended.
+- Tests: 246/246 (+2).
+
 ## Next
 
-Wave 6: `bin/titan` CLI (pulse, simulate, explain, replay, control, views,
-doctor), docs (RUNTIME.md rewrite for the v2 engine, DATA_CONTRACT.md,
-RUNBOOK.md, CONFIG.md, README updates), STRATEGY.md, workflow hardening pass.
+Wave 7: crash matrix (every step boundary), chaos invariants, security
+corpus, migration on the real committed state, memory ceiling; `after.json`;
+hostile self-review; REPORT.md; push; draft PR.

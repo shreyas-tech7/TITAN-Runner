@@ -17,17 +17,20 @@ Pages is enabled — see docs/RUNTIME.md).
 
 ## How it works, in one paragraph
 
-File a task through the dashboard or as a GitHub issue labeled `titan-task`.
-Within 15 minutes, the next scheduled pulse (`.github/workflows/titan-pulse.yml`)
-picks it up, decomposes it into subtasks, dispatches each subtask to a
-free-tier model (Groq, Together, OpenRouter, Gemini, HuggingFace, plus
-OpenCode's curated free catalog — see `docs/RUNTIME.md`; Freebuff has no
-public API to dispatch to at all, also explained there), merges the
-results, comments the outcome back on your issue, and closes it. A
-provider-selftest workflow re-discovers each one's live model catalog and
-checks it's actually reachable, weekly. Every pulse commits its state to
-`state/*.json` — that's the whole database, since a GitHub Actions runner
-is wiped clean after every run.
+File a task through the dashboard or as a GitHub issue labeled `titan-task`
+(from an authorized author — see Security). Within 15 minutes, the next
+scheduled pulse (`.github/workflows/titan-pulse.yml`) picks it up, plans
+it into steps, runs each step on a free-tier model (Groq, Together,
+OpenRouter, Gemini, HuggingFace, OpenCode's free catalog — see
+`docs/RUNTIME.md`) with jailed tools when a step needs to read the repo,
+classifies and retries or parks on every failure instead of storming a
+provider, checkpoints after every step so a killed job resumes rather than
+restarts, verifies the result with deterministic checks and an independent
+judge model, and only then comments the outcome back on your issue and
+closes it — or asks you first, depending on the autonomy level. Every
+pulse commits its state to `state/` — that's the whole database, since a
+GitHub Actions runner is wiped clean after every run. A weekly self-test
+re-discovers each provider's live model catalog.
 
 ## Security — read this before filing a task
 
@@ -46,9 +49,26 @@ is wiped clean after every run.
   see `docs/RUNTIME.md`'s "Reviewer Gate" section.
 - The agent can propose changes to its own code, but only as a draft pull
   request — it can never push straight to `main`, and a fixed denylist
-  (`src/denylist.js`) keeps it from ever touching `.github/workflows/`, the
-  reviewer gate, the secret-handling code, or the denylist itself. See
-  "Self-improvement" in `docs/RUNTIME.md`.
+  (`src/denylist.js`) plus a path jail keep it from ever touching
+  `.github/`, `package.json`, the reviewer gate, the secret-handling code,
+  the policy engine, or the denylist itself. See "Self-improvement" in
+  `docs/RUNTIME.md`.
+- **Only authorized authors can file tasks**: the repository owner,
+  GitHub-verified collaborators, and the logins in the `TITAN_TASK_AUTHORS`
+  repository variable. Anyone else's `titan-task` issue is ignored and
+  logged, never run. Bots are never trusted. `/titan …` control comments
+  follow the same rule.
+- **Autonomy is a dial, not a switch** (`docs/RUNBOOK.md`): `dry-run`
+  (reads only), `propose` (asks before anything external), `approval`
+  (asks before every write), `autonomous`. Set with the *TITAN Control*
+  workflow; a kill switch, a drain, and a safe mode are one dispatch away.
+  Every side effect the engine causes is decided by the policy engine and
+  audited in `state/events/`.
+- **Tools are jailed**: a step can read and search this checkout (never
+  `.git/`, `node_modules/`, or a credential-shaped file), write only to its
+  own scratch workspace, and fetch only https hosts on the operator's
+  `TITAN_EGRESS_ALLOWLIST` (empty by default = nothing), resolved to public
+  addresses only, with no redirects. It cannot run a shell.
 
 ## Give it a task
 
@@ -67,29 +87,56 @@ Three ways:
 3. **Run it right now**, without waiting for the cron: Actions tab ->
    "TITAN Pulse" -> "Run workflow" -> fill in "Task text".
 
+While it runs, comment on the issue (authorized users only): `/titan
+cancel`, `/titan pause`, `/titan resume`, `/titan retry`, `/titan priority
+urgent`, `/titan approve <key>` / `/titan deny <key>` when the runner asks.
+The hidden YAML block also takes `dependsOn: issue-12`, `deadline:
+<ISO 8601>`, and `ttlHours: 48`.
+
 ## Run it locally
 
 ```bash
 npm install
-npm run pulse:dry          # zero network calls, zero GitHub writes, fixtures only
-TITAN_MANUAL_TASK="write a haiku generator" npm run pulse:dry
-npm test                    # unit + integration tests, same zero-network guarantee
+npm run pulse:dry           # zero network calls, zero GitHub writes, fixtures only
+node bin/titan.js simulate --pulses 3     # scripted fake provider + fake GitHub, no network
+node bin/titan.js explain issue-1 --state /tmp/titan-sim-…   # why a task is where it is
+node bin/titan.js doctor    # checkout, state files, schemas, keys
+node bin/titan.js bench     # the benchmark harness (bench/results/)
+npm test                    # 250+ tests, same zero-network guarantee
 ```
 
 Copy `.env.example` to `.env` (or export the same variables) and unset
-`TITAN_DRY_RUN` to hit real providers with real keys.
+`TITAN_DRY_RUN` to hit real providers with real keys. Every knob is in
+`docs/CONFIG.md`.
 
 ## Repository layout
 
 ```
-src/            the pulse itself — orchestrator, provider adapters, reviewer gate, state I/O
-state/          the database: tasks.json, agents.json, heartbeat.json, runs/, digests/, reviews/
-dashboard/      static Next.js export published to GitHub Pages
-scripts/        CI gate scripts (denylist, secret scan), the weekly/dead-man's-switch jobs, and the sub-agent task runner
-worker/         titan-runner-brain — the always-on sub-agent cluster's Cloudflare Worker + D1 coordinator (see docs/RUNTIME.md)
-test/           unit + integration tests (node:test), zero network required
-.github/        the five workflows (pulse, CI, Pages deploy, keep-alive/dead-man's-switch, spawn-subagent)
-docs/RUNTIME.md how the pulse works, minute-budget math, how to add a task, how to kill a runaway agent
+src/engine/       the pulse engine: runPulse, orchestration, checkpoints, side-effect ledger, budget
+src/task/         lifecycle state machine, leases, reconciliation
+src/reliability/  failure taxonomy, retry policy, output repair, loop detection, quota ledger
+src/tools/        the tool registry, built-in tools, SSRF guard
+src/policy/       the policy engine (autonomy levels, approvals)
+src/verify/       deterministic checks, the judge, verification
+src/control/      /titan command grammar, control-plane dispatch and CLI
+src/observability/ event log, derived views, explain/replay
+src/state/        schemas, versioned validated store, migrations, paths
+src/security/     intake authorization
+src/fakes/        scripted fake provider and fake GitHub (simulation, harness, tests)
+src/orchestrator/ decomposer, scheduler, router, synthesizer, capability registry
+src/providers/    the five free-tier adapters, registry failover, health/breakers
+src/reviewer/     the Reviewer Gate
+bin/titan.js      the operator CLI
+bench/            the benchmark harness, scenarios, results (before/after)
+schemas/          the data contract (exported from src/state/schema.js)
+state/            the database (see docs/DATA_CONTRACT.md)
+dashboard/        static Next.js export published to GitHub Pages
+scripts/          CI gates (denylist, secret scans, workflow lint, schema check), rollup, dead-man
+worker/           the Cloudflare Worker sub-agent coordinator (unchanged, not deployed)
+test/             unit, integration, crash, concurrency, security, contract tests (node:test)
+.github/          workflows: pulse, control, CI, Pages deploy, keep-alive, dead-man, self-test, spawn-subagent, worker-deploy
+docs/             RUNTIME.md (how it works), RUNBOOK.md (when it breaks), CONFIG.md (every knob),
+                  DATA_CONTRACT.md (every file), runner-upgrade/ (the upgrade's own record)
 ```
 
 **Always-on sub-agent cluster**: a second, additional layer — a Cloudflare

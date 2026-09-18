@@ -12,3 +12,6 @@ dashboard/tsconfig.tsbuildinfo
 
 # Quarantined corrupt state bytes — local evidence only (see src/state/store.js)
 state/quarantine/
+
+# Per-task tool workspaces (scratch writes by the workspace_write tool; the synthesizer's output is the deliverable)
+state/workspaces/

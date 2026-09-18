@@ -10,11 +10,19 @@
   "scripts": {
     "pulse": "node src/pulse.js",
     "pulse:dry": "TITAN_DRY_RUN=1 node src/pulse.js",
+    "simulate": "node bin/titan.js simulate",
+    "doctor": "node bin/titan.js doctor",
+    "bench": "node --max-old-space-size=512 bench/harness.mjs",
     "test": "node --test test/*.test.js",
     "check:denylist": "node scripts/check-denylist.mjs",
     "check:secrets": "node scripts/check-secrets-in-state.mjs",
     "check:secrets:diff": "node scripts/check-secrets-in-diff.mjs --staged",
-    "check:workflows": "node scripts/check-workflows.mjs"
+    "check:workflows": "node scripts/check-workflows.mjs",
+    "check:schemas": "node scripts/export-schemas.mjs --check",
+    "schemas": "node scripts/export-schemas.mjs"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "bin": {
+    "titan": "bin/titan.js"
+  }
 }
