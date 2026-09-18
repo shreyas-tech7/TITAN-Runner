@@ -12,7 +12,9 @@
     "pulse:dry": "TITAN_DRY_RUN=1 node src/pulse.js",
     "test": "node --test test/*.test.js",
     "check:denylist": "node scripts/check-denylist.mjs",
-    "check:secrets": "node scripts/check-secrets-in-state.mjs"
+    "check:secrets": "node scripts/check-secrets-in-state.mjs",
+    "check:secrets:diff": "node scripts/check-secrets-in-diff.mjs --staged",
+    "check:workflows": "node scripts/check-workflows.mjs"
   },
   "license": "MIT"
 }
