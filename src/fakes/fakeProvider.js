@@ -1,16 +1,22 @@
 /**
  * @file A deterministic, scriptable stand-in for every model the engine can
- * call: the agent-pool interface (`AgentAdapter`) for decomposition and
- * sub-task execution, and the registry-style `chat()` the reviewer gate and
- * any direct caller use. Zero network, ever.
+ * call. Zero network, ever.
  *
- * Why it exists: `TITAN_DRY_RUN=1` returns fixed fixtures and skips whole
- * branches (decomposition returns a sample graph, GitHub is a no-op), which
- * is right for a smoke test and wrong for measuring the engine — a benchmark
- * needs the *real* code paths (real decomposition parsing, real retries,
- * real synthesis) fed by a provider whose behaviour is scripted: this reply,
- * then that fault, with this much latency, from this seed. The same fake is
- * what `titan simulate` runs against and what the chaos tests drive.
+ * It sits UNDER the real provider stack, not beside it: five `FakeUpstream`
+ * providers (one per registry id) extend the real `BaseProvider`, so the
+ * real semaphore, per-call deadline, `withRetry` with Retry-After, health
+ * recording, and `Registry` failover all run exactly as they would against
+ * Groq or Gemini — only `_doChat` is scripted. `FakeProviderAgent` is the
+ * `phase2` pool the scheduler sees (a real `Phase2Agent` over that
+ * registry) plus a registry-shaped `chat()` for the reviewer gate. What a
+ * benchmark or a chaos test measures is therefore the engine, not a
+ * shortcut around it.
+ *
+ * Why not `TITAN_DRY_RUN=1`: dry-run returns fixed fixtures and skips whole
+ * branches (a sample graph, a no-op GitHub); a benchmark needs the *real*
+ * paths fed by a provider whose behaviour is scripted — this reply, then
+ * that fault, with this much latency, from this seed. The same fake powers
+ * `titan simulate` and the chaos tests.
  *
  * Script shape (JSON or a plain object):
  *
@@ -27,28 +33,32 @@
  *   }
  *
  * Rules match in order on `kind` (`decompose` | `subtask` | `review` |
- * `probe` | `chat` | `*`), optional `taskId`, optional `promptIncludes`.
- * Each rule keeps a cursor into its `sequence`; the last entry repeats once
- * the sequence is exhausted. Replies: `envelope` (files → fenced JSON
- * envelope), `prose`, `graph`, `verdict`, `raw`, `tool` (a tool-call
- * envelope, see engine/toolLoop). Faults: `malformed-json`, `truncated`,
- * `refusal`, `empty`, `http-500`, `http-429` (+`retryAfterMs`), `quota-402`,
- * `unauthorized-401`, `model-404`, `dropped-connection`, `timeout`
- * (+`hangMs`), `kill` (SIGKILL this process at call start — the crash
- * simulator), and any reply may carry `thenKillAfterMs` to die *after*
- * replying. Every call is logged as one JSON line on stdout (`fake:
- * "provider.call"`) and, when `logPath` is set, appended to that file so a
- * killed process still leaves its call count behind.
+ * `probe` | `judge` | `chat` | `*`), optional `taskId`, optional
+ * `promptIncludes`. Each rule keeps a cursor into its `sequence`; the last
+ * entry repeats once the sequence is exhausted. Replies: `envelope` (files →
+ * fenced JSON envelope), `prose`, `graph`, `verdict`, `raw`, `tool` (a
+ * tool-call envelope). Faults: `malformed-json`, `truncated`, `refusal`,
+ * `empty`, `http-500`, `http-503`, `http-429` (+`retryAfterMs`),
+ * `quota-402`, `unauthorized-401`, `model-404`, `dropped-connection`,
+ * `timeout` (+`hangMs`), `kill` (SIGKILL this process at call start — the
+ * crash simulator); any reply may carry `thenKillAfterMs` to die *after*
+ * replying. Every upstream call is logged as one JSON line on stdout
+ * (`fake: "provider.call"`) and, when `logPath` is set, appended to that
+ * file so a killed process still leaves its call count behind.
  */
 import { appendFileSync } from 'node:fs';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { AgentAdapter } from '../agents/AgentAdapter.js';
+import { Phase2Agent } from '../agents/phase2Agent.js';
+import { BaseProvider } from '../providers/base.js';
+import { Registry, FAILOVER_ORDER } from '../providers/registry.js';
 import { mulberry32, pick } from './rng.js';
-
-const DEFAULT_MODELS = ['phase2:groq', 'phase2:together', 'phase2:openrouter', 'phase2:gemini', 'phase2:huggingface'];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** @param {unknown} err @returns {Error & {code: string, status: number|null, retryable: boolean, retryAfterMs: number|null}} */
+/** Which kind of call is in flight, set by the pool around each registry call. */
+const callContext = new AsyncLocalStorage();
+
 function fakeError(code, status, message, retryable, retryAfterMs = null) {
   const err = new Error(message);
   return Object.assign(err, { name: 'FakeProviderError', code, status, retryable, retryAfterMs, service: 'fake' });
@@ -60,71 +70,36 @@ export function envelopeText(files, notes = '', prefix = '') {
   return `${prefix}${prefix ? '\n\n' : ''}\`\`\`json\n${body}\n\`\`\``;
 }
 
-function classify(task, messages) {
-  if (task) return task.id === 'decompose' ? 'decompose' : 'subtask';
+function classifyMessages(messages) {
   const system = (messages ?? []).find((m) => m.role === 'system')?.content ?? '';
   const user = (messages ?? []).filter((m) => m.role === 'user').map((m) => m.content).join('\n');
   if (/You are TITAN\. Evaluate/.test(system) || /Layer 1 \(deterministic\) classification/.test(user)) return 'review';
   if (/describing your own capabilities/.test(user)) return 'probe';
-  if (/^You are the decomposer/.test(user)) return 'decompose';
+  if (/^You are the decomposer/m.test(user)) return 'decompose';
+  if (/You are the verifier|acceptance criteria/i.test(system) || /^VERIFY:/m.test(user)) return 'judge';
   return 'chat';
 }
 
-export class FakeProviderAgent extends AgentAdapter {
-  /**
-   * @param {{ script?: object, models?: string[], logPath?: string|null, pool?: string, maxConcurrency?: number, quiet?: boolean }} [init]
-   */
-  constructor(init = {}) {
-    super({ pool: init.pool ?? 'phase2', label: 'Fake provider', maxConcurrency: init.maxConcurrency ?? 5 });
-    this.script = normalizeScript(init.script ?? {});
-    this.models = init.models ?? DEFAULT_MODELS;
-    this.logPath = init.logPath ?? null;
-    this.quiet = init.quiet ?? false;
+/**
+ * The script engine: rule matching, cursors, seeded latency, logging. One
+ * instance is shared by the pool and its five upstream providers so the
+ * call count and cursors are global to the process, as a real upstream's
+ * behaviour would be.
+ */
+export class FakeScript {
+  constructor({ script, logPath = null, quiet = false, pulseIndex = null } = {}) {
+    this.script = normalizeScript(script ?? {});
+    this.logPath = logPath;
+    this.quiet = quiet;
+    this.pulseIndex = pulseIndex;
     this.rng = mulberry32(this.script.seed);
     this.calls = 0;
     this.cursors = new Map();
-    /** @type {Array<{n:number, kind:string, taskId:string|null, modelId:string|null, outcome:string, ms:number}>} */
+    /** @type {Array<object>} */
     this.history = [];
   }
 
-  isConfigured() {
-    return true;
-  }
-
-  async _doListModels() {
-    return this.models.map((modelId) => ({ modelId, pool: this.pool, contextWindow: 32768 }));
-  }
-
-  async _doExecute(task, sharedContext, options = {}) {
-    const kind = classify(task, null);
-    const prompt = this._buildTaskPrompt(task, sharedContext);
-    const step = this.#next(kind, task.id, prompt);
-    const text = await this.#perform(step, { kind, taskId: task.id, modelId: options.modelId ?? null, signal: options.signal });
-    return { output: text, modelId: options.modelId ?? this.models[0], tokensUsed: Math.max(1, Math.round(text.length / 4)) };
-  }
-
-  async _doProbeCapabilities(modelId) {
-    const step = this.#next('probe', null, modelId);
-    return this.#perform(step, { kind: 'probe', taskId: null, modelId });
-  }
-
-  /**
-   * Registry-shaped chat, for the reviewer gate and direct callers.
-   * @param {Array<{role:string, content:string}>} messages
-   * @param {{ service?: string, signal?: AbortSignal, maxTokens?: number, temperature?: number }} [opts]
-   */
-  async chat(messages, opts = {}) {
-    const kind = classify(null, messages);
-    const prompt = (messages ?? []).map((m) => m.content).join('\n');
-    const step = this.#next(kind, null, prompt);
-    const started = performance.now();
-    const text = await this.#perform(step, { kind, taskId: null, modelId: opts.service ?? 'fake', signal: opts.signal });
-    return { text, service: 'fake', model: opts.service ?? 'fake', latencyMs: Math.round(performance.now() - started), tokensUsed: Math.max(1, Math.round(text.length / 4)), attempts: 1 };
-  }
-
-  /* ---- internals --------------------------------------------------------- */
-
-  #next(kind, taskId, prompt) {
+  next(kind, taskId, prompt) {
     for (let i = 0; i < this.script.rules.length; i += 1) {
       const rule = this.script.rules[i];
       if (rule.kind !== '*' && rule.kind !== kind) continue;
@@ -139,24 +114,31 @@ export class FakeProviderAgent extends AgentAdapter {
     return { reply: 'prose', text: 'Acknowledged.' };
   }
 
-  async #perform(step, ctx) {
+  record(entry) {
+    this.history.push(entry);
+    const line = JSON.stringify({ fake: 'provider.call', ...entry });
+    if (!this.quiet) process.stdout.write(`${line}\n`);
+    if (this.logPath) {
+      try {
+        appendFileSync(this.logPath, `${line}\n`);
+      } catch {
+        // best-effort
+      }
+    }
+  }
+
+  /**
+   * Perform one scripted upstream call.
+   * @param {{ kind: string, taskId: string|null, providerId: string, prompt: string, signal?: AbortSignal }} ctx
+   * @returns {Promise<string>} The model text.
+   */
+  async perform(ctx) {
+    const step = this.next(ctx.kind, ctx.taskId, ctx.prompt);
     this.calls += 1;
     const n = this.calls;
     const started = performance.now();
     const latency = pick(this.rng, step.latencyMs ?? this.script.latencyMs);
-    const record = (outcome) => {
-      const entry = { n, kind: ctx.kind, taskId: ctx.taskId, modelId: ctx.modelId, outcome, ms: Math.round(performance.now() - started) };
-      this.history.push(entry);
-      const line = JSON.stringify({ fake: 'provider.call', ...entry });
-      if (!this.quiet) process.stdout.write(`${line}\n`);
-      if (this.logPath) {
-        try {
-          appendFileSync(this.logPath, `${line}\n`);
-        } catch {
-          // best-effort
-        }
-      }
-    };
+    const record = (outcome) => this.record({ n, pulse: this.pulseIndex, kind: ctx.kind, taskId: ctx.taskId, modelId: ctx.providerId, outcome, ms: Math.round(performance.now() - started), at: new Date().toISOString() });
 
     if (step.fault === 'kill') {
       record('fault:kill');
@@ -240,6 +222,69 @@ export class FakeProviderAgent extends AgentAdapter {
   }
 }
 
+/** One scripted upstream behind the real BaseProvider contract. */
+export class FakeUpstream extends BaseProvider {
+  /** @param {{ id: string, engine: FakeScript, health?: object }} init */
+  constructor({ id, engine, health }) {
+    super({ id, label: `Fake ${id}`, apiKey: 'fake-key', model: `fake/${id}-model`, health });
+    this.engine = engine;
+  }
+
+  async _doChat(messages, _opts, signal) {
+    const ctx = callContext.getStore();
+    const prompt = (messages ?? []).map((m) => m.content).join('\n');
+    const kind = ctx?.kind ?? classifyMessages(messages);
+    const text = await this.engine.perform({ kind, taskId: ctx?.taskId ?? null, providerId: this.id, prompt, signal });
+    return { text, model: this.model, tokensUsed: Math.max(1, Math.round((prompt.length + text.length) / 4)) };
+  }
+}
+
+/**
+ * The `phase2` pool the scheduler drives: a real Phase2Agent over a real
+ * Registry of five FakeUpstreams. `chat()` exposes the same registry to the
+ * reviewer gate and any direct caller.
+ */
+export class FakeProviderAgent extends Phase2Agent {
+  /**
+   * @param {{ script?: object, logPath?: string|null, pulseIndex?: number|string|null, quiet?: boolean, health?: object, maxConcurrency?: number, providerIds?: string[] }} [init]
+   */
+  constructor(init = {}) {
+    const engine = new FakeScript({ script: init.script, logPath: init.logPath, quiet: init.quiet, pulseIndex: init.pulseIndex });
+    const providers = new Map();
+    for (const id of init.providerIds ?? FAILOVER_ORDER) providers.set(id, new FakeUpstream({ id, engine, health: init.health }));
+    const registry = new Registry({ providers, healthStore: init.health });
+    super({ registry, maxConcurrency: init.maxConcurrency ?? 5 });
+    this.engine = engine;
+    this.registry = registry;
+  }
+
+  isConfigured() {
+    return true;
+  }
+
+  get calls() {
+    return this.engine.calls;
+  }
+
+  get history() {
+    return this.engine.history;
+  }
+
+  async _doExecute(task, sharedContext, options = {}) {
+    const kind = task?.id === 'decompose' ? 'decompose' : 'subtask';
+    return callContext.run({ kind, taskId: task?.id ?? null }, () => super._doExecute(task, sharedContext, options));
+  }
+
+  async _doProbeCapabilities(modelId, opts) {
+    return callContext.run({ kind: 'probe', taskId: null }, () => super._doProbeCapabilities(modelId, opts));
+  }
+
+  /** Registry-shaped chat for the reviewer gate, the verifier, and direct callers. */
+  async chat(messages, opts = {}) {
+    return this.registry.chat(messages, opts);
+  }
+}
+
 /** @param {object} raw @returns {{ seed: number, latencyMs: number|[number, number], rules: object[] }} */
 export function normalizeScript(raw) {
   const script = raw && typeof raw === 'object' ? raw : {};
@@ -260,6 +305,7 @@ export function happyPathScript(overrides = {}) {
     latencyMs: [2, 8],
     rules: [
       { kind: 'review', sequence: [{ reply: 'verdict', verdict: 'allow' }] },
+      { kind: 'judge', sequence: [{ reply: 'verdict', verdict: 'allow', reason: 'meets the acceptance criteria' }] },
       { kind: 'decompose', sequence: [{ reply: 'graph', graph: { sharedContext: 'A two-step fake project.', tasks: [
         { id: 'plan', title: 'Plan the module', aspect: 'architecture', description: 'Outline the module.', dependsOn: [], estimatedComplexity: 'low', deliverable: 'A short plan.' },
         { id: 'code', title: 'Write the module', aspect: 'code-generation', description: 'Implement it.', dependsOn: ['plan'], estimatedComplexity: 'medium', deliverable: 'src/module.js' },
@@ -272,4 +318,5 @@ export function happyPathScript(overrides = {}) {
   };
 }
 
+export { AgentAdapter };
 export default FakeProviderAgent;

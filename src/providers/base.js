@@ -148,6 +148,7 @@ export function parseOpenAiChat(json, ctx) {
 
 export class BaseProvider {
   #gate;
+  #health;
 
   constructor(init) {
     if (new.target === BaseProvider) {
@@ -158,6 +159,9 @@ export class BaseProvider {
     this.apiKey = init.apiKey || null;
     this.model = init.model || '';
     this.#gate = new Semaphore(MAX_CONCURRENT_PER_PROVIDER);
+    // Injectable for the fakes/tests; production providers use the shared
+    // store, exactly as before.
+    this.#health = init.health ?? providerHealth;
   }
 
   isConfigured() {
@@ -171,7 +175,7 @@ export class BaseProvider {
    */
   async chat(messages, opts = {}) {
     if (!this.isConfigured()) {
-      providerHealth.markNotConfigured(this.id);
+      this.#health.markNotConfigured(this.id);
       throw new ProviderError(`${this.label} is not configured (missing API key)`, {
         code: 'NOT_CONFIGURED', service: this.id, retryable: false,
       });
@@ -205,7 +209,7 @@ export class BaseProvider {
 
       const latencyMs = Math.round(performance.now() - started);
       const model = raw.model || this.model;
-      providerHealth.recordOutcome(this.id, { ok: true, latencyMs, model });
+      this.#health.recordOutcome(this.id, { ok: true, latencyMs, model });
       return {
         text: raw.text,
         service: this.id,
@@ -215,7 +219,7 @@ export class BaseProvider {
         attempts,
       };
     } catch (err) {
-      providerHealth.recordOutcome(this.id, {
+      this.#health.recordOutcome(this.id, {
         ok: false,
         code: err?.code,
         status: err?.status ?? null,

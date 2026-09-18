@@ -30,12 +30,13 @@ export function fakeDepsFromEnv(env = process.env) {
 
   const logDir = env.TITAN_FAKE_LOG_DIR || null;
   if (logDir) mkdirSync(logDir, { recursive: true });
+  const pulseIndex = Number.isFinite(Number(env.TITAN_FAKE_PULSE_INDEX)) && env.TITAN_FAKE_PULSE_INDEX !== '' ? Number(env.TITAN_FAKE_PULSE_INDEX) : null;
   const deps = {};
 
   if (providerSpec) {
     env.TITAN_NETWORK = 'off';
     const script = loadScript(providerSpec);
-    const fake = new FakeProviderAgent({ script, logPath: logDir ? join(logDir, 'provider-calls.jsonl') : null });
+    const fake = new FakeProviderAgent({ script, logPath: logDir ? join(logDir, 'provider-calls.jsonl') : null, pulseIndex });
     deps.fakeProvider = fake;
     deps.pools = { phase2: fake };
     deps.reviewerChat = fake.chat.bind(fake);
@@ -43,7 +44,7 @@ export function fakeDepsFromEnv(env = process.env) {
 
   if (githubSpec) {
     const fixturePath = githubSpec === 'memory' ? null : githubSpec;
-    const fake = new FakeGitHub({ fixturePath, logPath: logDir ? join(logDir, 'github-calls.jsonl') : null, repository: env.GITHUB_REPOSITORY || 'fake-owner/fake-repo' });
+    const fake = new FakeGitHub({ fixturePath, logPath: logDir ? join(logDir, 'github-calls.jsonl') : null, repository: env.GITHUB_REPOSITORY || 'fake-owner/fake-repo', pulseIndex });
     deps.fakeGitHub = fake;
     deps.github = fake;
   }

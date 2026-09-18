@@ -26,6 +26,7 @@ export class FakeGitHub {
     this.logPath = init.logPath ?? null;
     this.now = init.now ?? (() => new Date());
     this.repository = init.repository ?? 'fake-owner/fake-repo';
+    this.pulseIndex = init.pulseIndex ?? null;
     this.data = { issues: [], pulls: [] };
     /** @type {Array<{op: string, args: unknown, at: string}>} */
     this.calls = [];
@@ -42,7 +43,7 @@ export class FakeGitHub {
   }
 
   #log(op, args) {
-    const entry = { op, args, at: this.now().toISOString() };
+    const entry = { op, pulse: this.pulseIndex, args, at: this.now().toISOString() };
     this.calls.push(entry);
     if (this.logPath) {
       try {
@@ -50,6 +51,24 @@ export class FakeGitHub {
       } catch {
         // best-effort
       }
+    }
+  }
+
+  /**
+   * Crash simulator: the fixture's `_control.killAfter = { op, nth }` makes
+   * this process die with SIGKILL right after the nth call of that mutating
+   * op has been *persisted* — "the comment reached GitHub, then the runner
+   * died before it could save state", the exact window where a naive engine
+   * posts the comment again on the next pulse.
+   */
+  #maybeKillAfter(op) {
+    const rule = this.data._control?.killAfter;
+    if (!rule || rule.op !== op) return;
+    const count = this.calls.filter((c) => c.op === op).length;
+    if (count === (rule.nth ?? 1)) {
+      this.data._control = { ...this.data._control, killAfter: null, killed: { op, nth: count, at: this.now().toISOString() } };
+      this.#persist();
+      process.kill(process.pid, 'SIGKILL');
     }
   }
 
@@ -80,6 +99,7 @@ export class FakeGitHub {
     issue.comments = [...(issue.comments ?? []), comment];
     issue.updated_at = comment.created_at;
     this.#persist();
+    this.#maybeKillAfter('commentOnIssue');
     return comment;
   }
 
@@ -90,6 +110,7 @@ export class FakeGitHub {
     issue.state = 'closed';
     issue.updated_at = this.now().toISOString();
     this.#persist();
+    this.#maybeKillAfter('closeIssue');
     return issue;
   }
 
@@ -148,6 +169,7 @@ function normalize(raw) {
   return {
     issues: Array.isArray(raw?.issues) ? raw.issues.map((i) => ({ state: 'open', comments: [], labels: [{ name: 'titan-task' }], updated_at: i.created_at ?? new Date(0).toISOString(), ...i })) : [],
     pulls: Array.isArray(raw?.pulls) ? raw.pulls : [],
+    _control: raw?._control && typeof raw._control === 'object' ? raw._control : {},
   };
 }
 
