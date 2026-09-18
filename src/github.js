@@ -44,7 +44,7 @@ async function call(method, path, body) {
   return res.json();
 }
 
-/** @returns {Promise<Array<{number:number, title:string, body:string, html_url:string, updated_at:string, labels: Array<{name:string}>}>>} */
+/** @returns {Promise<Array<{number:number, title:string, body:string, html_url:string, updated_at:string, labels: Array<{name:string}>, user?: {login: string, type?: string}, author_association?: string, pull_request?: object}>>} */
 export async function listOpenTaskIssues(label = 'titan-task') {
   if (!ready()) return [];
   const { owner, repo } = repoParts();
@@ -52,6 +52,27 @@ export async function listOpenTaskIssues(label = 'titan-task') {
     return await call('GET', `/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(label)}&state=open&per_page=50`);
   } catch (err) {
     log.warn('listOpenTaskIssues failed', { error: String(err) });
+    return [];
+  }
+}
+
+/**
+ * Comments on one issue, oldest first, optionally only those updated at or
+ * after `since` (ISO 8601). Used to find authorized `/titan …` control
+ * commands — every comment payload carries GitHub-computed `user.login` and
+ * `author_association`, which is what `security/authorization.js` checks.
+ * @param {number} number
+ * @param {{ since?: string|null }} [opts]
+ * @returns {Promise<Array<{id:number, body:string, created_at:string, user?:{login:string,type?:string}, author_association?:string}>>}
+ */
+export async function listIssueComments(number, opts = {}) {
+  if (!ready()) return [];
+  const { owner, repo } = repoParts();
+  const since = opts.since ? `&since=${encodeURIComponent(opts.since)}` : '';
+  try {
+    return await call('GET', `/repos/${owner}/${repo}/issues/${number}/comments?per_page=100${since}`);
+  } catch (err) {
+    log.warn('listIssueComments failed', { number, error: String(err) });
     return [];
   }
 }
@@ -124,6 +145,6 @@ export async function createIssueForDeadman(title, body, label = 'titan-alert') 
 }
 
 export default {
-  listOpenTaskIssues, commentOnIssue, closeIssue, createPullRequest, closePullRequest,
+  listOpenTaskIssues, listIssueComments, commentOnIssue, closeIssue, createPullRequest, closePullRequest,
   getPullRequest, getCombinedStatus, createIssue, createIssueForDeadman,
 };

@@ -264,14 +264,15 @@ async function main() {
 
   try {
     if (!config.dryRun) {
-      const { added, issues } = await syncIssuesIntoTasks(tasksState);
+      const { added, ignored, issues } = await syncIssuesIntoTasks(tasksState);
       if (added > 0) log.info('synced issues into task queue', { added });
+      if (ignored > 0) log.info('ignored issues from unauthorized authors', { ignored });
       // Dashboard cancel/retry (task instructions, section 1) act on the
       // GitHub issue directly from the browser — this is what makes those
       // actions take effect here rather than being purely cosmetic.
-      const { cancelled, retried } = reconcileIssueState(tasksState, issues);
+      const { cancelled, retried } = await reconcileIssueState(tasksState, issues);
       if (cancelled > 0) log.info('cancelled tasks whose issue was closed from the dashboard', { cancelled });
-      if (retried > 0) log.info('reset tasks to pending after a dashboard retry', { retried });
+      if (retried > 0) log.info('reset tasks to pending after an authorized retry command', { retried });
     }
 
     if (process.env.TITAN_MANUAL_TASK && process.env.TITAN_MANUAL_TASK.trim().length > 0) {

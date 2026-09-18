@@ -29,6 +29,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { findDenylistViolations } from './denylist.js';
+import { checkRepoRelativePath } from './lib/pathJail.js';
 import { reviewAction } from './reviewer/reviewer.js';
 import { createPullRequest, closePullRequest, getPullRequest, getCombinedStatus } from './github.js';
 import { createLogger } from './lib/logger.js';
@@ -37,6 +38,26 @@ const log = createLogger('selfImprove');
 
 function git(args) {
   return execFileSync('git', args, { encoding: 'utf8', cwd: process.cwd() }).trim();
+}
+
+/**
+ * Every proposed path must pass the write jail (`lib/pathJail.js`) BEFORE a
+ * branch is created or a byte is written: a `.git/hooks/post-checkout`
+ * proposal would otherwise be written to disk, `git add` would refuse it,
+ * and the `finally` branch's `git checkout` would execute it — in the job
+ * that holds every provider key. Exported so a test can prove the refusal
+ * happens with zero filesystem side effects.
+ * @param {Array<{path: string}>} files
+ * @param {string} [root]
+ * @returns {string[]} Human-readable rejections, empty when everything is writable.
+ */
+export function findUnwritablePaths(files, root = process.cwd()) {
+  const rejections = [];
+  for (const file of files) {
+    const verdict = checkRepoRelativePath(root, file.path);
+    if (!verdict.ok) rejections.push(`${file.path}: ${verdict.reason}`);
+  }
+  return rejections;
 }
 
 /**
@@ -56,6 +77,12 @@ export async function proposeSelfImprovement(task, synthesis) {
     return { status: 'refused', reason: `Proposed change touches protected paths: ${violations.join(', ')}` };
   }
 
+  const unwritable = findUnwritablePaths(files);
+  if (unwritable.length > 0) {
+    log.warn('self-improve proposal named paths outside the write jail — refusing', { taskId: task.id, unwritable });
+    return { status: 'refused', reason: `Proposed change names paths Runner may never write: ${unwritable.join('; ')}` };
+  }
+
   const review = await reviewAction({
     toolId: 'self-improve-pr',
     args: { paths: files.map((f) => f.path), preview: files.map((f) => f.content.slice(0, 500)).join('\n---\n') },
@@ -73,11 +100,15 @@ export async function proposeSelfImprovement(task, synthesis) {
   try {
     git(['checkout', '-b', branch]);
     for (const file of files) {
-      const fullPath = join(process.cwd(), file.path);
-      mkdirSync(dirname(fullPath), { recursive: true });
-      writeFileSync(fullPath, file.content, 'utf8');
+      // Re-checked at write time (the jail also refuses symlinked ancestors,
+      // which can only be judged against the branch we just checked out).
+      const verdict = checkRepoRelativePath(process.cwd(), file.path);
+      if (!verdict.ok) throw new Error(`refusing to write ${file.path}: ${verdict.reason}`);
+      mkdirSync(dirname(verdict.absolute), { recursive: true });
+      writeFileSync(verdict.absolute, file.content, 'utf8');
     }
-    git(['add', ...files.map((f) => f.path)]);
+    // `--` so a path that starts with a dash can never be read as a git option.
+    git(['add', '--', ...files.map((f) => f.path)]);
     git(['-c', 'user.email=titan-runner@users.noreply.github.com', '-c', 'user.name=TITAN Runner', 'commit', '-m', `self-improve: ${task.title || task.id}`]);
     git(['push', '-u', 'origin', branch]);
 

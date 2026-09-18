@@ -22,6 +22,16 @@ function positiveInt(raw, fallback) {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+function loginList(raw) {
+  if (typeof raw !== 'string') return [];
+  const out = new Set();
+  for (const part of raw.split(/[,\s]+/)) {
+    const login = part.trim().toLowerCase().replace(/^@/, '');
+    if (login.length > 0) out.add(login);
+  }
+  return [...out];
+}
+
 export const config = Object.freeze({
   dryRun: process.env.TITAN_DRY_RUN === '1',
 
@@ -29,6 +39,16 @@ export const config = Object.freeze({
     token: credential(process.env.GITHUB_TOKEN),
     repository: process.env.GITHUB_REPOSITORY || '',
     runId: process.env.GITHUB_RUN_ID || '',
+  },
+
+  // Who may hand Runner work and steer it (see src/security/authorization.js
+  // and docs/runner-upgrade/THREAT_MODEL.md). The repository owner is always
+  // trusted; TITAN_TASK_AUTHORS adds explicit logins; TITAN_TRUST_COLLABORATORS=0
+  // makes the allowlist the only source of truth (GitHub's OWNER/MEMBER/
+  // COLLABORATOR association is trusted by default).
+  authorization: {
+    taskAuthors: loginList(process.env.TITAN_TASK_AUTHORS),
+    trustCollaborators: process.env.TITAN_TRUST_COLLABORATORS !== '0',
   },
 
   groq: {

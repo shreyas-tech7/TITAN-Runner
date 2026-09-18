@@ -13,11 +13,21 @@
  * `.github/workflows/`, the reviewer gate, or the secret-handling code.
  */
 export const DENYLIST = Object.freeze([
-  '.github/workflows/',
+  // The whole .github/ tree, not just workflows/: ISSUE_TEMPLATE/ decides which
+  // labels a stranger's issue gets, and a template could apply
+  // `titan-self-improve` for anyone (see docs/runner-upgrade/THREAT_MODEL.md).
+  '.github/',
+  '.git/',
+  // What CI installs and runs on a pull request.
+  'package.json',
+  'package-lock.json',
+  '.npmrc',
   'src/denylist.js',
   'src/reviewer/',
+  'src/security/',
   'src/lib/redact.js',
   'src/lib/secretScrub.js',
+  'src/lib/pathJail.js',
   'scripts/check-denylist.mjs',
   'scripts/check-secrets-in-state.mjs',
   // The always-on sub-agent cluster (build brief: "always-on sub-agent
