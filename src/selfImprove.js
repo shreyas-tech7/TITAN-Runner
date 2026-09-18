@@ -31,7 +31,7 @@ import { dirname, join } from 'node:path';
 import { findDenylistViolations } from './denylist.js';
 import { checkRepoRelativePath } from './lib/pathJail.js';
 import { reviewAction } from './reviewer/reviewer.js';
-import { createPullRequest, closePullRequest, getPullRequest, getCombinedStatus } from './github.js';
+import { defaultGitHubClient } from './github.js';
 import { createLogger } from './lib/logger.js';
 
 const log = createLogger('selfImprove');
@@ -63,9 +63,11 @@ export function findUnwritablePaths(files, root = process.cwd()) {
 /**
  * @param {{ id: string, prompt: string, title: string }} task
  * @param {{ files: Array<{path: string, content: string}> }} synthesis
+ * @param {{ github?: ReturnType<import('./github.js').createGitHubClient>, reviewerOpts?: object }} [deps]
  * @returns {Promise<{ status: 'pr-open'|'refused'|'blocked'|'no-changes', prNumber?: number, prUrl?: string, reason?: string }>}
  */
-export async function proposeSelfImprovement(task, synthesis) {
+export async function proposeSelfImprovement(task, synthesis, deps = {}) {
+  const github = deps.github ?? defaultGitHubClient;
   const files = synthesis.files.filter((f) => !f.conflict);
   if (files.length === 0) {
     return { status: 'no-changes', reason: 'The model produced no file changes for this task.' };
@@ -88,7 +90,7 @@ export async function proposeSelfImprovement(task, synthesis) {
     args: { paths: files.map((f) => f.path), preview: files.map((f) => f.content.slice(0, 500)).join('\n---\n') },
     effect: 'external',
     description: `Self-improvement PR proposing changes to: ${files.map((f) => f.path).join(', ')}`,
-  });
+  }, deps.reviewerOpts ?? {});
   if (review.verdict === 'block') {
     log.warn('reviewer blocked self-improve proposal', { taskId: task.id, reason: review.reason });
     return { status: 'blocked', reason: review.reason ?? 'Reviewer Gate blocked this change.' };
@@ -112,7 +114,7 @@ export async function proposeSelfImprovement(task, synthesis) {
     git(['-c', 'user.email=titan-runner@users.noreply.github.com', '-c', 'user.name=TITAN Runner', 'commit', '-m', `self-improve: ${task.title || task.id}`]);
     git(['push', '-u', 'origin', branch]);
 
-    const pr = await createPullRequest({
+    const pr = await github.createPullRequest({
       title: `[self-improve] ${task.title || task.id}`,
       head: branch,
       base: 'main',
@@ -141,18 +143,20 @@ export async function proposeSelfImprovement(task, synthesis) {
  * Revisit a previously-opened self-improve PR and close it if CI concluded
  * failure. Never merges a green one — that decision stays with a human.
  * @param {{ prNumber: number }} task
- * @returns {Promise<{ status: 'still-open'|'closed-failed'|'unknown' }>}
+ * @param {{ github?: ReturnType<import('./github.js').createGitHubClient> }} [deps]
+ * @returns {Promise<{ status: 'still-open'|'closed-failed'|'merged'|'unknown' }>}
  */
-export async function checkSelfImprovePrStatus(task) {
+export async function checkSelfImprovePrStatus(task, deps = {}) {
+  const github = deps.github ?? defaultGitHubClient;
   if (!task.prNumber) return { status: 'unknown' };
-  const pr = await getPullRequest(task.prNumber);
+  const pr = await github.getPullRequest(task.prNumber);
   if (!pr) return { status: 'unknown' };
   if (pr.merged) return { status: 'merged' };
   if (pr.state !== 'open') return { status: 'unknown' };
 
-  const combined = await getCombinedStatus(pr.head.sha);
+  const combined = await github.getCombinedStatus(pr.head.sha);
   if (combined === 'failure') {
-    await closePullRequest(task.prNumber);
+    await github.closePullRequest(task.prNumber);
     log.info('closed self-authored PR after CI failure', { prNumber: task.prNumber });
     return { status: 'closed-failed' };
   }

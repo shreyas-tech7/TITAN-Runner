@@ -21,18 +21,19 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 
 import { createLogger } from '../lib/logger.js';
+import { DEFAULT_PATHS } from '../state/paths.js';
 import { ASPECT_CATEGORIES, isAspectCategory, isAgentPool, LATENCY_CLASSES } from './taxonomy.js';
 
 const log = createLogger('orchestrator:capabilityRegistry');
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** Default on-disk cache location: `<repo root>/state/agents.json` — the
- *  pulse's own committed capability cache, not a gitignored scratch file. */
-export const DEFAULT_CACHE_PATH = join(__dirname, '../../state/agents.json');
+/** Default on-disk cache location: `<state dir>/agents.json` — the pulse's
+ *  own committed capability cache (`state/paths.js` resolves the directory;
+ *  it used to be computed relative to this file, which pinned it to the
+ *  checkout even when everything else pointed at a scratch state dir). */
+export const DEFAULT_CACHE_PATH = DEFAULT_PATHS.agents;
 
 /** Entries older than this are re-probed in the background. 30 days. */
 const STALE_MS = 30 * 24 * 60 * 60 * 1000;

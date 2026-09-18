@@ -23,13 +23,14 @@
  * telemetry, not a ledger.
  */
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { redactString } from '../lib/redact.js';
 import { createLogger } from '../lib/logger.js';
+import { DEFAULT_PATHS } from '../state/paths.js';
 
 const log = createLogger('providers:health');
 
-export const DEFAULT_PROVIDERS_PATH = join(process.cwd(), 'state', 'providers.json');
+export const DEFAULT_PROVIDERS_PATH = DEFAULT_PATHS.providers;
 
 /** @type {readonly string[]} Every status this module ever assigns. */
 export const PROVIDER_STATUSES = Object.freeze([
