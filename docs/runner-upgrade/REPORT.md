@@ -1,10 +1,14 @@
 # TITAN Runner upgrade — report
 
-Branch `claude/bold-galileo-w6go1e`, cut from `origin/main` at `3396447`.
-Twelve commits, one draft pull request, nothing merged, no live system
-touched. Every number below is taken from a file in this branch
-(`bench/results/before.json`, `bench/results/after.json`, the test runner)
-and none was edited by hand.
+Branch `claude/bold-galileo-w6go1e`, cut from `origin/main` at `3396447`,
+twelve commits, opened as a draft PR (#13) and merged to `main` as squash
+commit `736b264`. Every number in §1–§11 below is taken from a file
+committed *before* merge (`bench/results/before.json`,
+`bench/results/after.json`, the test runner) and none was edited by hand;
+they describe the change as built and measured against the fakes, not a
+live claim. §12 (checklist) is updated below to reflect what has actually
+happened on the live repository since merge, and is the one place in this
+file describing real, not simulated, state.
 
 ## 1. Before
 
@@ -260,22 +264,39 @@ numbers come from.
 - Exploit-level detail of the pre-existing security findings was kept out
   of committed files; the fixes and their tests are in.
 
-## 12. My Checklist
+## 12. My Checklist — post-merge status
 
-1. Read the PR; do not merge until the dashboard builds
-   (`cd dashboard && npm install && npm run build`) — the runner side is
-   green, the dashboard side is unverified by a compiler.
-2. Set the repository variable `TITAN_TASK_AUTHORS` if anyone besides you
-   and collaborators should be able to file tasks (empty = only you and
-   GitHub-verified collaborators).
-3. Leave `TITAN_EGRESS_ALLOWLIST` empty unless a task should be able to
-   fetch; then list exact hosts.
-4. After merge, dispatch *TITAN Control* → `autonomy propose` for the first
-   days: the runner will do the work and ask before posting anything.
-   `titan-control.yml` becomes dispatchable once it exists on `main`.
-5. Run *Provider self-test* once keys are set; then watch the first pulse
-   with `node bin/titan.js doctor` and `state/views/*.json`.
-6. Enable GitHub Pages (pre-existing checkpoint) if you want the dashboard.
-7. Keep the Cloudflare Worker undeployed unless you take on D-6 separately.
-8. If any secret was ever pasted into a task or comment, rotate it; the
-   scrubbers are a backstop, not a promise.
+PR #13 merged to `main` as `736b264` on 2026-09-18. What follows replaces
+the pre-merge checklist with what has actually been verified against the
+live repository since:
+
+1. **Dashboard build — done.** `cd dashboard && npm install && npm run
+   build` was run after merge: `next build` compiled with no TypeScript
+   errors, generated its 3 static routes, and exported cleanly. The
+   dashboard side is now compiler-verified, not just contract-tested.
+2. `TITAN_TASK_AUTHORS` — unchanged; still an operator decision (empty =
+   only the repository owner and GitHub-verified collaborators).
+3. `TITAN_EGRESS_ALLOWLIST` — unchanged; still an operator decision, leave
+   empty unless a task needs `http_fetch`.
+4. **Autonomy startup — not yet dispatched.** `titan-control.yml` is on
+   `main` and dispatchable; nobody has run *TITAN Control* → `autonomy
+   propose` yet. Still recommended before letting the runner post or open
+   PRs unattended.
+5. **Provider self-test — not yet run** in this session; no provider key
+   was available to verify live. `providers.json` still shows only
+   `gemini` as `ok` and `openrouter` cooled down from an earlier error;
+   `groq`/`together`/`huggingface`/`opencode` remain unconfigured.
+6. **GitHub Pages — confirmed live.** *Deploy dashboard to Pages* ran
+   against the merge commit and completed successfully; the dashboard is
+   serving the merged build.
+7. Cloudflare Worker — unchanged, still undeployed (D-6 untaken).
+8. Secret rotation — unchanged reminder; nothing in this session's checks
+   found a secret in committed state.
+9. **New since merge, not in the original plan:** the scheduled pulse went
+   silent for about 130 minutes post-merge (GitHub's cron did not fire on
+   its `*/15 * * * *` schedule; the workflow itself was active and
+   healthy, nothing was queued or stuck). Recovered by dispatching
+   `titan-pulse.yml` manually via `workflow_dispatch`; cadence resumed
+   normally afterward. This was a platform-scheduling delay, not a bug in
+   this branch's code — recorded here because it happened during the
+   merge window and is worth watching for recurrence.
