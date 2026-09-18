@@ -12,6 +12,12 @@
  * `waiting(pulse-budget)`; a parked sub-task turns into `waiting(provider |
  * quota)` with the wake time the retry policy chose.
  *
+ * After the last step the run is synthesized and *verified*
+ * (`verify/verify.js`): deterministic checks, then a judge model that
+ * produced none of the work. A failed verification sends the steps at fault
+ * (and everything downstream) back with the feedback appended to their
+ * prompt, at most `maxRemediations` times, then fails the run honestly.
+ *
  * Usage (model calls, tokens, active wall time) is accounted in the
  * checkpoint (`usage`, plus `stepUsage` per step) so a task's budget
  * survives across pulses; the engine adds the live counts at every persist.
@@ -22,6 +28,7 @@ import { Scheduler } from '../orchestrator/scheduler.js';
 import { synthesize } from '../orchestrator/synthesizer.js';
 import { classifyFailure } from '../reliability/failures.js';
 import { parkFor } from '../reliability/retryPolicy.js';
+import { verifyRun } from '../verify/verify.js';
 
 /** Per-sub-task output kept in the checkpoint (the run record keeps its own preview). */
 const MAX_CHECKPOINT_OUTPUT_CHARS = 16_000;
@@ -70,6 +77,14 @@ export function usageOf(cp) {
  *   shouldDrain?: () => boolean,
  *   onCheckpoint?: (cp: object, reason: string) => Promise<void>|void,
  *   onAttempt?: (event: object) => void,
+ *   tools?: import('../tools/registry.js').ToolRegistry|null,
+ *   toolContext?: object,
+ *   maxToolCalls?: number,
+ *   judge?: { enabled?: boolean, chat?: Function|null, strict?: boolean, candidates?: string[], timeoutMs?: number },
+ *   maxRemediations?: number,
+ *   scratchDir?: string,
+ *   checkSyntax?: boolean,
+ *   onJudgeCall?: () => void,
  *   taskTimeoutMs?: number,
  *   maxSubtasks?: number,
  *   subtaskMaxAttempts?: number,
@@ -103,7 +118,7 @@ export async function runOrchestration(args) {
       await onCheckpoint(cp, 'plan-parked');
       events?.append('plan.parked', { taskId: task.id, runId, durationMs: Math.round(performance.now() - started), failureClass: failure.class, code: failure.code, outcome: parked.reason });
       events?.append('run.parked', { taskId: task.id, runId, outcome: parked.reason, wakeInMs: parked.wakeInMs, steps: ['plan'], why: parked.why, failureClass: failure.class });
-      return { ok: false, drained: false, parked: { ...parked, failureClass: failure.class, code: failure.code }, runId, graph: null, synthesis: null, tasksById: new Map(), planned: false };
+      return { ok: false, drained: false, parked: { ...parked, failureClass: failure.class, code: failure.code, approvalKey: null }, runId, graph: null, synthesis: null, tasksById: new Map(), planned: false, verification: null, failedVerification: false };
     }
     if (task.routingHint && task.routingHint !== 'any') {
       for (const t of graph.tasks) t.routingHint = task.routingHint;
@@ -117,18 +132,26 @@ export async function runOrchestration(args) {
     await onCheckpoint(cp, 'planned');
   }
 
-  // ---- execute ----------------------------------------------------------
+  // ---- execute → synthesize → verify → (remediate, bounded) --------------
   const graph = cp.graph;
+  const maxRemediations = args.maxRemediations ?? 1;
   const stepStarted = new Map();
-  const scheduler = new Scheduler({
+  const makeScheduler = () => new Scheduler({
     pools,
     capabilityRegistry,
     taskTimeoutMs: args.taskTimeoutMs,
     shouldDrain: args.shouldDrain ?? (() => false),
     maxAttempts: args.subtaskMaxAttempts,
+    tools: args.tools ?? null,
+    toolContext: args.toolContext ?? {},
+    maxToolCalls: args.maxToolCalls,
     onEvent: (event) => {
       if (event.type === 'attempt-finished') {
         args.onAttempt?.(event);
+        return;
+      }
+      if (event.type === 'tool-round') {
+        events?.append('step.tool-round', { taskId: task.id, runId, stepId: event.taskId, provider: event.modelId, tool: event.tool, round: event.round, outcome: event.ok ? 'ok' : event.code ?? 'failed' });
         return;
       }
       if (event.type === 'attempt-failed') {
@@ -143,7 +166,7 @@ export async function runOrchestration(args) {
       const entry = event.task;
       if (event.state === 'running') {
         stepStarted.set(event.taskId, performance.now());
-        events?.append('step.started', { taskId: task.id, runId, stepId: event.taskId, agent: entry.assignment?.pool ?? null, provider: entry.assignment?.modelId ?? null, attempt: (entry.attempts ?? []).length + 1, resumed: Boolean(entry.resumed) });
+        events?.append('step.started', { taskId: task.id, runId, stepId: event.taskId, agent: entry.assignment?.pool ?? null, provider: entry.assignment?.modelId ?? null, attempt: (entry.attempts ?? []).length + 1, resumed: Boolean(entry.resumed), remediation: cp.remediations > 0 && typeof entry.remediationHint === 'string' });
         return;
       }
       if (['complete', 'failed', 'blocked', 'cancelled'].includes(event.state)) {
@@ -155,11 +178,11 @@ export async function runOrchestration(args) {
           taskId: task.id, runId, stepId: event.taskId, outcome: event.state,
           agent: entry.assignment?.pool ?? null, provider: last?.modelId ?? entry.assignment?.modelId ?? null,
           attempt: (entry.attempts ?? []).length, durationMs: startedAt ? Math.round(performance.now() - startedAt) : null,
-          calls: (entry.attempts ?? []).length, tokens,
+          calls: (entry.attempts ?? []).length, tokens, toolCalls: (entry.toolTranscript ?? []).length,
           failureClass: entry.error?.class ?? null, code: entry.error?.code ?? null, parked: Boolean(entry.error?.park),
         });
         cp.subtasks[event.taskId] = snapshotSubtask(entry);
-        cp.stepUsage[event.taskId] = { calls: (entry.attempts ?? []).length, tokens };
+        cp.stepUsage[event.taskId] = { calls: (cp.stepUsage[event.taskId]?.calls ?? 0) + (entry.attempts ?? []).length, tokens: (cp.stepUsage[event.taskId]?.tokens ?? 0) + tokens };
         // The checkpoint file write is synchronous (store.writeJson); only
         // the git push is deferred, so durability does not depend on await.
         void onCheckpoint(cp, `step:${event.taskId}`);
@@ -167,37 +190,119 @@ export async function runOrchestration(args) {
     },
   });
 
-  const tasksById = await scheduler.run(graph, { resumeFrom: cp.subtasks ?? {} });
+  for (;;) {
+    const scheduler = makeScheduler();
+    const tasksById = await scheduler.run(graph, { resumeFrom: cp.subtasks ?? {} });
 
-  if (scheduler.drained) {
-    cp.phase = 'executing';
-    await onCheckpoint(cp, 'drained');
-    events?.append('run.parked', { taskId: task.id, runId, outcome: 'pulse-budget', pending: [...tasksById.values()].filter((t) => t.state === 'pending').length });
-    return { ok: false, drained: true, parked: null, runId, graph, synthesis: null, tasksById, planned };
-  }
+    if (scheduler.drained) {
+      cp.phase = 'executing';
+      await onCheckpoint(cp, 'drained');
+      events?.append('run.parked', { taskId: task.id, runId, outcome: 'pulse-budget', pending: [...tasksById.values()].filter((t) => t.state === 'pending').length });
+      return { ok: false, drained: true, parked: null, runId, graph, synthesis: null, tasksById, planned, verification: null, failedVerification: false };
+    }
 
-  // A step the retry policy parked (provider down / rate limited / out of
-  // quota) means "come back later", not "the task failed".
-  const parkedSteps = [...tasksById.values()].filter((t) => t.state === 'failed' && t.error?.park);
-  if (parkedSteps.length > 0) {
-    const wakeInMs = Math.max(...parkedSteps.map((t) => t.error.park.wakeInMs ?? 0));
-    const reason = parkedSteps.some((t) => t.error.park.reason === 'quota') ? 'quota' : 'provider';
-    cp.phase = 'executing';
+    // A step the retry policy parked (provider down / rate limited / out of
+    // quota) means "come back later", not "the task failed"; a step waiting
+    // for a human's approval of a tool call means "ask, then come back".
+    const parkedSteps = [...tasksById.values()].filter((t) => t.state === 'failed' && t.error?.park);
+    if (parkedSteps.length > 0) {
+      const approval = parkedSteps.find((t) => t.error.park.reason === 'approval');
+      const wakeInMs = approval ? 0 : Math.max(...parkedSteps.map((t) => t.error.park.wakeInMs ?? 0));
+      const reason = approval ? 'approval' : parkedSteps.some((t) => t.error.park.reason === 'quota') ? 'quota' : 'provider';
+      const first = approval ?? parkedSteps[0];
+      cp.phase = 'executing';
+      for (const [id, entry] of tasksById) cp.subtasks[id] = snapshotSubtask(entry);
+      await onCheckpoint(cp, 'parked');
+      events?.append('run.parked', { taskId: task.id, runId, outcome: reason, wakeInMs, steps: parkedSteps.map((t) => t.id), why: first.error.park.why, failureClass: first.error.class ?? null, approvalKey: first.error.park.approvalKey ?? null });
+      return { ok: false, drained: false, parked: { reason, wakeInMs, why: first.error.park.why, failureClass: first.error.class ?? null, code: first.error.code ?? null, approvalKey: first.error.park.approvalKey ?? null }, runId, graph, synthesis: null, tasksById, planned, verification: null, failedVerification: false };
+    }
+
+    // ---- synthesize -----------------------------------------------------
+    cp.phase = 'executed';
     for (const [id, entry] of tasksById) cp.subtasks[id] = snapshotSubtask(entry);
-    await onCheckpoint(cp, 'parked');
-    events?.append('run.parked', { taskId: task.id, runId, outcome: reason, wakeInMs, steps: parkedSteps.map((t) => t.id), why: parkedSteps[0].error.park.why, failureClass: parkedSteps[0].error.class ?? null });
-    return { ok: false, drained: false, parked: { reason, wakeInMs, why: parkedSteps[0].error.park.why, failureClass: parkedSteps[0].error.class ?? null, code: parkedSteps[0].error.code ?? null }, runId, graph, synthesis: null, tasksById, planned };
-  }
+    await onCheckpoint(cp, 'executed');
+    const synthesis = await synthesize(graph, tasksById);
+    const anyFailed = [...tasksById.values()].some((t) => t.state === 'failed' || t.state === 'blocked');
+    const usage = usageOf(cp);
+    if (anyFailed) {
+      events?.append('run.finished', { taskId: task.id, runId, outcome: 'failed', steps: tasksById.size, files: synthesis.files.length, conflicts: synthesis.conflicts.length, calls: usage.calls, tokens: usage.tokens, remediations: cp.remediations, at: now().toISOString() });
+      return { ok: false, drained: false, parked: null, runId, graph, synthesis, tasksById, planned, verification: cp.verification ?? null, failedVerification: false };
+    }
 
-  // ---- synthesize -------------------------------------------------------
-  cp.phase = 'executed';
-  for (const [id, entry] of tasksById) cp.subtasks[id] = snapshotSubtask(entry);
-  await onCheckpoint(cp, 'executed');
-  const synthesis = await synthesize(graph, tasksById);
-  const anyFailed = [...tasksById.values()].some((t) => t.state === 'failed' || t.state === 'malformed_output');
-  const usage = usageOf(cp);
-  events?.append('run.finished', { taskId: task.id, runId, outcome: anyFailed ? 'failed' : 'complete', steps: tasksById.size, files: synthesis.files.length, conflicts: synthesis.conflicts.length, calls: usage.calls, tokens: usage.tokens, at: now().toISOString() });
-  return { ok: !anyFailed, drained: false, parked: null, runId, graph, synthesis, tasksById, planned };
+    // ---- verify ---------------------------------------------------------
+    // A run that already passed (this pulse is a resume after an approval
+    // park, say) is not judged twice: the verdict is in the checkpoint.
+    const alreadyVerified = cp.phase === 'verified' || (cp.verification?.verdict === 'pass' && cp.verification?.round === cp.remediations);
+    let verification;
+    if (alreadyVerified && cp.verification) {
+      verification = { ...cp.verification, issues: [] };
+    } else {
+      cp.phase = 'verifying';
+      await onCheckpoint(cp, 'verifying');
+      const v = await verifyRun({
+        task, graph, synthesis, tasksById, events, runId,
+        judge: args.judge ?? { enabled: false }, scratchDir: args.scratchDir, checkSyntax: args.checkSyntax, onJudgeCall: args.onJudgeCall,
+      });
+      verification = v;
+      cp.verification = {
+        verdict: v.verdict, reason: v.reason, unjudged: v.unjudged, round: cp.remediations, at: now().toISOString(),
+        judge: v.judge ? { verdict: v.judge.verdict, reason: v.judge.reason ?? null, provider: v.judge.provider ?? null, error: v.judge.error ?? null, issues: v.judge.issues ?? [] } : null,
+        checks: v.checks.map((c) => ({ id: c.id, ok: c.ok, detail: c.detail })),
+      };
+    }
+
+    if (verification.verdict === 'fail') {
+      const drain = args.shouldDrain?.() === true;
+      if (cp.remediations < maxRemediations && !drain) {
+        cp.remediations += 1;
+        const targets = remediationTargets(graph, verification.issues);
+        const feedback = verification.issues.map((i) => `- ${i.step ? `[${i.step}] ` : ''}${i.problem}`).join('\n');
+        for (const step of graph.tasks) {
+          if (!targets.has(step.id)) continue;
+          delete cp.subtasks[step.id];
+          step.remediationHint = `VERIFICATION FEEDBACK (attempt ${cp.remediations + 1}): your previous output for this step did not pass verification. Fix these problems and produce the complete deliverable again:\n${feedback}`;
+        }
+        cp.phase = 'executing';
+        await onCheckpoint(cp, 'remediating');
+        events?.append('remediate.started', { taskId: task.id, runId, round: cp.remediations, steps: [...targets], issues: verification.issues.length, reason: verification.reason });
+        continue;
+      }
+      events?.append('run.finished', { taskId: task.id, runId, outcome: 'verification-failed', steps: tasksById.size, files: synthesis.files.length, conflicts: synthesis.conflicts.length, calls: usage.calls, tokens: usage.tokens, remediations: cp.remediations, at: now().toISOString() });
+      return { ok: false, drained: false, parked: null, runId, graph, synthesis, tasksById, planned, verification: cp.verification, failedVerification: true };
+    }
+
+    cp.phase = 'verified';
+    await onCheckpoint(cp, 'verified');
+    events?.append('run.finished', { taskId: task.id, runId, outcome: 'complete', steps: tasksById.size, files: synthesis.files.length, conflicts: synthesis.conflicts.length, calls: usage.calls, tokens: usage.tokens, remediations: cp.remediations, unjudged: verification.unjudged, at: now().toISOString() });
+    return { ok: true, drained: false, parked: null, runId, graph, synthesis, tasksById, planned, verification: cp.verification, failedVerification: false };
+  }
+}
+
+/**
+ * The steps a failed verification sends back: the ones its issues name (or
+ * every code-generation step, or every step, when none is named) plus
+ * everything downstream of them, since a dependent built on the old output.
+ * @param {{ tasks: Array<{ id: string, aspect: string, dependsOn: string[] }> }} graph
+ * @param {Array<{ step: string|null }>} issues
+ * @returns {Set<string>}
+ */
+export function remediationTargets(graph, issues) {
+  const ids = new Set(graph.tasks.map((t) => t.id));
+  let targets = new Set(issues.map((i) => i.step).filter((id) => id && ids.has(id)));
+  if (targets.size === 0) targets = new Set(graph.tasks.filter((t) => t.aspect === 'code-generation').map((t) => t.id));
+  if (targets.size === 0) targets = new Set(ids);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const t of graph.tasks) {
+      if (targets.has(t.id)) continue;
+      if ((t.dependsOn ?? []).some((d) => targets.has(d))) {
+        targets.add(t.id);
+        grew = true;
+      }
+    }
+  }
+  return targets;
 }
 
 export function newCheckpoint(taskId) {

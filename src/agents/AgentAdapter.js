@@ -262,6 +262,23 @@ export class AgentAdapter {
         'answer has no files (a description, a plan, an analysis), just write normal prose with ' +
         'no JSON block at all.',
     );
+    // Tools (tools/registry.js): the catalogue, the one-call-per-turn
+    // contract, and the results of the calls this step already made.
+    if (typeof task.tools === 'string' && task.tools.length > 0) {
+      lines.push(
+        'Tools you may use. To call one, reply with ONLY a single fenced JSON block of the form ' +
+          '{"tool":"<id>","args":{...}} and nothing else; the result will be given back to you and you will be asked again. ' +
+          'Call at most one tool per reply, do not repeat a call you already made, and when you have what you need, answer the task instead.\n' +
+          task.tools,
+      );
+    }
+    if (Array.isArray(task.toolTranscript) && task.toolTranscript.length > 0) {
+      const rounds = task.toolTranscript.map((r, i) => `[${i + 1}] ${r.tool}(${JSON.stringify(r.args)}) → ${r.ok ? 'OK' : 'FAILED'}\n${String(r.output).slice(0, 6000)}`);
+      lines.push(`Results of the tool calls you already made (do not repeat them):\n${rounds.join('\n\n')}`);
+    }
+    // Verification feedback (verify/verify.js): set on a step the judge or a
+    // deterministic check sent back for another try.
+    if (typeof task.remediationHint === 'string' && task.remediationHint.length > 0) lines.push(task.remediationHint);
     // Bounded repair loop (reliability/outputRepair.js): the scheduler sets
     // this after an unusable answer and clears it after a usable one.
     if (typeof task.repairHint === 'string' && task.repairHint.length > 0) lines.push(task.repairHint);

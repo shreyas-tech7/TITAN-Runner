@@ -23,6 +23,11 @@ export const CAPABILITIES = Object.freeze([
   'breakers',                // per-provider breaker state derived from health, with explain()
   'budgets',                 // per-task and per-pulse ceilings on model calls, tokens, and wall clock
   'task-dependencies',       // dependsOn: a task waits for its producers and dead-letters if one fails (engine/pulse.js, task/reconcile.js)
+  'verification',            // deterministic checks + an independent judge model, with bounded remediation (verify/, engine/orchestrate.js)
+  'tools',                   // typed, jailed, policy-gated tool calls inside a step (tools/registry.js, tools/builtin.js)
+  'loop-detection',          // the same tool call repeated is a loop; the step is poisoned and the task dead-lettered
+  'policy-engine',           // every side effect decided by autonomy level, safe mode, and recorded approvals (policy/engine.js)
+  'approvals',               // a gated effect parks the task on waiting(approval) until /titan approve <key>
 ]);
 
 export default CAPABILITIES;

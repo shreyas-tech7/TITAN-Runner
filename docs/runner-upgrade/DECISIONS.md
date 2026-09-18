@@ -76,3 +76,40 @@ complexity.
 - **D-20** The engine clock (`lib/clock.js`) can be offset only while the fakes
   are wired, so the harness can simulate the cron gap and a production pulse can
   never be moved off the wall clock by an environment variable.
+- **D-21** The policy engine sits beside the Reviewer Gate, never instead of
+  it: the gate still decides whether a task may run at all (unchanged); the
+  engine decides, per side effect, whether the autonomy level lets it happen,
+  needs `/titan approve <key>`, or forbids it. Tool calls additionally pass the
+  gate's deterministic layer (a destructive pattern is refused outright).
+- **D-22** Four autonomy levels (dry-run, propose, approval, autonomous), the
+  effective level being the stricter of the control file and the task. An
+  approval request is the one external effect allowed under propose/approval
+  (otherwise nobody could ever approve); dry-run and safe mode suppress every
+  comment, and the suppression is audited.
+- **D-23** Tools are typed (schema-validated arguments), classed by side
+  effect, jailed (reads: the checkout minus `.git/`, `node_modules/`, and
+  credential-shaped names; writes: the task's own workspace under `state/`,
+  never the checkout), and network-guarded (https only, operator allowlist,
+  DNS-resolved public addresses only, no redirects). A model can never invent
+  a tool, an argument, or a path the registry did not declare.
+- **D-24** One tool call per model turn, re-prompted with the result; the
+  same call three times, or more than six calls in a step, is a loop and the
+  step is poisoned. A tool that needs approval parks the whole task on
+  `waiting(approval)` rather than failing the step.
+- **D-25** Verification is two layers: free deterministic checks first (a
+  failure there never costs a judge call), then a judge model chosen from the
+  providers that produced no part of the run, plan included. "Unjudged" is an
+  honest recorded state (no independent provider left, judge down), not a
+  silent pass; `TITAN_VERIFY_STRICT=1` turns it into a failure.
+- **D-26** Remediation is bounded (`TITAN_MAX_REMEDIATIONS`, default 1) and
+  targeted: only the steps the verdict names, plus everything downstream, run
+  again, with the feedback in their prompt. A run that still fails is failed
+  with the reason on the issue, never quietly marked complete.
+- **D-27** A resolved file conflict (both versions kept by the synthesizer) is
+  a verification warning the judge sees, not a failure; the offline dry-run
+  fixture produces one on purpose.
+- **D-28** The bench corpus's `spans-pulses` script now answers its
+  code-generation steps with a small file instead of prose: the old prose was
+  a placeholder from before verification existed, and the verifier is right
+  to reject a code step that produced no code. Every other scenario is
+  unchanged from `before.json`.

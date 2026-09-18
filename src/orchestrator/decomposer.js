@@ -406,7 +406,9 @@ export async function attemptDecompose(adapter, masterPrompt, maxTasks, retryErr
   if (!validation.ok) return { ok: false, errors: validation.errors };
 
   const sharedContext = typeof parsed.sharedContext === 'string' ? parsed.sharedContext : '';
-  return { ok: true, graph: { sharedContext, tasks } };
+  // `plannedBy` lets the verifier pick a judge that produced no part of the
+  // run, the plan included.
+  return { ok: true, graph: { sharedContext, tasks, plannedBy: result.modelId ?? null } };
 }
 
 export default decompose;

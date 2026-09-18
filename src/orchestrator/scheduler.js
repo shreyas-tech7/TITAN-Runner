@@ -53,9 +53,14 @@ import { classifyFailure, PARKABLE } from '../reliability/failures.js';
 import { decideRetry } from '../reliability/retryPolicy.js';
 import { validateSubtaskOutput, repairHintFor } from '../reliability/outputRepair.js';
 import { LoopDetector } from '../reliability/loopDetector.js';
+import { parseToolCall } from '../tools/callParser.js';
 
 /** Same-model retry once, then one more attempt on the next-best model. */
 const MAX_ATTEMPTS = 3;
+/** Tool calls one step may make before it is declared stuck. */
+const MAX_TOOL_CALLS_PER_STEP = 6;
+/** The same tool call (same args) this many times is a loop. */
+const TOOL_LOOP_REPEATS = 3;
 
 /**
  * Per-dependency output cap when assembling a task's context (Wave 5
@@ -112,10 +117,16 @@ export class Scheduler {
    *   taskTimeoutMs?: number,
    * }} init
    */
-  constructor({ pools, capabilityRegistry, onEvent = () => {}, taskTimeoutMs, shouldDrain = () => false, maxAttempts }) {
+  constructor({ pools, capabilityRegistry, onEvent = () => {}, taskTimeoutMs, shouldDrain = () => false, maxAttempts, tools = null, toolContext = {}, maxToolCalls }) {
     this.pools = pools;
     this.capabilityRegistry = capabilityRegistry;
     this.onEvent = onEvent;
+    // The tool registry a step may call into (`tools/registry.js`), and the
+    // context every call carries (control file, task approvals, ledger,
+    // events). Null or empty means steps are told about no tools at all.
+    this.tools = tools && tools.size > 0 ? tools : null;
+    this.toolContext = toolContext;
+    this.maxToolCalls = maxToolCalls ?? MAX_TOOL_CALLS_PER_STEP;
     // Wave 5 self-repair: per-task wall-clock deadline, injected so tests
     // can prove the timeout path with a tiny value instead of waiting out
     // the production default. Defaults to config when not given.
@@ -167,6 +178,8 @@ export class Scheduler {
         error: null,
         startedAt: null,
         completedAt: null,
+        tools: this.tools ? this.tools.describeForPrompt() : null,
+        toolTranscript: [],
       };
       const prior = resume[task.id];
       // Restore what is settled: a completed step, or one that failed for
@@ -513,7 +526,9 @@ export class Scheduler {
     let sameProviderAttempts = 0;
     let attemptsUsed = 0;
     let hops = 0;
+    let toolRounds = 0;
     const loop = new LoopDetector({ maxRepeats: 2 });
+    const toolLoop = new LoopDetector({ maxRepeats: TOOL_LOOP_REPEATS });
     let lastError = null;
 
     while (attemptsUsed < this.maxAttempts) {
@@ -524,9 +539,39 @@ export class Scheduler {
       const adapter = this.pools[current.pool];
       const context = this.#buildTaskContext(task);
       const result = await this.#executeWithDeadline(task, adapter, context, { modelId: current.modelId, signal });
+      this.#emit({ type: 'attempt-finished', taskId: task.id, modelId: current.modelId, attempt: attemptsUsed + 1, ok: result.ok, ms: result.ms, tokensUsed: result.tokensUsed ?? null });
+
+      // ---- tool round -------------------------------------------------------
+      // The model asked the engine to do something before answering. A tool
+      // round is not an attempt: the same model is re-prompted with the
+      // result appended, bounded by the per-step call ceiling and the loop
+      // detector (the same call with the same arguments three times is a
+      // loop, and a loop is poison).
+      const call = result.ok && this.tools ? parseToolCall(result.output) : null;
+      if (call) {
+        toolRounds += 1;
+        const repeat = toolLoop.observe({ tool: call.tool, args: call.args }, { progress: false });
+        let failure = null;
+        if (repeat.looping) failure = { code: 'LOOP_DETECTED', class: 'poisoned', message: `the step asked for the same tool call (${call.tool}) ${repeat.repeats} times` };
+        else if (toolRounds > this.maxToolCalls) failure = { code: 'TOOL_LIMIT', class: 'poisoned', message: `the step made more than ${this.maxToolCalls} tool calls without answering` };
+        if (failure) {
+          task.attempts.push({ modelId: current.modelId, pool: current.pool, ok: false, ms: result.ms, tokensUsed: result.tokensUsed ?? null, error: failure });
+          this.#emit({ type: 'attempt-failed', taskId: task.id, modelId: current.modelId, attempt: attemptsUsed + 1, failure, retryAfterMs: null });
+          task.repairHint = null;
+          return { ok: false, output: null, modelId: current.modelId, error: failure };
+        }
+        const invoked = await this.tools.invoke(call, { ...this.toolContext, stepId: task.id, signal });
+        this.#emit({ type: 'tool-round', taskId: task.id, modelId: current.modelId, round: toolRounds, tool: call.tool, ok: invoked.ok, code: invoked.error?.code ?? null });
+        if (invoked.error?.code === 'APPROVAL_REQUIRED') {
+          // Not a failure: the step waits for a human, and the task parks.
+          const park = { reason: 'approval', wakeInMs: 0, why: invoked.error.message, approvalKey: invoked.error.approvalKey };
+          return { ok: false, output: null, modelId: current.modelId, error: { code: 'APPROVAL_REQUIRED', class: 'policy_blocked', message: invoked.error.message, park } };
+        }
+        task.toolTranscript = [...(task.toolTranscript ?? []), { tool: call.tool, args: call.args, ok: invoked.ok, output: invoked.ok ? invoked.output : `ERROR ${invoked.error?.code ?? 'TOOL_ERROR'}: ${invoked.error?.message ?? 'failed'}` }];
+        continue;
+      }
       attemptsUsed += 1;
       sameProviderAttempts += 1;
-      this.#emit({ type: 'attempt-finished', taskId: task.id, modelId: current.modelId, attempt: attemptsUsed, ok: result.ok, ms: result.ms, tokensUsed: result.tokensUsed ?? null });
 
       // A 200 is not "done": the answer must be usable.
       let failure = null;

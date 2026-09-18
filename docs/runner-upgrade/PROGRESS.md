@@ -94,9 +94,56 @@ Built, wired end to end, tested:
   20 pass / 0 fail / 2 not supported (`looping-task`, `refusal` — wave 4).
   `fails-permanently` 15 → 4 upstream calls; `provider-outage` 48 → 9.
 
+## Wave 4 — autonomy loop: tools, policy, verification (done)
+
+Built, wired end to end, tested:
+
+- `src/policy/engine.js`: one pure decision per side effect (allow / approve /
+  deny, with a reason and an approval key) from the effective autonomy level
+  (dry-run < propose < approval < autonomous; stricter of control file and
+  task), safe mode, the kill switch, and recorded `/titan approve|deny <key>`
+  decisions. Audited as `policy.decision` events. Sits beside the Reviewer
+  Gate (unchanged).
+- `src/tools/registry.js`: typed tool definitions (schema-validated args, side
+  effect class, risk, timeout, idempotency); `invoke()` = schema → gate's
+  deterministic layer → policy → ledger replay → timeout → capped, redacted
+  output; every call is a `tool.call` event. `src/tools/builtin.js`:
+  `repo_read_file`, `repo_list_files`, `repo_search` (read jail: no `.git/`,
+  `node_modules/`, credential names, traversal, symlink escape),
+  `workspace_write` (the task's workspace under `state/`, never the checkout),
+  `http_fetch` (`src/tools/ssrf.js`: https only, operator allowlist
+  `TITAN_EGRESS_ALLOWLIST`, DNS-resolved public addresses only, no redirects,
+  64 KB cap). `src/tools/callParser.js`: one fenced `{tool,args}` block per turn.
+- Scheduler tool rounds: the same model is re-prompted with each result;
+  the same call three times or more than six calls per step is a loop
+  (`poisoned`, dead-lettered); a call that needs approval parks the task on
+  `waiting(approval)` and the engine posts one request comment.
+- `src/verify/checks.js` (steps complete, code steps produced files, files
+  non-empty, no placeholders, no secrets, JSON parses, `node --check` on JS;
+  conflicts warn), `src/verify/judge.js` (independent provider — none that
+  planned or produced a step; strict JSON verdict), `src/verify/verify.js`
+  (checks first, judge only when they pass; "unjudged" recorded honestly).
+- `engine/orchestrate.js`: execute → synthesize → verify → remediate loop,
+  bounded by `TITAN_MAX_REMEDIATIONS` (1); only the steps at fault and their
+  dependents re-run, with the feedback in the prompt; a verdict already in the
+  checkpoint is reused on a resume (no double judging).
+- Engine: delivery and self-improve PRs are policy-gated (approval park,
+  suppression under dry-run/safe mode with audit, human denial → cancelled);
+  verification outcome and judge on the issue comment; `VERIFICATION_FAILED`
+  is an honest terminal failure. `AgentAdapter._buildTaskPrompt` carries the
+  tool catalogue, the transcript, and remediation feedback.
+- Capabilities declared: verification, tools, loop-detection, policy-engine,
+  approvals. Bench: judge rule added to every scenario script; `spans-pulses`
+  code steps answer with a file (D-28).
+- Tests: 231/231 (+26). Harness (repeat 1, 22 scenarios): 22 pass / 0 fail /
+  0 not supported. First-pulse wall time rose from ~70 ms to ~150–230 ms in
+  the fakes: the verifier's `node --check` child process and the judge call
+  are real work now done per task (a real pulse spends seconds per model
+  call, so this is invisible there).
+
 ## Next
 
-Wave 4: verify/remediate loop (deterministic checks then model judge on a
-different model), tools registry with typed schemas + side-effect classes +
-SSRF-guarded safe tools, policy engine + autonomy levels, capabilities
-`verification` and `loop-detection`.
+Wave 5: control plane (workflow_dispatch controls with audit, `/titan`
+commands already in), derived views + analytics + explain/replay, versioned
+schema files + contract test, dashboard types/statusMeta/taskYaml lockstep +
+minimal UI for the new states.

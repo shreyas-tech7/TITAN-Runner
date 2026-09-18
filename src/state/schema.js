@@ -154,7 +154,7 @@ export const CHECKPOINT_SCHEMA = {
     version: { type: 'integer' },
     taskId: { type: 'string' },
     runId: { type: 'string' },
-    phase: { enum: ['planned', 'executing', 'executed', 'verifying', 'delivering', 'done'] },
+    phase: { enum: ['planned', 'executing', 'executed', 'verifying', 'verified', 'delivering', 'done'] },
     graph: { type: 'object', nullable: true },
     subtasks: { type: 'object' },
     sideEffects: { type: 'object' },
@@ -163,6 +163,7 @@ export const CHECKPOINT_SCHEMA = {
     stepUsage: { type: 'object' },
     usage: { type: 'object', nullable: true, properties: { calls: { type: 'integer', minimum: 0 }, tokens: { type: 'integer', minimum: 0 }, wallMs: { type: 'integer', minimum: 0 } } },
     gate: { type: 'object', nullable: true },
+    tools: { type: 'object' },
     updatedAt: { type: 'string', format: 'date-time' },
   },
 };

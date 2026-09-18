@@ -328,7 +328,7 @@ export function happyPathScript(overrides = {}) {
     latencyMs: [2, 8],
     rules: [
       { kind: 'review', sequence: [{ reply: 'verdict', verdict: 'allow' }] },
-      { kind: 'judge', sequence: [{ reply: 'verdict', verdict: 'allow', reason: 'meets the acceptance criteria' }] },
+      { kind: 'judge', sequence: [{ reply: 'raw', text: '{"verdict":"pass","reason":"meets the acceptance criteria","issues":[]}' }] },
       { kind: 'decompose', sequence: [{ reply: 'graph', graph: { sharedContext: 'A two-step fake project.', tasks: [
         { id: 'plan', title: 'Plan the module', aspect: 'architecture', description: 'Outline the module.', dependsOn: [], estimatedComplexity: 'low', deliverable: 'A short plan.' },
         { id: 'code', title: 'Write the module', aspect: 'code-generation', description: 'Implement it.', dependsOn: ['plan'], estimatedComplexity: 'medium', deliverable: 'src/module.js' },

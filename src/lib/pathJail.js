@@ -38,11 +38,17 @@ function hasControlCharacters(text) {
 
 /**
  * @param {string} root Absolute checkout root.
+ * @param {object} [opts] `{ mode: 'read' }` for the read jail (see below).
  * @param {string} rel A repo-relative path as the model proposed it (already
  *   through `normalizePath`, but this function does not rely on that).
  * @returns {{ ok: true, absolute: string, relative: string } | { ok: false, reason: string }}
  */
-export function checkRepoRelativePath(root, rel) {
+export function checkRepoRelativePath(root, rel, opts = {}) {
+  // `mode: 'read'` is the tool registry's read jail: the same traversal,
+  // symlink, and credential-name rules, but `.github/` and the root
+  // manifests may be *read* (a research step legitimately looks at them);
+  // `.git/` and `node_modules/` stay off limits in both modes.
+  const mode = opts.mode === 'read' ? 'read' : 'write';
   if (typeof rel !== 'string' || rel.length === 0) return { ok: false, reason: 'empty path' };
   if (rel.length > MAX_PATH_LENGTH) return { ok: false, reason: `path longer than ${MAX_PATH_LENGTH} characters` };
   if (hasControlCharacters(rel)) return { ok: false, reason: 'path contains control characters' };
@@ -54,10 +60,11 @@ export function checkRepoRelativePath(root, rel) {
   if (segments.length === 0) return { ok: false, reason: 'empty path' };
   for (const seg of segments) {
     if (seg === '.' || seg === '..') return { ok: false, reason: 'path traversal segment' };
-    if (FORBIDDEN_SEGMENTS.has(seg.toLowerCase())) return { ok: false, reason: `"${seg}" is a protected directory` };
+    const lower = seg.toLowerCase();
+    if (FORBIDDEN_SEGMENTS.has(lower) && !(mode === 'read' && lower === '.github')) return { ok: false, reason: `"${seg}" is a protected directory` };
     if (FORBIDDEN_NAME_PATTERN.test(seg)) return { ok: false, reason: `"${seg}" looks like a credential or environment file` };
   }
-  if (segments.length === 1 && FORBIDDEN_ROOT_FILES.has(segments[0].toLowerCase())) {
+  if (mode === 'write' && segments.length === 1 && FORBIDDEN_ROOT_FILES.has(segments[0].toLowerCase())) {
     return { ok: false, reason: `"${segments[0]}" controls what CI installs or runs` };
   }
 

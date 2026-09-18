@@ -31,6 +31,20 @@ export class SideEffectLedger {
     this.taskId = init.taskId ?? null;
     this.skipped = 0;
     this.fired = 0;
+    /**
+     * When set (a reason string), every effect is recorded as suppressed
+     * instead of fired: dry-run autonomy and safe mode keep the run inside
+     * the process (`policy/engine.js`). The ledger still records the key so
+     * a later pulse under a looser policy does not fire it twice.
+     * @type {string|null}
+     */
+    this.suppressed = null;
+  }
+
+  async #suppress(key, kind) {
+    this.skipped += 1;
+    this.events?.append('side-effect.suppressed', { taskId: this.taskId, key, kind, reason: this.suppressed, audit: true });
+    return 'suppressed';
   }
 
   has(key) {
@@ -48,7 +62,7 @@ export class SideEffectLedger {
    * @param {number} issueNumber
    * @param {string} key
    * @param {string} body
-   * @returns {Promise<'posted'|'skipped-ledger'|'skipped-remote'|'noop'>}
+   * @returns {Promise<'posted'|'skipped-ledger'|'skipped-remote'|'suppressed'|'noop'>}
    */
   async comment(issueNumber, key, body) {
     if (!issueNumber) return 'noop';
@@ -56,6 +70,7 @@ export class SideEffectLedger {
       this.skipped += 1;
       return 'skipped-ledger';
     }
+    if (this.suppressed) return this.#suppress(key, 'comment');
     // Re-run path: the ledger may be behind GitHub by one crash window.
     if (Object.keys(this.ledger).length > 0 || this.forceRemoteCheck) {
       if (await this.#remoteHas(issueNumber, key)) {
@@ -92,6 +107,7 @@ export class SideEffectLedger {
       this.skipped += 1;
       return 'skipped-ledger';
     }
+    if (this.suppressed) return this.#suppress(key, 'close-issue');
     await this.github.closeIssue(issueNumber);
     this.fired += 1;
     await this.#record(key);
@@ -109,6 +125,10 @@ export class SideEffectLedger {
   async once(key, fn) {
     if (this.has(key)) {
       this.skipped += 1;
+      return { ran: false, result: null };
+    }
+    if (this.suppressed) {
+      await this.#suppress(key, 'custom');
       return { ran: false, result: null };
     }
     const result = await fn();

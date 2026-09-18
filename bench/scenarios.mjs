@@ -21,6 +21,8 @@ const STRANGER = { login: 'random-visitor' };
 
 const REVIEW_ALLOW = { kind: 'review', sequence: [{ reply: 'verdict', verdict: 'allow' }] };
 const PROBE = { kind: 'probe', sequence: [{ reply: 'raw', text: '{"strengths":["code-generation"],"weaknesses":[],"latencyClass":"fast","contextWindow":32768}' }] };
+/** The verification judge passes by default; a scenario overrides it by putting its own `judge` rule first. */
+const JUDGE_PASS = { kind: 'judge', sequence: [{ reply: 'raw', text: '{"verdict":"pass","reason":"meets the acceptance criteria","issues":[]}' }] };
 
 function issue(number, title, body, extra = {}) {
   return { number, title, body, user: OWNER, author_association: 'OWNER', updated_at: '2026-01-01T00:00:00.000Z', labels: [{ name: 'titan-task' }], ...extra };
@@ -42,7 +44,7 @@ const FOUR_STEP = graph([t('a', 'architecture'), t('b', 'code-generation', ['a']
 const SIX_STEP = graph([t('s1', 'architecture'), t('s2', 'code-generation', ['s1']), t('s3', 'code-generation', ['s1']), t('s4', 'testing', ['s2', 's3']), t('s5', 'security-review', ['s4']), t('s6', 'documentation', ['s5'])]);
 
 function script(rules, extra = {}) {
-  return { seed: 42, latencyMs: [2, 8], rules: [REVIEW_ALLOW, PROBE, ...rules, { kind: '*', sequence: [{ reply: 'prose', text: 'Done.' }] }], ...extra };
+  return { seed: 42, latencyMs: [2, 8], rules: [REVIEW_ALLOW, PROBE, ...rules, JUDGE_PASS, { kind: '*', sequence: [{ reply: 'prose', text: 'Done.' }] }], ...extra };
 }
 
 const BASE_ENV = {
@@ -169,7 +171,8 @@ export const SCENARIOS = [
     github: { issues: [issue(1, 'Long task', 'Six dependent steps that cannot fit in one pulse.')] },
     provider: script([
       { kind: 'decompose', sequence: [SIX_STEP] },
-      { kind: 'subtask', sequence: [{ reply: 'prose', text: 'step done', latencyMs: 60 }] },
+      // Code steps must produce code (the verifier checks it), so every step answers with a small file.
+      { kind: 'subtask', sequence: [{ reply: 'envelope', files: [{ path: 'src/step.js', content: 'export const step = true;\n' }], latencyMs: 60 }] },
     ], { latencyMs: 60 }),
     expect: (o) => [
       H.check('task succeeded across pulses', H.terminalSuccess(H.status(o, 'issue-1')), H.status(o, 'issue-1')),
