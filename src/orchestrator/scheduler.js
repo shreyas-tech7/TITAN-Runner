@@ -108,7 +108,7 @@ export class Scheduler {
    *   taskTimeoutMs?: number,
    * }} init
    */
-  constructor({ pools, capabilityRegistry, onEvent = () => {}, taskTimeoutMs }) {
+  constructor({ pools, capabilityRegistry, onEvent = () => {}, taskTimeoutMs, shouldDrain = () => false, maxAttempts }) {
     this.pools = pools;
     this.capabilityRegistry = capabilityRegistry;
     this.onEvent = onEvent;
@@ -116,6 +116,11 @@ export class Scheduler {
     // can prove the timeout path with a tiny value instead of waiting out
     // the production default. Defaults to config when not given.
     this.taskTimeoutMs = taskTimeoutMs ?? config.orchestrator.taskTimeoutMs;
+    // Pulse budget hook: asked before every dispatch round; true means stop
+    // starting new sub-tasks, finish the in-flight ones, and return with
+    // the rest still `pending` so a later pulse can resume from checkpoint.
+    this.shouldDrain = shouldDrain;
+    this.maxAttempts = maxAttempts ?? MAX_ATTEMPTS;
 
     /** @type {Map<string, SchedulerTask>} */
     this.tasksById = new Map();
@@ -127,18 +132,25 @@ export class Scheduler {
     this.candidateModels = [];
     this.sharedContext = '';
     this.cancelled = false;
+    this.drained = false;
     this.runState = 'pending';
   }
 
   /**
-   * Run a full task graph to completion (every task terminal: complete,
-   * failed, blocked, or cancelled). Resolves once nothing more can run.
+   * Run a task graph until every task is terminal (complete, failed,
+   * blocked, cancelled) or the drain hook says stop. Resolves once nothing
+   * more can run this pulse.
    * @param {import('./decomposer.js').TaskGraph} graph
+   * @param {{ resumeFrom?: Record<string, Partial<SchedulerTask>> }} [opts]
+   *   `resumeFrom` restores sub-tasks a previous pulse already finished (from
+   *   the task's checkpoint) so they are not re-executed; only non-terminal
+   *   entries run again.
    * @returns {Promise<Map<string, SchedulerTask>>}
    */
-  async run(graph) {
+  async run(graph, opts = {}) {
     this.sharedContext = graph.sharedContext ?? '';
     this.candidateModels = await this.#resolveCandidateModels();
+    const resume = opts.resumeFrom ?? {};
 
     for (const task of graph.tasks) {
       /** @type {SchedulerTask} */
@@ -152,6 +164,23 @@ export class Scheduler {
         startedAt: null,
         completedAt: null,
       };
+      const prior = resume[task.id];
+      if (prior && (prior.state === 'complete' || prior.state === 'failed' || prior.state === 'blocked')) {
+        Object.assign(entry, {
+          state: prior.state,
+          assignment: prior.assignment ?? null,
+          attempts: Array.isArray(prior.attempts) ? prior.attempts : [],
+          output: prior.output ?? null,
+          error: prior.error ?? null,
+          startedAt: prior.startedAt ?? null,
+          completedAt: prior.completedAt ?? null,
+          resumed: true,
+        });
+      } else if (prior && Array.isArray(prior.attempts)) {
+        // Was in flight when the previous pulse died: keep the attempt
+        // record (it counts toward the ceiling) and run again.
+        entry.attempts = prior.attempts;
+      }
       this.tasksById.set(task.id, entry);
     }
 
@@ -161,7 +190,9 @@ export class Scheduler {
     await this.#loop();
 
     const anyFailed = [...this.tasksById.values()].some((t) => t.state === 'failed');
-    const finalState = this.cancelled ? 'cancelled' : anyFailed ? 'failed' : 'complete';
+    const anyPending = [...this.tasksById.values()].some((t) => t.state === 'pending' || t.state === 'queued' || t.state === 'running');
+    const finalState = this.cancelled ? 'cancelled' : anyPending ? 'drained' : anyFailed ? 'failed' : 'complete';
+    this.drained = finalState === 'drained';
     this.runState = finalState;
     this.#emit({ type: 'run-state', state: finalState });
 
@@ -227,8 +258,15 @@ export class Scheduler {
     while (!this.cancelled) {
       this.#propagateBlocked();
 
-      const ready = this.#readyTasks();
-      const dispatched = this.#dispatchReady(ready);
+      let dispatched = 0;
+      if (this.shouldDrain()) {
+        // Budget nearly spent: start nothing new; whatever is in flight
+        // finishes, the rest stays pending for the next pulse's resume.
+        if (this.inFlight.size === 0) break;
+      } else {
+        const ready = this.#readyTasks();
+        dispatched = this.#dispatchReady(ready);
+      }
 
       if (dispatched === 0 && this.inFlight.size === 0) break;
 
@@ -460,7 +498,7 @@ export class Scheduler {
     /** @type {import('../../agents/AgentAdapter.js').ExecuteResult|null} */
     let lastResult = null;
 
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    for (let attempt = 0; attempt < this.maxAttempts; attempt += 1) {
       if (signal.aborted) {
         return {
           ok: false,

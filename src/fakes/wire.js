@@ -18,6 +18,7 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { FakeProviderAgent, happyPathScript } from './fakeProvider.js';
 import { FakeGitHub } from './fakeGitHub.js';
+import { resolveStateDir } from '../state/paths.js';
 
 /**
  * @param {NodeJS.ProcessEnv} [env]
@@ -36,7 +37,9 @@ export function fakeDepsFromEnv(env = process.env) {
   if (providerSpec) {
     env.TITAN_NETWORK = 'off';
     const script = loadScript(providerSpec);
-    const fake = new FakeProviderAgent({ script, logPath: logDir ? join(logDir, 'provider-calls.jsonl') : null, pulseIndex });
+    // Health persists next to the real state so cooldowns survive across the
+    // separate pulse processes of a simulation, like a real provider's would.
+    const fake = new FakeProviderAgent({ script, logPath: logDir ? join(logDir, 'provider-calls.jsonl') : null, pulseIndex, healthPath: join(resolveStateDir(), 'providers-fake.json') });
     deps.fakeProvider = fake;
     deps.pools = { phase2: fake };
     deps.reviewerChat = fake.chat.bind(fake);

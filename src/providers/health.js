@@ -89,6 +89,25 @@ export class ProviderHealthStore {
     this.#path = path;
   }
 
+  get path() {
+    return this.#path;
+  }
+
+  /**
+   * Re-point the shared store at another state directory's file and reload
+   * from it. The engine calls this when it is given an explicit state dir
+   * (the harness, the tests, `titan simulate`) so the singletons every
+   * provider records into and the directory the pulse saves to are the same
+   * place. A no-op when the path is unchanged — production never moves.
+   * @param {string} path
+   */
+  usePath(path) {
+    if (path === this.#path) return;
+    this.#path = path;
+    this.#records = new Map();
+    this.#loaded = false;
+  }
+
   load() {
     if (this.#loaded) return;
     this.#loaded = true;

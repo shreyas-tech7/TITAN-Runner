@@ -9,3 +9,6 @@ dashboard/next-env.d.ts
 dashboard/tsconfig.tsbuildinfo
 *.log
 .DS_Store
+
+# Quarantined corrupt state bytes — local evidence only (see src/state/store.js)
+state/quarantine/

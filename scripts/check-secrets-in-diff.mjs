@@ -46,9 +46,12 @@ for (const line of diff.split('\n')) {
   if (!line.startsWith('+') || line.startsWith('+++')) continue;
   if (!file || EXCLUDED_PATHS.some((re) => re.test(file))) continue;
   scanned += 1;
+  // GitHub's own noreply addresses (the bot identity used for commits) are
+  // not personal data; every other email address on an added line is.
+  const candidate = line.replace(/[A-Za-z0-9._%+-]+@users\.noreply\.github\.com/g, 'noreply-address');
   for (const pattern of DIFF_PATTERNS) {
     pattern.lastIndex = 0;
-    if (pattern.test(line)) {
+    if (pattern.test(candidate)) {
       findings += 1;
       console.error(`Possible secret-shaped string added in ${file} (matched ${pattern})`);
       break;

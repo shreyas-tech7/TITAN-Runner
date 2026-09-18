@@ -60,6 +60,16 @@ jobs:
           # -> Actions -> Variables), comma-separated logins, empty by default.
           # See src/security/authorization.js.
           TITAN_TASK_AUTHORS: ${{ vars.TITAN_TASK_AUTHORS }}
+          # Durable checkpoints: the engine commits and pushes state/ at step
+          # boundaries (rate-limited, state files only, rebase-retry) so a
+          # killed job loses at most one step, not the whole pulse. The commit
+          # step below remains the final safety net. See
+          # src/engine/checkpointer.js. Pushed with GITHUB_TOKEN, so it can
+          # never re-trigger this workflow.
+          TITAN_CHECKPOINT: git
+          # Stop taking work well before timeout-minutes (10) kills the job,
+          # leaving time to checkpoint. Milliseconds.
+          TITAN_PULSE_BUDGET_MS: "420000"
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}

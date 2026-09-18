@@ -49,6 +49,9 @@ const BASE_ENV = {
   GITHUB_REPOSITORY: 'owner-login/titan-runner',
   TITAN_TASK_TIMEOUT_MS: '1500',
   TITAN_MAX_TASKS_PER_PULSE: '3',
+  // A short lease so a crashed pulse's lease is reclaimable by the very
+  // next (immediate) pulse; the harness waits pulseGapMs between pulses.
+  TITAN_LEASE_TTL_MS: '400',
   // Placeholder keys so config marks the five registry providers as
   // configured (health/breaker logic then runs exactly as with real keys);
   // the fakes sit under the real provider stack and TITAN_NETWORK=off
@@ -251,7 +254,7 @@ export const SCENARIOS = [
     ],
   },
   {
-    id: 'overlapping-pulses', group: 'fault', pulses: 2, concurrent: 2,
+    id: 'overlapping-pulses', group: 'fault', pulses: 2, concurrent: 2, env: { TITAN_LEASE_TTL_MS: '5000' },
     github: { issues: [issue(1, 'Race me', 'Two pulses start at the same instant.')] },
     provider: script([
       { kind: 'decompose', sequence: [graph([t('only', 'code-generation')])] },

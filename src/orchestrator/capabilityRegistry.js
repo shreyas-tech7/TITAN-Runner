@@ -315,6 +315,19 @@ export class CapabilityRegistry {
     this.#cachePath = cachePath;
   }
 
+  get cachePath() {
+    return this.#cachePath;
+  }
+
+  /** Re-point the shared registry at another state directory's cache and
+   *  reload (see `ProviderHealthStore#usePath` for why). */
+  usePath(cachePath) {
+    if (cachePath === this.#cachePath) return;
+    this.#cachePath = cachePath;
+    this.#records = new Map();
+    this.#loaded = false;
+  }
+
   /** Read the on-disk cache once, lazily. Corrupt/missing file -> seed-only. */
   load() {
     if (this.#loaded) return;

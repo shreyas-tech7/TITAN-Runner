@@ -22,8 +22,11 @@
  */
 
 const FENCE_PATTERN = /<!--\s*titan-task-v1\s*\n([\s\S]*?)-->/;
-const VALID_PRIORITIES = new Set(['low', 'normal', 'high']);
+const VALID_PRIORITIES = new Set(['low', 'normal', 'high', 'urgent']);
 const VALID_ROUTING_HINTS = new Set(['fast', 'cheap', 'careful', 'any']);
+const TASK_ID_PATTERN = /^(issue|manual)-[0-9]+$/;
+const MAX_DEPENDENCIES = 8;
+const MAX_TTL_HOURS = 24 * 30;
 
 /** Reverse of the browser's `quoteScalar()` — unescape `\\` and `\"`. */
 function unquoteScalar(raw) {
@@ -87,7 +90,20 @@ export function parseTaskYaml(issueBody) {
   const priority = VALID_PRIORITIES.has(scalars.priority) ? scalars.priority : 'normal';
   const routingHint = VALID_ROUTING_HINTS.has(scalars.routingHint) ? scalars.routingHint : 'any';
 
-  return { title, description, priority, routingHint, filedVia: scalars.filedVia ?? null };
+  // Lifecycle fields (all optional, all validated, all bounded — this text
+  // is attacker-adjacent even from an authorized filer):
+  //   dependsOn: issue-12, issue-13   — task ids this one waits for
+  //   deadline: 2026-10-01T00:00:00Z  — ISO 8601; runs first as it nears, expires after
+  //   ttlHours: 48                    — give up if not finished within this window
+  const dependsOn = typeof scalars.dependsOn === 'string'
+    ? [...new Set(scalars.dependsOn.split(/[,\s]+/).map((s) => s.trim()).filter((s) => TASK_ID_PATTERN.test(s)))].slice(0, MAX_DEPENDENCIES)
+    : [];
+  const deadlineMs = typeof scalars.deadline === 'string' ? Date.parse(scalars.deadline) : NaN;
+  const deadline = Number.isFinite(deadlineMs) ? new Date(deadlineMs).toISOString() : null;
+  const ttlRaw = Number(scalars.ttlHours);
+  const ttlHours = Number.isFinite(ttlRaw) && ttlRaw > 0 ? Math.min(ttlRaw, MAX_TTL_HOURS) : null;
+
+  return { title, description, priority, routingHint, filedVia: scalars.filedVia ?? null, dependsOn, deadline, ttlHours };
 }
 
 export default parseTaskYaml;

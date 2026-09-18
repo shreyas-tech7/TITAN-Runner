@@ -47,10 +47,13 @@
  * file so a killed process still leaves its call count behind.
  */
 import { appendFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { AgentAdapter } from '../agents/AgentAdapter.js';
 import { Phase2Agent } from '../agents/phase2Agent.js';
 import { BaseProvider } from '../providers/base.js';
+import { ProviderHealthStore } from '../providers/health.js';
 import { Registry, FAILOVER_ORDER } from '../providers/registry.js';
 import { mulberry32, pick } from './rng.js';
 
@@ -250,16 +253,30 @@ export class FakeProviderAgent extends Phase2Agent {
    */
   constructor(init = {}) {
     const engine = new FakeScript({ script: init.script, logPath: init.logPath, quiet: init.quiet, pulseIndex: init.pulseIndex });
+    // The fake keeps its own health table (cooldowns, breaker state) so the
+    // real registry logic runs against it; `healthPath` persists it across
+    // pulses of a simulation, otherwise it lives in a throwaway file.
+    const healthPath = init.healthPath ?? join(tmpdir(), `titan-fake-health-${process.pid}-${Math.random().toString(36).slice(2)}.json`);
+    const health = init.health ?? new ProviderHealthStore(healthPath);
+    const ids = init.providerIds ?? FAILOVER_ORDER;
+    for (const id of ids) health.markConfigured(id);
     const providers = new Map();
-    for (const id of init.providerIds ?? FAILOVER_ORDER) providers.set(id, new FakeUpstream({ id, engine, health: init.health }));
-    const registry = new Registry({ providers, healthStore: init.health });
+    for (const id of ids) providers.set(id, new FakeUpstream({ id, engine, health }));
+    const registry = new Registry({ providers, healthStore: health });
     super({ registry, maxConcurrency: init.maxConcurrency ?? 5 });
     this.engine = engine;
     this.registry = registry;
+    this.health = health;
+    this.persistHealth = Boolean(init.healthPath || init.health);
   }
 
   isConfigured() {
     return true;
+  }
+
+  /** Called by the engine at the end of a pulse; persists the fake's health table when it was given a path. */
+  flush() {
+    if (this.persistHealth) this.health.save();
   }
 
   get calls() {

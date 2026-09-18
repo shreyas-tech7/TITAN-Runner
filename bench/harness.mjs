@@ -71,7 +71,10 @@ function seedState(stateDir, scenario) {
   writeFileSync(join(stateDir, 'agents.json'), '{}');
   if (scenario.corrupt) {
     // Simulate a bad hand edit / conflict marker landing in a committed file
-    // after a good version existed (the engine under test may keep a backup).
+    // after a good version existed: the good version is what an engine with
+    // backups would have kept under state/backup/ on its previous save.
+    mkdirSync(join(stateDir, 'backup'), { recursive: true });
+    writeFileSync(join(stateDir, 'backup', scenario.corrupt), JSON.stringify(tasks, null, 2));
     const target = join(stateDir, scenario.corrupt);
     writeFileSync(target, '<<<<<<< HEAD\n{"version":1,"tasks":[\n=======\ngarbage\n>>>>>>> theirs\n');
   }
@@ -112,7 +115,8 @@ async function runScenario(scenario, opts, capabilities, rep) {
   const githubPath = join(scratch, 'github.json');
   writeFileSync(githubPath, JSON.stringify(scenario.github ?? { issues: [] }));
   const scripts = Array.isArray(scenario.provider) ? scenario.provider : [scenario.provider];
-  const controlBefore = readJsonOr(join(stateDir, 'control.json'), null);
+  const controlFields = (c) => ({ killSwitch: c?.killSwitch ?? false, drain: c?.drain ?? false, safeMode: c?.safeMode ?? false, autonomy: c?.autonomy ?? 'autonomous' });
+  const controlBefore = controlFields(readJsonOr(join(stateDir, 'control.json'), null));
 
   const pulses = [];
   const timelineByPulse = [];
@@ -135,13 +139,16 @@ async function runScenario(scenario, opts, capabilities, rep) {
       GITHUB_RUN_ID: `bench-${p}`,
     };
     const concurrent = scenario.concurrent ?? 1;
-    const runs = await Promise.all(Array.from({ length: concurrent }, (_, k) => runPulseProcess({ repoRoot: repo, stateDir, env: { ...env, TITAN_FAKE_PULSE_INDEX: concurrent > 1 ? `${p}.${k + 1}` : String(p) }, timeoutMs: 30_000 })));
+    const runs = await Promise.all(Array.from({ length: concurrent }, (_, k) => runPulseProcess({ repoRoot: repo, stateDir, env: { ...env, TITAN_FAKE_PULSE_INDEX: concurrent > 1 ? `${p}.${k + 1}` : String(p), GITHUB_RUN_ID: concurrent > 1 ? `bench-${p}-${k + 1}` : `bench-${p}` }, timeoutMs: 30_000 })));
     for (const r of runs) pulses.push({ pulse: p, exitCode: r.exitCode, signal: r.signal, wallMs: Math.round(r.wallMs * 10) / 10, peakRssKb: r.peakRssKb, summary: r.summary, stateBytesChanged: r.stateBytesChanged, stateFilesChanged: r.stateFilesChanged, stderrTail: r.stderr.slice(-600) });
     const tasksNow = readJsonOr(join(stateDir, 'tasks.json'), { tasks: [] }).tasks ?? [];
     timelineByPulse.push({ pulse: p, statuses: tasksNow.map((t) => ({ taskId: t.id, status: t.status })) });
     const allTerminal = tasksNow.length > 0 && tasksNow.every((t) => TERMINAL.has(t.status));
     if (allTerminal && pulsesToTerminal == null) pulsesToTerminal = p;
     if (allTerminal && !scenario.timed) break;
+    // The cron gap between pulses, shrunk: long enough for a crashed pulse's
+    // lease (TITAN_LEASE_TTL_MS) to expire before the next pulse looks.
+    if (p < planned) await new Promise((r) => setTimeout(r, scenario.pulseGapMs ?? 450));
   }
 
   const providerCalls = readJsonl(join(logs, 'provider-calls.jsonl')).map((c) => ({ ...c, pulse: Number(String(c.pulse).split('.')[0]) }));
@@ -150,14 +157,14 @@ async function runScenario(scenario, opts, capabilities, rep) {
   const githubIssues = readJsonOr(githubPath, { issues: [] }).issues ?? [];
   const eventTimeline = readTimeline(stateDir);
   const timeline = eventTimeline ?? timelineByPulse.flatMap((p, i) => p.statuses.map((s, j) => ({ seq: i * 1000 + j, taskId: s.taskId, status: s.status })));
-  const controlAfter = readJsonOr(join(stateDir, 'control.json'), null);
+  const controlAfter = controlFields(readJsonOr(join(stateDir, 'control.json'), null));
 
   const observed = {
     tasks, githubIssues, providerCalls, githubCalls, pulses, timeline, pulsesToTerminal,
     repoHasFile: (rel) => existsSync(join(repo, rel)),
     parentHasFile: (rel) => existsSync(join(scratch, rel)),
     controlUnchanged: JSON.stringify(controlBefore) === JSON.stringify(controlAfter),
-    controlDetail: controlBefore == null && controlAfter == null ? 'no control file on this engine' : 'control.json compared before/after',
+    controlDetail: `control before ${JSON.stringify(controlBefore)} after ${JSON.stringify(controlAfter)}`,
   };
 
   let checks = [];
