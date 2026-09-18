@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18T13:33:46.629Z",
+  "window": {
+    "events": 2,
+    "from": "2026-09-18T13:33:46.278Z",
+    "to": "2026-09-18T13:33:46.279Z",
+    "archived": {
+      "days": 0,
+      "events": 0,
+      "calls": 0
+    }
+  },
+  "tasks": {
+    "finished": 0,
+    "succeeded": 0,
+    "successRate": null,
+    "byOutcome": {
+      "complete": 0,
+      "failed": 0,
+      "blocked": 0,
+      "cancelled": 0,
+      "expired": 0,
+      "dead-lettered": 0,
+      "pr-open": 0
+    },
+    "deadLetteredByClass": {}
+  },
+  "reliability": {
+    "retriesByClass": {},
+    "parks": 0,
+    "loops": 0,
+    "remediations": 0
+  },
+  "verification": {
+    "runs": 0,
+    "passRate": null,
+    "unjudged": 0
+  },
+  "tools": {
+    "calls": 0,
+    "denied": 0
+  },
+  "policy": {
+    "approvalsRequested": 0,
+    "denials": 0
+  },
+  "cost": {
+    "modelCalls": 0,
+    "upstreamCalls": 0,
+    "tokens": 0,
+    "callsPerCompletedTask": null,
+    "callsPerPulse": null
+  },
+  "pulses": {
+    "count": 0,
+    "p50Ms": null,
+    "p95Ms": null,
+    "maxMs": null
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18T13:33:46.629Z",
+  "providers": {
+    "groq": {
+      "breaker": "disabled",
+      "until": null,
+      "reason": "no API key configured",
+      "explain": "groq: breaker disabled (no API key configured)",
+      "status": "not_configured",
+      "consecutiveFailures": 0,
+      "lastFailureClass": null,
+      "quota": {
+        "usedMinute": 0,
+        "usedDay": 0,
+        "dayLeft": 12000,
+        "perDay": 12000
+      }
+    },
+    "together": {
+      "breaker": "disabled",
+      "until": null,
+      "reason": "no API key configured",
+      "explain": "together: breaker disabled (no API key configured)",
+      "status": "not_configured",
+      "consecutiveFailures": 0,
+      "lastFailureClass": null,
+      "quota": {
+        "usedMinute": 0,
+        "usedDay": 0,
+        "dayLeft": 4000,
+        "perDay": 4000
+      }
+    },
+    "openrouter": {
+      "breaker": "half-open",
+      "until": null,
+      "reason": "cooldown over after 3 failure(s); next call is a probe",
+      "explain": "openrouter: breaker half-open (cooldown over after 3 failure(s); next call is a probe); error rate 66%; model inclusionai/ling-3.0-flash-vl:free",
+      "status": "error",
+      "consecutiveFailures": 3,
+      "lastFailureClass": null,
+      "quota": {
+        "usedMinute": 0,
+        "usedDay": 0,
+        "dayLeft": 180,
+        "perDay": 180
+      }
+    },
+    "gemini": {
+      "breaker": "closed",
+      "until": null,
+      "reason": "healthy",
+      "explain": "gemini: breaker closed (healthy); p50 1991 ms; model gemini-2.5-flash",
+      "status": "ok",
+      "consecutiveFailures": 0,
+      "lastFailureClass": null,
+      "quota": {
+        "usedMinute": 0,
+        "usedDay": 0,
+        "dayLeft": 1200,
+        "perDay": 1200
+      }
+    },
+    "huggingface": {
+      "breaker": "disabled",
+      "until": null,
+      "reason": "no API key configured",
+      "explain": "huggingface: breaker disabled (no API key configured)",
+      "status": "not_configured",
+      "consecutiveFailures": 0,
+      "lastFailureClass": null,
+      "quota": {
+        "usedMinute": 0,
+        "usedDay": 0,
+        "dayLeft": 800,
+        "perDay": 800
+      }
+    },
+    "freebuff": {
+      "breaker": "disabled",
+      "until": null,
+      "reason": "no public API to call",
+      "explain": "freebuff: breaker disabled (no public API to call); error rate 76%",
+      "status": "no_public_api",
+      "consecutiveFailures": 4,
+      "lastFailureClass": null,
+      "quota": null
+    },
+    "opencode": {
+      "breaker": "disabled",
+      "until": null,
+      "reason": "no API key configured",
+      "explain": "opencode: breaker disabled (no API key configured)",
+      "status": "not_configured",
+      "consecutiveFailures": 0,
+      "lastFailureClass": null,
+      "quota": {
+        "usedMinute": 0,
+        "usedDay": 0,
+        "dayLeft": 500,
+        "perDay": 500
+      }
+    }
+  }
+}

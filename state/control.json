@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "killSwitch": false,
+  "drain": false,
+  "safeMode": false,
+  "autonomy": "autonomous",
+  "updatedAt": "2026-09-18T13:33:46.273Z",
+  "updatedBy": null,
+  "reason": null
+}
