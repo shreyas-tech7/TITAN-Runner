@@ -40,7 +40,8 @@
  * tool-call envelope). Faults: `malformed-json`, `truncated`, `refusal`,
  * `empty`, `http-500`, `http-503`, `http-429` (+`retryAfterMs`),
  * `quota-402`, `unauthorized-401`, `model-404`, `dropped-connection`,
- * `timeout` (+`hangMs`), `kill` (SIGKILL this process at call start — the
+ * `error` (statusless; +`message`), `timeout` (+`hangMs`), `kill` (SIGKILL
+ * this process at call start — the
  * crash simulator); any reply may carry `thenKillAfterMs` to die *after*
  * replying. Every upstream call is logged as one JSON line on stdout
  * (`fake: "provider.call"`) and, when `logPath` is set, appended to that
@@ -56,6 +57,7 @@ import { BaseProvider } from '../providers/base.js';
 import { ProviderHealthStore } from '../providers/health.js';
 import { Registry, FAILOVER_ORDER } from '../providers/registry.js';
 import { mulberry32, pick } from './rng.js';
+import { now as clockNow } from '../lib/clock.js';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -141,7 +143,7 @@ export class FakeScript {
     const n = this.calls;
     const started = performance.now();
     const latency = pick(this.rng, step.latencyMs ?? this.script.latencyMs);
-    const record = (outcome) => this.record({ n, pulse: this.pulseIndex, kind: ctx.kind, taskId: ctx.taskId, modelId: ctx.providerId, outcome, ms: Math.round(performance.now() - started), at: new Date().toISOString() });
+    const record = (outcome) => this.record({ n, pulse: this.pulseIndex, kind: ctx.kind, taskId: ctx.taskId, modelId: ctx.providerId, outcome, ms: Math.round(performance.now() - started), at: clockNow().toISOString() });
 
     if (step.fault === 'kill') {
       record('fault:kill');
@@ -172,6 +174,10 @@ export class FakeScript {
           throw fakeError('UPSTREAM_ERROR', 404, 'Fake model not found', false);
         case 'dropped-connection':
           throw Object.assign(fakeError('UPSTREAM_ERROR', null, 'Fake unreachable: socket hang up', true), { code: 'ECONNRESET' });
+        case 'error':
+          // A statusless upstream error with nothing to classify on: the
+          // taxonomy's `transient` class.
+          throw fakeError('UPSTREAM_ERROR', null, step.message ?? 'Fake upstream error (no status)', false);
         case 'timeout': {
           const hang = step.hangMs ?? 300_000;
           await new Promise((resolve) => {

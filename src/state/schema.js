@@ -73,6 +73,14 @@ export const TASK_SCHEMA = {
     },
     history: { type: 'array', maxItems: 40, items: { type: 'object', required: ['at', 'to'], properties: { at: { type: 'string' }, from: { type: 'string', nullable: true }, to: { type: 'string' }, reason: { type: 'string', nullable: true, maxLength: 300 } } } },
     autonomy: { enum: ['dry-run', 'propose', 'approval', 'autonomous', null], nullable: true },
+    parks: { type: 'integer', minimum: 0 },
+    usage: { type: 'object', nullable: true, properties: { calls: { type: 'integer' }, tokens: { type: 'integer' }, wallMs: { type: 'integer' } } },
+    cancelRequested: { type: 'boolean' },
+    pauseRequested: { type: 'boolean' },
+    approvals: { type: 'object', nullable: true },
+    duplicateOf: { type: 'string', nullable: true },
+    retriedBy: { type: 'string', nullable: true },
+    issueUpdatedAtSeen: { type: 'string', nullable: true },
   },
 };
 
@@ -152,7 +160,21 @@ export const CHECKPOINT_SCHEMA = {
     sideEffects: { type: 'object' },
     verification: { type: 'object', nullable: true },
     remediations: { type: 'integer', minimum: 0 },
+    stepUsage: { type: 'object' },
+    usage: { type: 'object', nullable: true, properties: { calls: { type: 'integer', minimum: 0 }, tokens: { type: 'integer', minimum: 0 }, wallMs: { type: 'integer', minimum: 0 } } },
+    gate: { type: 'object', nullable: true },
     updatedAt: { type: 'string', format: 'date-time' },
+  },
+};
+
+export const QUOTA_SCHEMA = {
+  type: 'object',
+  required: ['version', 'providers'],
+  properties: {
+    version: { type: 'integer' },
+    updatedAt: { type: 'string' },
+    reserveFraction: { type: 'number', minimum: 0, maximum: 1 },
+    providers: { type: 'object' },
   },
 };
 
@@ -214,6 +236,6 @@ export function migrateTasks(file, opts = {}) {
 
 export default {
   TASKS_SCHEMA_VERSION, TASK_STATUSES, WAIT_REASONS, PRIORITIES,
-  TASK_SCHEMA, TASKS_FILE_SCHEMA, HEARTBEAT_SCHEMA, CONTROL_SCHEMA, EVENT_SCHEMA, CHECKPOINT_SCHEMA,
+  TASK_SCHEMA, TASKS_FILE_SCHEMA, HEARTBEAT_SCHEMA, CONTROL_SCHEMA, EVENT_SCHEMA, CHECKPOINT_SCHEMA, QUOTA_SCHEMA,
   taskDefaults, migrateTasks,
 };

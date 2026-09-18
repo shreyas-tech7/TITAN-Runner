@@ -22,6 +22,7 @@
 import { config } from '../config.js';
 import { ASPECT_CATEGORIES, isAspectCategory, isComplexityLevel } from './taxonomy.js';
 import { parseProbeJson } from './capabilityRegistry.js';
+import { classifyFailure, PARKABLE } from '../reliability/failures.js';
 
 /** Order of preference for which pool answers the decomposition prompt. */
 const DECOMPOSER_POOL_ORDER = ['freebuff', 'phase2', 'opencode'];
@@ -342,12 +343,29 @@ export async function decompose(masterPrompt, options = {}) {
 
   const first = await attemptDecompose(adapter, masterPrompt, maxTasks);
   if (first.ok) return first.graph;
+  throwIfParkable(first);
 
   const firstErrors = /** @type {{ ok: false, errors: string[] }} */ (first).errors;
   const retry = await attemptDecompose(adapter, masterPrompt, maxTasks, firstErrors);
   if (retry.ok) return retry.graph;
+  throwIfParkable(retry);
 
   return singleTaskFallback(masterPrompt);
+}
+
+/**
+ * A planning call that failed because the provider side is down, limited,
+ * or out of quota is not a reason to degrade the plan to a single step —
+ * the task should wait and plan properly later. Surface it as a classified
+ * error the engine parks on; every other failure keeps the retry + fallback.
+ * @param {{ ok: false, errors: string[], failure?: object|null }} attempt
+ */
+function throwIfParkable(attempt) {
+  const failure = attempt.failure;
+  if (!failure || !PARKABLE[failure.class]) return;
+  throw Object.assign(new Error(`planning call failed (${failure.class}): ${failure.message}`), {
+    code: 'PLAN_FAILED', class: failure.class, status: failure.status ?? null, retryAfterMs: failure.retryAfterMs ?? null, phase: 'plan',
+  });
 }
 
 /**
@@ -362,7 +380,7 @@ export async function decompose(masterPrompt, options = {}) {
  * @param {string} masterPrompt
  * @param {number} maxTasks
  * @param {string[]} [retryErrors]
- * @returns {Promise<{ ok: true, graph: TaskGraph } | { ok: false, errors: string[] }>}
+ * @returns {Promise<{ ok: true, graph: TaskGraph } | { ok: false, errors: string[], failure?: object }>}
  */
 export async function attemptDecompose(adapter, masterPrompt, maxTasks, retryErrors) {
   const promptText = buildDecomposePrompt(masterPrompt, maxTasks, retryErrors);
@@ -376,7 +394,7 @@ export async function attemptDecompose(adapter, masterPrompt, maxTasks, retryErr
   };
 
   const result = await adapter.execute(pseudoTask, '', {});
-  if (!result.ok) return { ok: false, errors: [result.error?.message ?? 'decomposition call failed'] };
+  if (!result.ok) return { ok: false, errors: [result.error?.message ?? 'decomposition call failed'], failure: classifyFailure(result.error ?? { message: 'decomposition call failed' }) };
 
   const parsed = parseProbeJson(result.output);
   if (!parsed || typeof parsed !== 'object') {

@@ -29,6 +29,7 @@ export function resolveStateDir(explicit) {
  * @property {string} heartbeat
  * @property {string} pulseHistory
  * @property {string} providers
+ * @property {string} quota
  * @property {string} runs
  * @property {string} digests
  * @property {string} reviews
@@ -46,6 +47,7 @@ export function statePaths(stateDir = resolveStateDir()) {
     heartbeat: join(stateDir, 'heartbeat.json'),
     pulseHistory: join(stateDir, 'pulse-history.json'),
     providers: join(stateDir, 'providers.json'),
+    quota: join(stateDir, 'quota.json'),
     runs: join(stateDir, 'runs'),
     digests: join(stateDir, 'digests'),
     reviews: join(stateDir, 'reviews'),

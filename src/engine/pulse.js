@@ -17,10 +17,18 @@
  *      lease acquired (O_EXCL), `running`, checkpoint
  *   7. per task: reviewer gate (recorded in the checkpoint, so a resume never
  *      re-asks), plan → execute → synthesize with checkpoints at every step,
- *      drain to `waiting(pulse-budget)` when the budget runs out, deliver
- *      through the idempotent side-effect ledger, terminal transition
- *   8. retention (runs, events, tasks), heartbeat, pulse history,
- *      `pulse.finished`, final forced checkpoint
+ *      drain to `waiting(pulse-budget)` when the budget or the pulse's
+ *      model-call ceiling runs out, park to `waiting(provider | quota)` when
+ *      the provider side is the problem (dead-letter past the park ceiling),
+ *      dead-letter a poisoned or over-budget task, deliver through the
+ *      idempotent side-effect ledger, terminal transition
+ *   8. retention (runs, events, tasks), quota ledger, heartbeat, pulse
+ *      history, `pulse.finished`, final forced checkpoint
+ *
+ * Budgets (env, all optional): TITAN_PULSE_BUDGET_MS, TITAN_PULSE_MAX_MODEL_CALLS,
+ * TITAN_TASK_MAX_MODEL_CALLS, TITAN_TASK_MAX_TOKENS, TITAN_TASK_MAX_WALL_MS,
+ * TITAN_MAX_PARKS. Model calls are counted at the adapter (every pool);
+ * upstream calls at the registry (its routing decisions become events).
  *
  * Every state write goes through `state/store.js`; every status change
  * through `task/lifecycle.js`; every side effect through
@@ -40,7 +48,12 @@ import { transition, isTerminal, effectivePriority } from '../task/lifecycle.js'
 import { PulseBudget } from './pulseBudget.js';
 import { Checkpointer, checkpointModeFromEnv } from './checkpointer.js';
 import { SideEffectLedger } from './sideEffects.js';
-import { runOrchestration, newCheckpoint } from './orchestrate.js';
+import { runOrchestration, newCheckpoint, usageOf } from './orchestrate.js';
+import { QuotaLedger } from '../reliability/quota.js';
+import { QUOTA_SCHEMA } from '../state/schema.js';
+import { registry as defaultRegistry } from '../providers/registry.js';
+import { onAdapterCall } from '../agents/AgentAdapter.js';
+import { now as clockNow } from '../lib/clock.js';
 
 import { syncIssuesIntoTasks, reconcileIssueState, addManualTask } from '../issueSync.js';
 import { defaultGitHubClient } from '../github.js';
@@ -153,6 +166,7 @@ function primeProviderHealth() {
  * @property {'none'|'git'} [checkpointMode]
  * @property {(event: object) => void} [onEvent]
  * @property {boolean} [echoEvents]
+ * @property {{ pulseMaxCalls?: number, taskMaxCalls?: number, taskMaxTokens?: number, taskMaxWallMs?: number, maxParks?: number }} [limits]
  */
 
 /**
@@ -160,7 +174,7 @@ function primeProviderHealth() {
  * @returns {Promise<object>} The summary the CLI prints.
  */
 export async function runPulse(deps = {}) {
-  const now = deps.now ?? (() => new Date());
+  const now = deps.now ?? clockNow;
   const github = deps.github ?? defaultGitHubClient;
   const dryRun = deps.dryRun ?? config.dryRun;
   const manualTask = deps.manualTask ?? process.env.TITAN_MANUAL_TASK ?? '';
@@ -184,12 +198,58 @@ export async function runPulse(deps = {}) {
   const budget = new PulseBudget({ budgetMs: deps.budgetMs ?? positiveInt(process.env.TITAN_PULSE_BUDGET_MS, 7 * 60_000) });
   const checkpointer = new Checkpointer({ mode: deps.checkpointMode ?? checkpointModeFromEnv(), stateDir, events });
   const maxAttempts = positiveInt(process.env.TITAN_TASK_MAX_ATTEMPTS, 3);
+  const limits = {
+    pulseMaxCalls: deps.limits?.pulseMaxCalls ?? positiveInt(process.env.TITAN_PULSE_MAX_MODEL_CALLS, 120),
+    taskMaxCalls: deps.limits?.taskMaxCalls ?? positiveInt(process.env.TITAN_TASK_MAX_MODEL_CALLS, 40),
+    taskMaxTokens: deps.limits?.taskMaxTokens ?? positiveInt(process.env.TITAN_TASK_MAX_TOKENS, 200_000),
+    taskMaxWallMs: deps.limits?.taskMaxWallMs ?? positiveInt(process.env.TITAN_TASK_MAX_WALL_MS, 60 * 60_000),
+    maxParks: deps.limits?.maxParks ?? positiveInt(process.env.TITAN_MAX_PARKS, 6),
+  };
+
+  // The quota ledger and the routing-decision sink are attached to every
+  // registry this pulse can route through (the shared production one, and a
+  // fake pool's own) for the duration of the pulse, and detached at the end
+  // so an in-process caller running several pulses never leaks one into the
+  // next.
+  const quota = new QuotaLedger({ path: store.paths.quota, now, writeJson: (path, data) => store.writeJson(path, data, { backup: false, schema: QUOTA_SCHEMA }) });
+  const usage = { modelCalls: 0, upstreamCalls: 0, tokens: 0, routingFailures: 0 };
+  const registries = new Set([defaultRegistry]);
+  for (const pool of Object.values(deps.pools ?? {})) {
+    if (typeof pool?.registry?.useQuota === 'function') registries.add(pool.registry);
+  }
+  const decisionSink = (d) => {
+    usage.upstreamCalls += d.tried.length;
+    if (!d.chosen) usage.routingFailures += 1;
+    events.append('routing.decision', {
+      taskId: ctx.activeTaskId ?? null, service: d.service, provider: d.chosen, outcome: d.chosen ? 'routed' : 'failed',
+      tried: d.tried, skipped: d.skipped.map((x) => x.id), failureClass: d.failureClass ?? null, durationMs: Math.round(d.ms),
+    });
+  };
+  for (const r of registries) {
+    r.useQuota(quota);
+    r.useDecisionSink(decisionSink);
+  }
+  const offAdapterCalls = onAdapterCall((call) => {
+    usage.modelCalls += 1;
+    if (Number.isFinite(call.tokensUsed)) usage.tokens += call.tokensUsed;
+    ctx.activeUsage?.(call);
+  });
+  const detach = () => {
+    offAdapterCalls();
+    for (const r of registries) {
+      r.useQuota(null);
+      r.useDecisionSink(null);
+    }
+  };
 
   const ctx = {
-    github, now, events, store, leases, budget, checkpointer, pulseId,
+    github, now, events, store, leases, budget, checkpointer, pulseId, limits, quota, usage,
     pools: deps.pools ?? null,
     poolsFactory: deps.poolsFactory ?? defaultPools,
     reviewerOpts: { ...(deps.reviewerChat ? { chatFn: deps.reviewerChat } : {}), reviewsDir: store.paths.reviews },
+    /** Set while a task is being processed: attributes adapter calls to it. */
+    activeUsage: null,
+    activeTaskId: null,
   };
 
   primeProviderHealth();
@@ -199,7 +259,7 @@ export async function runPulse(deps = {}) {
   const loadedSnapshot = JSON.stringify(tasksFile.tasks);
   ctx.loadedSnapshot = loadedSnapshot;
 
-  events.append('pulse.started', { budgetMs: budget.budgetMs, tasks: tasksFile.tasks.length, killSwitch: control.killSwitch, drain: control.drain, autonomy: control.autonomy, repairs: store.repairs.length });
+  events.append('pulse.started', { budgetMs: budget.budgetMs, maxModelCalls: limits.pulseMaxCalls, tasks: tasksFile.tasks.length, killSwitch: control.killSwitch, drain: control.drain, autonomy: control.autonomy, repairs: store.repairs.length });
 
   const counts = { claimed: 0, completed: 0, failed: 0, parked: 0, skippedLeased: 0 };
   /** Tasks this pulse leased — their version wins in any merge on save. */
@@ -254,6 +314,7 @@ export async function runPulse(deps = {}) {
     for (const pool of Object.values(ctx.pools ?? {})) {
       if (typeof pool.flush === 'function') pool.flush();
     }
+    quota.save();
 
     const pruneResult = pruneRuns({ maxFiles: config.retention.maxRunFiles, runsDir: store.paths.runs, digestsDir: store.paths.digests });
     if (pruneResult.prunedCount > 0) log.info('pruned old run records into a digest', pruneResult);
@@ -270,31 +331,37 @@ export async function runPulse(deps = {}) {
   const durationMs = Date.now() - pulseStartedAt;
   const finishedAt = now().toISOString();
   try {
-    store.saveTasks(tasksFile, { loadedSnapshot, ownedIds: owned });
-  } catch (err) {
-    pulseError = pulseError ?? redactString(String(err));
-    log.error('saving tasks failed', { error: String(err) });
-  }
-  store.saveHeartbeat({
-    version: 1,
-    lastPulseAt: finishedAt,
-    lastPulseStatus: pulseError ? 'error' : 'ok',
-    lastPulseDurationMs: durationMs,
-    lastPulseTasksClaimed: counts.claimed,
-    lastPulseTasksCompleted: counts.completed,
-    lastPulseTasksFailed: counts.failed,
-    lastPulseError: pulseError,
-    consecutivePulseFailures: pulseError ? (heartbeat.consecutivePulseFailures ?? 0) + 1 : 0,
-    totalPulses: (heartbeat.totalPulses ?? 0) + 1,
-    cadenceMinutes: heartbeat.cadenceMinutes ?? 15,
-    pulseId,
-    budget: budget.snapshot(),
-  });
-  appendPulseHistory({ at: finishedAt, durationMs, status: pulseError ? 'error' : 'ok', tasksClaimed: counts.claimed, tasksCompleted: counts.completed, tasksFailed: counts.failed }, store.paths.pulseHistory);
-  store.written.add(store.paths.pulseHistory);
+    try {
+      store.saveTasks(tasksFile, { loadedSnapshot, ownedIds: owned });
+    } catch (err) {
+      pulseError = pulseError ?? redactString(String(err));
+      log.error('saving tasks failed', { error: String(err) });
+    }
+    store.saveHeartbeat({
+      version: 1,
+      lastPulseAt: finishedAt,
+      lastPulseStatus: pulseError ? 'error' : 'ok',
+      lastPulseDurationMs: durationMs,
+      lastPulseTasksClaimed: counts.claimed,
+      lastPulseTasksCompleted: counts.completed,
+      lastPulseTasksFailed: counts.failed,
+      lastPulseError: pulseError,
+      consecutivePulseFailures: pulseError ? (heartbeat.consecutivePulseFailures ?? 0) + 1 : 0,
+      totalPulses: (heartbeat.totalPulses ?? 0) + 1,
+      cadenceMinutes: heartbeat.cadenceMinutes ?? 15,
+      pulseId,
+      budget: budget.snapshot(),
+      modelCalls: usage.modelCalls,
+    });
+    appendPulseHistory({ at: finishedAt, durationMs, status: pulseError ? 'error' : 'ok', tasksClaimed: counts.claimed, tasksCompleted: counts.completed, tasksFailed: counts.failed, modelCalls: usage.modelCalls }, store.paths.pulseHistory);
+    store.written.add(store.paths.pulseHistory);
 
-  events.append('pulse.finished', { durationMs, outcome: pulseError ? 'error' : 'ok', ...counts, budget: budget.snapshot(), reconcile: reconcileCounts, checkpoint: checkpointer.summary() });
-  await checkpointer.checkpoint('pulse-end', { force: true });
+    const quotaUsed = Object.fromEntries(Object.entries(quota.snapshot()).filter(([, q]) => q.usedDay > 0).map(([id, q]) => [id, { usedDay: q.usedDay, dayLeft: q.dayLeft, usedMinute: q.usedMinute }]));
+    events.append('pulse.finished', { durationMs, outcome: pulseError ? 'error' : 'ok', ...counts, calls: usage.modelCalls, upstreamCalls: usage.upstreamCalls, tokens: usage.tokens, routingFailures: usage.routingFailures, quota: quotaUsed, budget: budget.snapshot(), reconcile: reconcileCounts, checkpoint: checkpointer.summary() });
+    await checkpointer.checkpoint('pulse-end', { force: true });
+  } finally {
+    detach();
+  }
 
   return {
     pulse: 'complete',
@@ -304,6 +371,8 @@ export async function runPulse(deps = {}) {
     tasksCompleted: counts.completed,
     tasksFailed: counts.failed,
     tasksParked: counts.parked,
+    modelCalls: usage.modelCalls,
+    upstreamCalls: usage.upstreamCalls,
     dryRun,
     error: pulseError,
     budget: budget.snapshot(),
@@ -339,6 +408,10 @@ async function claimAndRun(tasksFile, ctx, counts, control) {
     if (counts.claimed >= maxTasks) break;
     if (!budget.canClaim()) {
       events.append('claim.skipped', { taskId: task.id, outcome: 'pulse-budget', remainingMs: budget.remainingMs() });
+      break;
+    }
+    if (ctx.usage.modelCalls >= ctx.limits.pulseMaxCalls) {
+      events.append('claim.skipped', { taskId: task.id, outcome: 'pulse-call-budget', calls: ctx.usage.modelCalls, max: ctx.limits.pulseMaxCalls });
       break;
     }
     const depState = dependencyState(task, byId);
@@ -387,14 +460,51 @@ async function claimAndRun(tasksFile, ctx, counts, control) {
 /* -------------------------------------------------------------------------- */
 
 async function processTask(task, ctx, control) {
-  const { github, now, events, store, leases, budget } = ctx;
+  ctx.activeTaskId = task.id;
+  try {
+    await processTaskInner(task, ctx, control);
+  } finally {
+    ctx.activeTaskId = null;
+    ctx.activeUsage = null;
+  }
+}
+
+/** A short, reviewer-safe line for the issue when the engine gives a task up for good. */
+function deadLetterNote(reason) {
+  return `TITAN-Runner has stopped working on this task: ${reason} An authorized user can retry it later with \`/titan retry\`.`;
+}
+
+async function processTaskInner(task, ctx, control) {
+  const { github, now, events, store, leases, budget, limits } = ctx;
   const existing = store.loadCheckpoint(task.id);
   const cp = existing ?? newCheckpoint(task.id);
   task.runId = cp.runId;
   const pools = ctx.pools ?? ctx.poolsFactory();
   const startedMs = Date.now();
 
+  // ---- usage and budgets ----------------------------------------------------
+  // Usage accumulates across pulses in the checkpoint; this pulse's calls
+  // are attributed live through the adapter hook and folded in at every
+  // persist, so a crash loses at most one step's worth of accounting.
+  const base = usageOf(cp);
+  const live = { calls: 0, tokens: 0 };
+  ctx.activeUsage = (call) => {
+    live.calls += 1;
+    if (Number.isFinite(call.tokensUsed)) live.tokens += call.tokensUsed;
+  };
+  const usageNow = () => ({ calls: base.calls + live.calls, tokens: base.tokens + live.tokens, wallMs: base.wallMs + (Date.now() - startedMs) });
+  const overBudget = () => {
+    const u = usageNow();
+    if (u.calls > limits.taskMaxCalls) return `model calls ${u.calls} exceed the task ceiling of ${limits.taskMaxCalls}`;
+    if (u.tokens > limits.taskMaxTokens) return `tokens ${u.tokens} exceed the task ceiling of ${limits.taskMaxTokens}`;
+    if (u.wallMs > limits.taskMaxWallMs) return `active time ${Math.round(u.wallMs / 1000)} s exceeds the task ceiling of ${Math.round(limits.taskMaxWallMs / 1000)} s`;
+    return null;
+  };
+  const pulseCallsSpent = () => ctx.usage.modelCalls >= limits.pulseMaxCalls;
+
   const persist = async (checkpoint, reason) => {
+    checkpoint.usage = usageNow();
+    task.usage = checkpoint.usage;
     store.saveCheckpoint(checkpoint);
     leases.renew(task.id);
     await ctx.checkpointer.checkpoint(`cp:${task.id}:${reason}`);
@@ -407,6 +517,21 @@ async function processTask(task, ctx, control) {
   // A resumed task may have died between an effect landing on GitHub and
   // the ledger being saved: check GitHub for the marker before re-firing.
   ledger.forceRemoteCheck = existing != null;
+
+  const deadLetter = async (code, cls, message, note) => {
+    const at = now().toISOString();
+    await ledger.comment(task.issueNumber, `dead-letter:${cp.runId}`, deadLetterNote(note));
+    transition(task, 'dead-lettered', { now, events, reason: code.toLowerCase().replace(/_/g, ' '), error: message, failure: { class: cls, code, message, at } });
+    task.usage = usageNow();
+    store.deleteCheckpoint(task.id);
+  };
+
+  // A resumed task that already spent its budget is not given another run.
+  const overBefore = overBudget();
+  if (overBefore) {
+    await deadLetter('TASK_BUDGET', 'budget_exhausted', `Dead-lettered: ${overBefore}.`, `${overBefore}.`);
+    return;
+  }
 
   // ---- gate (once per run; recorded so a resume never re-asks) ----------
   if (!cp.gate) {
@@ -424,6 +549,7 @@ async function processTask(task, ctx, control) {
     const error = cp.gate.reason ?? 'Blocked by the Reviewer Gate.';
     await ledger.comment(task.issueNumber, `blocked:${cp.runId}`, `TITAN-Runner declined this task: ${redactString(error)}`);
     transition(task, 'blocked', { now, events, reason: 'reviewer gate', error, failure: { class: 'policy_blocked', code: 'GATE_BLOCK', message: error, at: now().toISOString() } });
+    task.usage = usageNow();
     store.deleteCheckpoint(task.id);
     return;
   }
@@ -433,7 +559,7 @@ async function processTask(task, ctx, control) {
   try {
     result = await runOrchestration({
       task, checkpoint: cp, pools, capabilityRegistry, events, now,
-      shouldDrain: () => budget.shouldDrain() || task.cancelRequested === true || task.pauseRequested === true,
+      shouldDrain: () => budget.shouldDrain() || pulseCallsSpent() || overBudget() != null || task.cancelRequested === true || task.pauseRequested === true,
       onCheckpoint: (checkpoint, reason) => persist(checkpoint, reason),
       taskTimeoutMs: config.orchestrator.taskTimeoutMs,
       maxSubtasks: config.orchestrator.maxSubtasksPerRun,
@@ -443,6 +569,7 @@ async function processTask(task, ctx, control) {
     log.error('task orchestration threw', { taskId: task.id, error: message });
     await ledger.comment(task.issueNumber, `error:${cp.runId}`, `TITAN-Runner hit an internal error on this task: ${message}`);
     transition(task, 'failed', { now, events, reason: 'internal error', error: message, failure: { class: 'permanent', code: 'INTERNAL', message, at: now().toISOString() } });
+    task.usage = usageNow();
     store.deleteCheckpoint(task.id);
     return;
   }
@@ -460,7 +587,35 @@ async function processTask(task, ctx, control) {
       transition(task, 'paused', { now, events, reason: 'paused by an authorized command' });
       return;
     }
+    const over = overBudget();
+    if (over) {
+      await deadLetter('TASK_BUDGET', 'budget_exhausted', `Dead-lettered: ${over}.`, `${over}.`);
+      return;
+    }
+    await persist(cp, 'drained');
+    if (pulseCallsSpent()) {
+      transition(task, 'waiting', { now, events, reason: `pulse model-call ceiling (${limits.pulseMaxCalls}) reached; checkpoint retained`, waitReason: 'pulse-budget', wakeAt: now().toISOString() });
+      return;
+    }
     transition(task, 'waiting', { now, events, reason: 'pulse budget exhausted; checkpoint retained', waitReason: 'pulse-budget', wakeAt: now().toISOString() });
+    return;
+  }
+
+  // ---- parked: the provider side is the problem; wait, do not fail ---------
+  if (result.parked) {
+    task.parks = (task.parks ?? 0) + 1;
+    const { reason, wakeInMs, why, failureClass, code } = result.parked;
+    if (task.parks > limits.maxParks) {
+      const message = `Dead-lettered: parked ${task.parks} times waiting on ${reason} (${why}).`;
+      await deadLetter('PARK_CEILING', reason === 'quota' ? 'budget_exhausted' : 'provider_down', message, `it waited ${task.parks} times for ${reason === 'quota' ? 'quota to return' : 'a provider to recover'} and never got through.`);
+      return;
+    }
+    await persist(cp, 'parked');
+    const wakeAt = new Date(now().getTime() + Math.max(1000, wakeInMs ?? 0)).toISOString();
+    transition(task, 'waiting', {
+      now, events, reason: `parked on ${reason} (${why}); wakes at ${wakeAt}`, waitReason: reason, wakeAt,
+      failure: { class: failureClass ?? (reason === 'quota' ? 'budget_exhausted' : 'provider_down'), code: code ?? null, message: why, at: now().toISOString() },
+    });
     return;
   }
 
@@ -483,7 +638,17 @@ async function processTask(task, ctx, control) {
       await ledger.comment(task.issueNumber, `pr-refused:${cp.runId}`, `TITAN-Runner did not open a pull request for this task: ${redactString(error)}`);
       transition(task, 'failed', { now, events, reason: `self-improve ${final.status}`, error, failure: { class: final.status === 'refused' || final.status === 'blocked' ? 'policy_blocked' : 'permanent', code: String(final.status).toUpperCase(), message: error, at: now().toISOString() } });
     }
+    task.usage = usageNow();
     store.deleteCheckpoint(task.id);
+    return;
+  }
+
+  const failedStep = [...result.tasksById.values()].find((t) => t.state === 'failed');
+  if (!result.ok && failedStep?.error?.class === 'poisoned') {
+    // The same failure kept recurring: no amount of retrying will change
+    // it, and a retry storm is exactly what the taxonomy exists to prevent.
+    const message = `Dead-lettered: ${failedStep.error.message}`;
+    await deadLetter('NO_PROGRESS', 'poisoned', message, `step ${failedStep.id} kept failing the same way (${redactString(failedStep.error.message)}).`);
     return;
   }
 
@@ -492,10 +657,10 @@ async function processTask(task, ctx, control) {
     await ledger.closeIssue(task.issueNumber, `close:${cp.runId}`);
     transition(task, 'complete', { now, events, reason: 'all steps complete' });
   } else {
-    const failedStep = [...result.tasksById.values()].find((t) => t.state === 'failed');
     const message = failedStep?.error?.message ?? 'one or more steps failed';
     transition(task, 'failed', { now, events, reason: 'a step failed', error: message, failure: { class: failedStep?.error?.class ?? 'permanent', code: failedStep?.error?.code ?? 'STEP_FAILED', message, at: now().toISOString() } });
   }
+  task.usage = usageNow();
   store.deleteCheckpoint(task.id);
 }
 

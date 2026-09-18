@@ -55,3 +55,24 @@ complexity.
 - **D-14** No new npm dependency for schema validation: a 120-line validator
   covering the JSON Schema keywords the state files need beats a multi-MB
   dependency on a zero-maintenance public repo.
+- **D-15** One retry authority. The provider base no longer retries HTTP
+  statuses (429/5xx) inline, only a statusless network fault, once; the registry
+  fails over across at most three providers for an `auto` call and not at all for
+  a named one. Three stacked retry layers were the 15-call storm the baseline
+  measured for one doomed step.
+- **D-16** A provider-side fault (outage, rate limit, quota) parks the task as
+  `waiting(provider | quota)` with a wake time on a 5 m → 3 h ladder rather than
+  failing it; our own faults (permanent, poisoned, policy) never wait. A task
+  that parks more than `TITAN_MAX_PARKS` times is dead-lettered with one note.
+- **D-17** Budgets are ceilings, not targets: per task (calls, tokens, active
+  wall time, accumulated in the checkpoint) and per pulse (calls). Exceeding a
+  task ceiling is a `budget_exhausted` dead-letter; hitting the pulse ceiling
+  drains to `waiting(pulse-budget)` and stops claiming.
+- **D-18** The quota ledger is a scheduling input with conservative documented
+  defaults, not a guarantee; a real 429 still opens the breaker. Limits are
+  overridable per provider through the environment.
+- **D-19** A planning call that fails on the provider side parks the task; it is
+  not degraded to a single-step plan (the old fallback stays for parse failures).
+- **D-20** The engine clock (`lib/clock.js`) can be offset only while the fakes
+  are wired, so the harness can simulate the cron gap and a production pulse can
+  never be moved off the wall clock by an environment variable.

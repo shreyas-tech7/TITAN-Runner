@@ -16,6 +16,7 @@
  *                  "head": {"ref":"…","sha":"…"}, "checks": "success" } ] }
  */
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { now as clockNow } from '../lib/clock.js';
 
 export class FakeGitHub {
   /**
@@ -24,7 +25,7 @@ export class FakeGitHub {
   constructor(init = {}) {
     this.fixturePath = init.fixturePath ?? null;
     this.logPath = init.logPath ?? null;
-    this.now = init.now ?? (() => new Date());
+    this.now = init.now ?? clockNow;
     this.repository = init.repository ?? 'fake-owner/fake-repo';
     this.pulseIndex = init.pulseIndex ?? null;
     this.data = { issues: [], pulls: [] };

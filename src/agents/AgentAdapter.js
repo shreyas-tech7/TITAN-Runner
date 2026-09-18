@@ -23,6 +23,33 @@ import { redactString } from '../lib/redact.js';
 import { providerHealth } from '../providers/health.js';
 
 /**
+ * Every model call any pool makes passes through `execute()` or
+ * `probeCapabilities()` below, so this is the one place a pulse can count
+ * them (its call budgets) without each pool reporting separately.
+ * @type {Set<(call: { pool: string, modelId: string|null, kind: 'execute'|'probe', ok: boolean, ms: number, tokensUsed: number|null }) => void>}
+ */
+const callListeners = new Set();
+
+/**
+ * Subscribe to every adapter-level model call. Returns the unsubscribe.
+ * @param {(call: { pool: string, modelId: string|null, kind: 'execute'|'probe', ok: boolean, ms: number, tokensUsed: number|null }) => void} fn
+ */
+export function onAdapterCall(fn) {
+  callListeners.add(fn);
+  return () => callListeners.delete(fn);
+}
+
+function notifyCall(call) {
+  for (const fn of callListeners) {
+    try {
+      fn(call);
+    } catch {
+      // a listener must never break a pool
+    }
+  }
+}
+
+/**
  * Pools tracked in `state/providers.json` health/dashboard terms. `phase2`
  * is deliberately excluded: it fans out to the five registry providers,
  * each already tracked individually by `providers/base.js#chat()` — a
@@ -113,11 +140,13 @@ export class AgentAdapter {
       if (trackHealth) {
         providerHealth.recordOutcome(this.pool, { ok: true, latencyMs: ms, model: raw?.modelId ?? null });
       }
+      const tokensUsed = Number.isFinite(raw?.tokensUsed) ? raw.tokensUsed : null;
+      notifyCall({ pool: this.pool, modelId: raw?.modelId ?? options.modelId ?? null, kind: 'execute', ok: true, ms, tokensUsed });
       return {
         ok: true,
         output: typeof raw?.output === 'string' ? raw.output : '',
         modelId: raw?.modelId ?? options.modelId ?? null,
-        tokensUsed: Number.isFinite(raw?.tokensUsed) ? raw.tokensUsed : null,
+        tokensUsed,
         ms,
         error: null,
       };
@@ -131,6 +160,11 @@ export class AgentAdapter {
           message: err instanceof Error ? err.message : String(err),
         });
       }
+      notifyCall({ pool: this.pool, modelId: options.modelId ?? null, kind: 'execute', ok: false, ms, tokensUsed: null });
+      // The failure keeps the fields the taxonomy classifies on (status,
+      // Retry-After, an already-known class from the registry's aggregate)
+      // so the scheduler's retry policy sees what the provider said, not
+      // just a message.
       return {
         ok: false,
         output: null,
@@ -140,6 +174,9 @@ export class AgentAdapter {
         error: {
           code: err?.code ?? 'UPSTREAM_ERROR',
           message: String(redactString(err instanceof Error ? err.message : String(err))),
+          status: Number.isFinite(err?.status) ? err.status : null,
+          retryAfterMs: Number.isFinite(err?.retryAfterMs) ? err.retryAfterMs : null,
+          ...(typeof err?.failureClass === 'string' ? { class: err.failureClass } : {}),
         },
       };
     } finally {
@@ -158,7 +195,15 @@ export class AgentAdapter {
    * @returns {Promise<string>} Raw model text — the caller (capabilityRegistry) parses it.
    */
   async probeCapabilities(modelId, opts = {}) {
-    return this._doProbeCapabilities(modelId, opts);
+    const started = performance.now();
+    try {
+      const text = await this._doProbeCapabilities(modelId, opts);
+      notifyCall({ pool: this.pool, modelId, kind: 'probe', ok: true, ms: Math.round(performance.now() - started), tokensUsed: null });
+      return text;
+    } catch (err) {
+      notifyCall({ pool: this.pool, modelId, kind: 'probe', ok: false, ms: Math.round(performance.now() - started), tokensUsed: null });
+      throw err;
+    }
   }
 
   /* ---- subclass hooks — never called in offline mode by the base class,   */
@@ -217,6 +262,9 @@ export class AgentAdapter {
         'answer has no files (a description, a plan, an analysis), just write normal prose with ' +
         'no JSON block at all.',
     );
+    // Bounded repair loop (reliability/outputRepair.js): the scheduler sets
+    // this after an unusable answer and clears it after a usable one.
+    if (typeof task.repairHint === 'string' && task.repairHint.length > 0) lines.push(task.repairHint);
     return lines.join('\n\n');
   }
 }

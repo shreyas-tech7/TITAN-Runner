@@ -49,6 +49,10 @@
 import { rankModels } from './router.js';
 import { COMPLEXITY_LEVELS, isTaskState } from './taxonomy.js';
 import { config } from '../config.js';
+import { classifyFailure, PARKABLE } from '../reliability/failures.js';
+import { decideRetry } from '../reliability/retryPolicy.js';
+import { validateSubtaskOutput, repairHintFor } from '../reliability/outputRepair.js';
+import { LoopDetector } from '../reliability/loopDetector.js';
 
 /** Same-model retry once, then one more attempt on the next-best model. */
 const MAX_ATTEMPTS = 3;
@@ -165,7 +169,11 @@ export class Scheduler {
         completedAt: null,
       };
       const prior = resume[task.id];
-      if (prior && (prior.state === 'complete' || prior.state === 'failed' || prior.state === 'blocked')) {
+      // Restore what is settled: a completed step, or one that failed for
+      // good. A parked step (provider down / out of quota) and a `blocked`
+      // step (derived from a failed dependency) run again / re-derive.
+      const parkedBefore = prior?.state === 'failed' && prior?.error?.park;
+      if (prior && !parkedBefore && (prior.state === 'complete' || prior.state === 'failed')) {
         Object.assign(entry, {
           state: prior.state,
           assignment: prior.assignment ?? null,
@@ -485,71 +493,108 @@ export class Scheduler {
   }
 
   /**
-   * Up to MAX_ATTEMPTS: same model twice, then the next-best model once.
-   * Records an observation in the capability registry after every attempt,
-   * not just the final one — that is what lets routing improve over time.
+   * The retry loop, driven by the failure taxonomy and the per-class policy
+   * (`reliability/retryPolicy.js`): a permanent error never retries the same
+   * model, a rate limit honours Retry-After up to the inline cap and
+   * otherwise parks, a provider outage moves on and then parks, a malformed
+   * answer gets a bounded repair prompt, and a failure that repeats
+   * verbatim is declared poisoned and stopped. Records an observation in the
+   * capability registry after every attempt, not just the final one.
    * @param {SchedulerTask} task
    * @param {import('./router.js').RankedCandidate[]} ranked
    * @param {AbortSignal} signal
    * @returns {Promise<{ok: boolean, output: string|null, modelId: string, error: object|null}>}
    */
   async #runWithRetry(task, ranked, signal) {
-    let current = ranked[0];
-    /** @type {import('../../agents/AgentAdapter.js').ExecuteResult|null} */
-    let lastResult = null;
+    const distinct = [];
+    for (const r of ranked) if (!distinct.some((d) => d.modelId === r.modelId)) distinct.push(r);
+    let index = 0;
+    let current = distinct[0];
+    let sameProviderAttempts = 0;
+    let attemptsUsed = 0;
+    let hops = 0;
+    const loop = new LoopDetector({ maxRepeats: 2 });
+    let lastError = null;
 
-    for (let attempt = 0; attempt < this.maxAttempts; attempt += 1) {
+    while (attemptsUsed < this.maxAttempts) {
       if (signal.aborted) {
-        return {
-          ok: false,
-          output: null,
-          modelId: current.modelId,
-          error: { code: 'CANCELLED', message: 'Run was cancelled' },
-        };
+        return { ok: false, output: null, modelId: current.modelId, error: { code: 'CANCELLED', class: 'cancelled', message: 'Run was cancelled' } };
       }
 
       const adapter = this.pools[current.pool];
       const context = this.#buildTaskContext(task);
-      const result = await this.#executeWithDeadline(task, adapter, context, {
-        modelId: current.modelId,
-        signal,
-      });
+      const result = await this.#executeWithDeadline(task, adapter, context, { modelId: current.modelId, signal });
+      attemptsUsed += 1;
+      sameProviderAttempts += 1;
+      this.#emit({ type: 'attempt-finished', taskId: task.id, modelId: current.modelId, attempt: attemptsUsed, ok: result.ok, ms: result.ms, tokensUsed: result.tokensUsed ?? null });
+
+      // A 200 is not "done": the answer must be usable.
+      let failure = null;
+      if (result.ok) {
+        const verdict = validateSubtaskOutput(result.output);
+        if (!verdict.ok) failure = { code: verdict.code, message: verdict.message, status: null, retryAfterMs: null };
+      } else {
+        failure = result.error;
+      }
+      const classified = failure ? classifyFailure(failure) : null;
 
       task.attempts.push({
         modelId: current.modelId,
         pool: current.pool,
-        ok: result.ok,
+        ok: classified === null,
         ms: result.ms,
         tokensUsed: result.tokensUsed ?? null,
-        error: result.error,
+        error: classified ? { code: classified.code ?? failure.code ?? 'UPSTREAM_ERROR', message: classified.message, class: classified.class } : null,
       });
-      this.capabilityRegistry.recordObservation(current.modelId, task.aspect, {
-        success: result.ok,
-        ms: result.ms,
-      });
+      this.capabilityRegistry.recordObservation(current.modelId, task.aspect, { success: classified === null, ms: result.ms });
 
-      if (result.ok) {
+      if (classified === null) {
+        task.repairHint = null;
         return { ok: true, output: result.output, modelId: current.modelId, error: null };
       }
-      lastResult = result;
+      lastError = { code: classified.code ?? failure.code ?? 'UPSTREAM_ERROR', message: classified.message, class: classified.class, status: classified.status ?? null };
+      this.#emit({ type: 'attempt-failed', taskId: task.id, modelId: current.modelId, attempt: attemptsUsed, failure: lastError, retryAfterMs: classified.retryAfterMs });
       if (signal.aborted) break;
 
-      // Attempt 0 failed -> retry the SAME model once (attempt 1 is a no-op
-      // reassignment, `current` is unchanged). Attempt 1 failed -> switch to
-      // the next-best DIFFERENT model for the final attempt.
-      if (attempt === 1) {
-        const next = ranked.find((r) => r.modelId !== ranked[0].modelId);
-        if (!next) break; // nothing else to try — stop early rather than repeat attempt 0's model a 3rd time
-        current = next;
+      // The same model failing the same way, verbatim, twice in a row is
+      // not going to change: poison the step. A provider-side fault
+      // (outage, limit, quota) is expected to repeat and is parked by the
+      // policy instead; a malformed answer is bounded by its own repair cap.
+      const repeat = loop.observe({ class: classified.class, code: classified.code, message: classified.message, model: current.modelId }, { progress: false });
+      if (repeat.looping && classified.class !== 'malformed_output' && !PARKABLE[classified.class]) {
+        lastError = { ...lastError, class: 'poisoned', code: 'NO_PROGRESS', message: `the same failure recurred ${repeat.repeats} times: ${classified.message}` };
+        break;
       }
+
+      const nextAvailable = index + 1 < distinct.length;
+      const decision = decideRetry({
+        failure: { class: classified.class, retryAfterMs: classified.retryAfterMs },
+        sameProviderAttempts, attemptsUsed, maxAttempts: this.maxAttempts, nextAvailable, hops, parks: task.parks ?? 0,
+      });
+      this.#emit({ type: 'retry-decision', taskId: task.id, modelId: current.modelId, failureClass: classified.class, action: decision.action, delayMs: decision.delayMs, why: decision.why });
+
+      if (classified.class === 'malformed_output') task.repairHint = repairHintFor(classified.code ?? 'MALFORMED_OUTPUT');
+      else task.repairHint = null;
+
+      if (decision.action === 'retry-same') {
+        if (decision.delayMs > 0) await sleepUnlessAborted(decision.delayMs, signal);
+        continue;
+      }
+      if (decision.action === 'retry-next') {
+        index += 1;
+        hops += 1;
+        current = distinct[index];
+        sameProviderAttempts = 0;
+        continue;
+      }
+      if (decision.action === 'park') {
+        return { ok: false, output: null, modelId: current.modelId, error: { ...lastError, park: { reason: decision.park, wakeInMs: decision.wakeInMs, why: decision.why } } };
+      }
+      break; // give-up
     }
 
-    return {
-      ok: false,
-      output: null,
-      modelId: current.modelId,
-      error: lastResult?.error ?? { code: 'UPSTREAM_ERROR', message: 'All attempts failed.' },
-    };
+    task.repairHint = null;
+    return { ok: false, output: null, modelId: current.modelId, error: lastError ?? { code: 'UPSTREAM_ERROR', class: 'transient', message: 'All attempts failed.' } };
   }
 
   /**
@@ -570,6 +615,24 @@ export class Scheduler {
       // A subscriber's own error must never break the scheduler loop.
     }
   }
+}
+
+/** A cancellable wait for a same-model retry; never holds the loop past an abort. */
+function sleepUnlessAborted(ms, signal) {
+  return new Promise((resolve) => {
+    if (signal?.aborted) return resolve();
+    // Deliberately NOT unref'd: this wait is the only thing keeping the
+    // process alive between a failed attempt and its retry, and an unref'd
+    // timer let the event loop drain — the pulse exited mid-backoff with
+    // the task still `running` (caught by engine-reliability.test.js).
+    const timer = setTimeout(done, ms);
+    function done() {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', done);
+      resolve();
+    }
+    signal?.addEventListener('abort', done, { once: true });
+  });
 }
 
 export default Scheduler;

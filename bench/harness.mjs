@@ -23,6 +23,9 @@ import { SCENARIOS, BASE_ENV_DEFAULT } from './scenarios.mjs';
 import { runPulseProcess, readJsonl, readJsonOr, stats } from './lib/run.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+/** Simulated gap between pulses (the production cron cadence). */
+const PULSE_CADENCE_MS = 15 * 60_000;
+
 const TERMINAL = new Set(['complete', 'succeeded', 'failed', 'blocked', 'cancelled', 'pr-open', 'dead-lettered', 'expired']);
 
 function parseArgs(argv) {
@@ -80,16 +83,23 @@ function seedState(stateDir, scenario) {
   }
 }
 
-function readTimeline(stateDir) {
+/** Every event the engine recorded, in file order (null when there is no event log). */
+function readEvents(stateDir) {
   const dir = join(stateDir, 'events');
   if (!existsSync(dir)) return null;
   const out = [];
+  for (const file of (readdirSafe(dir)).filter((f) => f.endsWith('.jsonl')).sort()) out.push(...readJsonl(join(dir, file)));
+  return out;
+}
+
+function readTimeline(stateDir) {
+  const events = readEvents(stateDir);
+  if (!events) return null;
+  const out = [];
   let seq = 0;
-  for (const file of (readdirSafe(dir)).filter((f) => f.endsWith('.jsonl')).sort()) {
-    for (const ev of readJsonl(join(dir, file))) {
-      seq += 1;
-      if (ev.type === 'task.transition' || ev.type === 'task.state') out.push({ seq, taskId: ev.taskId, status: ev.to ?? ev.status, at: ev.ts });
-    }
+  for (const ev of events) {
+    seq += 1;
+    if (ev.type === 'task.transition' || ev.type === 'task.state') out.push({ seq, taskId: ev.taskId, status: ev.to ?? ev.status, at: ev.ts });
   }
   return out;
 }
@@ -137,6 +147,11 @@ async function runScenario(scenario, opts, capabilities, rep) {
       TITAN_FAKE_LOG_DIR: logs,
       TITAN_FAKE_PULSE_INDEX: String(p),
       GITHUB_RUN_ID: `bench-${p}`,
+      // The engine's clock moves forward one cron cadence per pulse (the
+      // harness runs pulses back to back; production leaves ~15 minutes
+      // between them), so wake times, cooldowns, and quota windows behave
+      // as they would across real pulses. Concurrent pulses share a clock.
+      TITAN_CLOCK_OFFSET_MS: String((p - 1) * (scenario.pulseCadenceMs ?? PULSE_CADENCE_MS)),
     };
     const concurrent = scenario.concurrent ?? 1;
     const runs = await Promise.all(Array.from({ length: concurrent }, (_, k) => runPulseProcess({ repoRoot: repo, stateDir, env: { ...env, TITAN_FAKE_PULSE_INDEX: concurrent > 1 ? `${p}.${k + 1}` : String(p), GITHUB_RUN_ID: concurrent > 1 ? `bench-${p}-${k + 1}` : `bench-${p}` }, timeoutMs: 30_000 })));
@@ -161,6 +176,7 @@ async function runScenario(scenario, opts, capabilities, rep) {
 
   const observed = {
     tasks, githubIssues, providerCalls, githubCalls, pulses, timeline, pulsesToTerminal,
+    events: readEvents(stateDir) ?? [],
     repoHasFile: (rel) => existsSync(join(repo, rel)),
     parentHasFile: (rel) => existsSync(join(scratch, rel)),
     controlUnchanged: JSON.stringify(controlBefore) === JSON.stringify(controlAfter),

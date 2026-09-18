@@ -61,6 +61,15 @@ const BASE_ENV = {
   OPENROUTER_API_KEY: 'fake-not-a-real-key',
   GEMINI_API_KEY: 'fake-not-a-real-key',
   HF_API_KEY: 'fake-not-a-real-key',
+  // The quota ledger counts every fake call against the real free-tier
+  // ceilings; the corpus must not trip them by accident, so the bench
+  // raises the per-minute windows. The `quota-ledger` scenario lowers one
+  // on purpose to prove the ledger skips a spent provider.
+  TITAN_QUOTA_GROQ_PER_MINUTE: '1000',
+  TITAN_QUOTA_TOGETHER_PER_MINUTE: '1000',
+  TITAN_QUOTA_OPENROUTER_PER_MINUTE: '1000',
+  TITAN_QUOTA_GEMINI_PER_MINUTE: '1000',
+  TITAN_QUOTA_HUGGINGFACE_PER_MINUTE: '1000',
 };
 
 /** Helpers over the observed outcome. */
@@ -371,6 +380,23 @@ export const SCENARIOS = [
       H.check('task waited out the exhausted quota and succeeded', H.terminalSuccess(H.status(o, 'issue-1')), H.status(o, 'issue-1')),
       H.check('no retry storm on a quota error (<= 2 sub-task calls in pulse 1)', o.providerCalls.filter((c) => c.pulse === 1 && c.kind === 'subtask').length <= 2, `${o.providerCalls.filter((c) => c.pulse === 1 && c.kind === 'subtask').length}`),
     ],
+  },
+  {
+    id: 'quota-ledger', group: 'fault', pulses: 2, requires: ['quota-ledger'], env: { TITAN_QUOTA_GROQ_PER_MINUTE: '1' },
+    github: { issues: [issue(1, 'Ledger', 'Groq has one call left this minute; the ledger must route around it, not into a 429.')] },
+    provider: script([
+      { kind: 'decompose', sequence: [graph([t('only', 'code-generation')])] },
+      { kind: 'subtask', sequence: [envelope('only')] },
+    ]),
+    expect: (o) => {
+      const groqCalls = o.providerCalls.filter((c) => c.modelId === 'groq' && c.kind !== 'probe').length;
+      const skips = o.events.filter((e) => e.type === 'routing.decision' && (e.skipped ?? []).includes('groq')).length;
+      return [
+        H.check('task succeeded', H.terminalSuccess(H.status(o, 'issue-1')), H.status(o, 'issue-1')),
+        H.check('groq was called at most once this minute (the ledger, not a 429, stopped the second)', groqCalls <= 1, `${groqCalls} groq calls`),
+        H.check('a routing decision recorded the quota skip', skips >= 1, `${skips} decisions skipped groq`),
+      ];
+    },
   },
   {
     id: 'idle-pulse', group: 'cost', timed: true, pulses: 3,
