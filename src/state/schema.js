@@ -235,8 +235,22 @@ export function migrateTasks(file, opts = {}) {
   return { file: { ...file, version: TASKS_SCHEMA_VERSION, tasks }, migrated: true, from };
 }
 
+/**
+ * The data contract as files: every state file the engine writes, its
+ * schema, and the version it carries. `scripts/export-schemas.mjs` writes
+ * these to `schemas/`; `test/contract.test.js` keeps them in sync.
+ */
+export const SCHEMA_FILES = Object.freeze({
+  tasks: { $id: 'titan-runner/state/tasks.json', title: 'state/tasks.json', version: TASKS_SCHEMA_VERSION, description: 'The task queue and record. Written only by the pulse and the control CLI, through the validated store.', ...TASKS_FILE_SCHEMA },
+  heartbeat: { $id: 'titan-runner/state/heartbeat.json', title: 'state/heartbeat.json', version: 1, description: 'The last pulse: when, how it ended, what it did. Read by the dead-man workflow and the dashboard.', ...HEARTBEAT_SCHEMA },
+  control: { $id: 'titan-runner/state/control.json', title: 'state/control.json', version: 1, description: 'Operator controls: kill switch, drain, safe mode, autonomy level. Changed only through the control workflow or CLI.', ...CONTROL_SCHEMA },
+  event: { $id: 'titan-runner/state/events/<date>.jsonl', title: 'state/events/<date>.jsonl (one line)', version: 1, description: 'One append-only, redacted event. Types are dotted lowercase names; seq is continuous within a day.', ...EVENT_SCHEMA },
+  checkpoint: { $id: 'titan-runner/state/checkpoints/<taskId>.json', title: 'state/checkpoints/<taskId>.json', version: 1, description: 'A task in flight: plan, finished steps, side effects fired, verification, usage. Deleted when the task ends.', ...CHECKPOINT_SCHEMA },
+  quota: { $id: 'titan-runner/state/quota.json', title: 'state/quota.json', version: 1, description: 'Per-provider call windows (minute, day) the registry consults before every call.', ...QUOTA_SCHEMA },
+});
+
 export default {
-  TASKS_SCHEMA_VERSION, TASK_STATUSES, WAIT_REASONS, PRIORITIES,
+  TASKS_SCHEMA_VERSION, TASK_STATUSES, WAIT_REASONS, PRIORITIES, SCHEMA_FILES,
   TASK_SCHEMA, TASKS_FILE_SCHEMA, HEARTBEAT_SCHEMA, CONTROL_SCHEMA, EVENT_SCHEMA, CHECKPOINT_SCHEMA, QUOTA_SCHEMA,
   taskDefaults, migrateTasks,
 };

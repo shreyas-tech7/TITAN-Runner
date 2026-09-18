@@ -72,6 +72,10 @@ function seedState(stateDir, scenario) {
   const tasks = { version: 1, updatedAt: new Date(0).toISOString(), tasks: scenario.seedTasks ?? [] };
   writeFileSync(join(stateDir, 'tasks.json'), JSON.stringify(tasks, null, 2));
   writeFileSync(join(stateDir, 'agents.json'), '{}');
+  // An operator's control file (autonomy level, switches) seeded before the first pulse.
+  if (scenario.control) {
+    writeFileSync(join(stateDir, 'control.json'), JSON.stringify({ version: 1, killSwitch: false, drain: false, safeMode: false, autonomy: 'autonomous', updatedAt: new Date(0).toISOString(), updatedBy: 'bench', reason: 'scenario', ...scenario.control }, null, 2));
+  }
   if (scenario.corrupt) {
     // Simulate a bad hand edit / conflict marker landing in a committed file
     // after a good version existed: the good version is what an engine with
@@ -134,6 +138,14 @@ async function runScenario(scenario, opts, capabilities, rep) {
   const planned = scenario.pulses ?? 1;
 
   for (let p = 1; p <= planned; p += 1) {
+    // A scenario may act between pulses the way a human would (an approval
+    // comment, a reopened issue): it edits the GitHub fixture and the state
+    // on disk, never the engine.
+    if (typeof scenario.beforePulse === 'function' && p > 1) {
+      const fixture = readJsonOr(githubPath, { issues: [] });
+      const changed = scenario.beforePulse(p, { fixture, stateDir, tasks: readJsonOr(join(stateDir, 'tasks.json'), { tasks: [] }).tasks ?? [] });
+      if (changed !== false) writeFileSync(githubPath, JSON.stringify(fixture));
+    }
     const script = scripts[Math.min(p - 1, scripts.length - 1)];
     const scriptPath = join(scratch, `provider-${p}.json`);
     writeFileSync(scriptPath, JSON.stringify(script));
@@ -179,6 +191,7 @@ async function runScenario(scenario, opts, capabilities, rep) {
     events: readEvents(stateDir) ?? [],
     repoHasFile: (rel) => existsSync(join(repo, rel)),
     parentHasFile: (rel) => existsSync(join(scratch, rel)),
+    stateHasFile: (rel) => existsSync(join(stateDir, rel)),
     controlUnchanged: JSON.stringify(controlBefore) === JSON.stringify(controlAfter),
     controlDetail: `control before ${JSON.stringify(controlBefore)} after ${JSON.stringify(controlAfter)}`,
   };

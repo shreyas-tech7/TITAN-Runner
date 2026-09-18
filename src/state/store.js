@@ -80,7 +80,7 @@ export class StateStore {
   }
 
   ensureLayout() {
-    for (const dir of [this.paths.stateDir, this.paths.runs, this.paths.digests, this.paths.reviews, this.checkpointsDir, this.leasesDir, this.eventsDir, this.backupDir]) {
+    for (const dir of [this.paths.stateDir, this.paths.runs, this.paths.digests, this.paths.reviews, this.checkpointsDir, this.leasesDir, this.eventsDir, this.backupDir, this.viewsDir]) {
       mkdirSync(dir, { recursive: true });
     }
     if (!existsSync(this.paths.tasks)) this.writeJson(this.paths.tasks, defaultTasksFile(this.now()));

@@ -1,0 +1,45 @@
+{
+  "$id": "titan-runner/state/heartbeat.json",
+  "title": "state/heartbeat.json",
+  "version": 1,
+  "description": "The last pulse: when, how it ended, what it did. Read by the dead-man workflow and the dashboard.",
+  "type": "object",
+  "required": [
+    "version",
+    "lastPulseAt",
+    "lastPulseStatus"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer"
+    },
+    "lastPulseAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+    },
+    "lastPulseStatus": {
+      "enum": [
+        "ok",
+        "error",
+        null
+      ],
+      "nullable": true
+    },
+    "lastPulseDurationMs": {
+      "type": "number",
+      "nullable": true
+    },
+    "consecutivePulseFailures": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "totalPulses": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cadenceMinutes": {
+      "type": "number"
+    }
+  }
+}

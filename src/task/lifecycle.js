@@ -122,6 +122,7 @@ export function transition(task, to, ctx = {}) {
     taskId: task.id, runId: task.runId ?? null, attempt: task.attempts ?? 0, from, to,
     reason: ctx.reason ?? null, by: ctx.by ?? 'engine', waitReason: task.waitReason, wakeAt: task.wakeAt,
     failureClass: ctx.failure?.class ?? null, outcome: isTerminal(to) ? to : null,
+    activeMs: isTerminal(to) && Number.isFinite(task.usage?.wallMs) ? task.usage.wallMs : null,
   });
   return task;
 }

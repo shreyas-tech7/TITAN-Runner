@@ -113,3 +113,19 @@ complexity.
   a placeholder from before verification existed, and the verifier is right
   to reject a code step that produced no code. Every other scenario is
   unchanged from `before.json`.
+- **D-29** The control plane is a `workflow_dispatch` workflow plus a CLI, and
+  nothing else: GitHub authenticates the dispatcher (write access) and names
+  them (`github.actor`), the CLI applies one validated action and appends one
+  audited event, the workflow commits `state/`. Inputs reach the script only
+  through the environment. No control action is ever read from an issue or a
+  comment (those are the task-scoped `/titan` commands, already authorized by
+  author association).
+- **D-30** Views under `state/views/` are derived, never read back by the
+  engine: a stale or missing view cannot change a decision, so the dashboard
+  and the operator can rely on them without the engine depending on them.
+- **D-31** The data contract is a set of plain schema files (`schemas/`)
+  exported from the one in-code definition, with a test that fails when they
+  drift, and text-level lockstep tests for the dashboard's unions and YAML
+  fields. The dashboard itself is not built in this run (no dependency
+  install), so its TypeScript changes are checked by inspection and by those
+  tests, not by a compiler — stated as such in the report.

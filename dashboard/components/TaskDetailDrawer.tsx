@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { TaskRecord, RunRecord } from "@/lib/types";
-import { STATUS_META } from "@/lib/statusMeta";
+import { STATUS_META, WAIT_REASON_LABEL } from "@/lib/statusMeta";
 import { relative, formatDuration } from "@/lib/time";
 
 const OWNER = process.env.NEXT_PUBLIC_GITHUB_OWNER || "shreyas-tech7";
@@ -98,6 +98,19 @@ export default function TaskDetailDrawer({ task, onClose }: { task: TaskRecord; 
           </div>
         </div>
 
+        {task.status === "waiting" && (
+          <div className="empty">
+            Waiting on {WAIT_REASON_LABEL[task.waitReason ?? ""] ?? task.waitReason ?? "…"}
+            {task.wakeAt && task.waitReason !== "approval" && task.waitReason !== "dependency" ? ` · wakes ${relative(task.wakeAt)}` : ""}
+            {task.parks ? ` · parked ${task.parks}×` : ""}
+          </div>
+        )}
+        {task.failure && task.status !== "waiting" && (
+          <div className="empty">
+            {task.failure.class}
+            {task.failure.code ? ` / ${task.failure.code}` : ""}
+          </div>
+        )}
         {task.error && (
           <div style={{ marginBottom: 16 }}>
             <div className="label" style={{ marginBottom: 6 }}>

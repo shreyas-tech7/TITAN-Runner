@@ -252,7 +252,7 @@ export const SCENARIOS = [
     },
   },
   {
-    id: 'kill-after-side-effect', group: 'fault', pulses: 4,
+    id: 'kill-after-side-effect', group: 'fault', pulses: 4, requires: ['idempotent-side-effects'],
     github: { issues: [issue(1, 'Crash after commenting', 'Runner dies right after the completion comment reached GitHub.')], _control: { killAfter: { op: 'commentOnIssue', nth: 1 } } },
     provider: script([
       { kind: 'decompose', sequence: [graph([t('only', 'code-generation')])] },
@@ -383,6 +383,38 @@ export const SCENARIOS = [
       H.check('task waited out the exhausted quota and succeeded', H.terminalSuccess(H.status(o, 'issue-1')), H.status(o, 'issue-1')),
       H.check('no retry storm on a quota error (<= 2 sub-task calls in pulse 1)', o.providerCalls.filter((c) => c.pulse === 1 && c.kind === 'subtask').length <= 2, `${o.providerCalls.filter((c) => c.pulse === 1 && c.kind === 'subtask').length}`),
     ],
+  },
+  {
+    id: 'tool-approval', group: 'autonomy', pulses: 4, requires: ['tools', 'policy-engine', 'approvals'], control: { autonomy: 'approval' },
+    github: { issues: [issue(1, 'Draft', 'Write a draft into the workspace, then summarise it.')] },
+    provider: script([
+      { kind: 'decompose', sequence: [graph([t('look', 'research')])] },
+      // Once the write happened, its result is in the prompt and the model answers.
+      { kind: 'subtask', promptIncludes: 'wrote', sequence: [{ reply: 'prose', text: 'The draft is written and summarised.' }] },
+      { kind: 'subtask', sequence: [{ reply: 'tool', tool: 'workspace_write', args: { path: 'draft.md', content: 'hello from the bench' } }] },
+    ]),
+    // A human approves whatever the engine last asked for, before each later pulse.
+    beforePulse: (p, { fixture }) => {
+      const issue1 = fixture.issues.find((i) => i.number === 1);
+      const asks = (issue1?.comments ?? []).map((c) => String(c.body).match(/\/titan approve ([A-Za-z0-9:_.-]+)/)?.[1]).filter(Boolean);
+      const approved = new Set((issue1?.comments ?? []).map((c) => String(c.body).match(/^\/titan approve ([A-Za-z0-9:_.-]+)$/m)?.[1]).filter(Boolean));
+      const key = asks.find((k) => !approved.has(k));
+      if (!key) return false;
+      const at = new Date(Date.parse(issue1.updated_at ?? '2026-01-01T00:00:00.000Z') + 60_000).toISOString();
+      issue1.comments.push({ id: 100 + p, body: `/titan approve ${key}`, created_at: at, user: OWNER, author_association: 'OWNER' });
+      issue1.updated_at = at;
+      return true;
+    },
+    expect: (o) => {
+      const asks = o.githubCalls.filter((c) => c.op === 'commentOnIssue' && /\/titan approve/.test(String(c.args.body)));
+      return [
+        H.check('task completed once both approvals were given', H.terminalSuccess(H.status(o, 'issue-1')), H.status(o, 'issue-1')),
+        H.check('the tool write waited for approval (it was asked for, not done)', asks.length >= 1 && o.events.some((e) => e.type === 'policy.decision' && e.outcome === 'approve' && /workspace_write/.test(e.action)), `${asks.length} approval requests`),
+        H.check('exactly one request per gated effect (tool, then delivery)', asks.length === 2, `${asks.length} approval requests`),
+        H.check('the write landed in the task workspace under state/', o.stateHasFile('workspaces/issue-1/draft.md'), 'state/workspaces/issue-1/draft.md'),
+        H.check('the result was posted once after delivery approval', H.comments(o, 1) === 3 && H.closes(o, 1) === 1, `${H.comments(o, 1)} comments, ${H.closes(o, 1)} closes`),
+      ];
+    },
   },
   {
     id: 'quota-ledger', group: 'fault', pulses: 2, requires: ['quota-ledger'], env: { TITAN_QUOTA_GROQ_PER_MINUTE: '1' },

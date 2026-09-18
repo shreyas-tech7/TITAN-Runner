@@ -60,6 +60,7 @@ import { now as clockNow } from '../lib/clock.js';
 import { ToolRegistry } from '../tools/registry.js';
 import { builtinTools } from '../tools/builtin.js';
 import { decide as policyDecide, effectiveAutonomy } from '../policy/engine.js';
+import { writeViews } from '../observability/views.js';
 
 import { syncIssuesIntoTasks, reconcileIssueState, addManualTask } from '../issueSync.js';
 import { defaultGitHubClient } from '../github.js';
@@ -366,6 +367,14 @@ export async function runPulse(deps = {}) {
     if (archived > 0) events.append('retention.tasks-archived', { count: archived });
     const compacted = events.compact();
     if (compacted.compacted > 0) events.append('retention.events-compacted', { count: compacted.compacted });
+    // Derived views (state/views/*.json): rebuilt from what this pulse wrote;
+    // never read back by the engine, so a failure here is logged, not fatal.
+    try {
+      writeViews({ store, tasksFile, health: providerHealth, providerIds: ALL_PROVIDER_IDS, quota, now });
+    } catch (err) {
+      log.warn('views not rebuilt', { error: redactString(err instanceof Error ? err.message : String(err)) });
+      events.append('views.failed', { outcome: 'error', error: redactString(err instanceof Error ? err.message : String(err)).slice(0, 300) });
+    }
   } catch (err) {
     pulseError = redactString(err instanceof Error ? err.message : String(err));
     log.error('pulse failed', { error: pulseError, stack: err instanceof Error ? redactString(String(err.stack)).slice(0, 1500) : undefined });

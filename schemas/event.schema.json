@@ -1,0 +1,82 @@
+{
+  "$id": "titan-runner/state/events/<date>.jsonl",
+  "title": "state/events/<date>.jsonl (one line)",
+  "version": 1,
+  "description": "One append-only, redacted event. Types are dotted lowercase names; seq is continuous within a day.",
+  "type": "object",
+  "required": [
+    "seq",
+    "ts",
+    "type",
+    "pulseId"
+  ],
+  "properties": {
+    "seq": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^[a-z]+(\\.[a-z-]+)+$"
+    },
+    "pulseId": {
+      "type": "string"
+    },
+    "taskId": {
+      "type": "string",
+      "nullable": true
+    },
+    "runId": {
+      "type": "string",
+      "nullable": true
+    },
+    "attempt": {
+      "type": "integer",
+      "nullable": true
+    },
+    "stepId": {
+      "type": "string",
+      "nullable": true
+    },
+    "agent": {
+      "type": "string",
+      "nullable": true
+    },
+    "provider": {
+      "type": "string",
+      "nullable": true
+    },
+    "toolCallId": {
+      "type": "string",
+      "nullable": true
+    },
+    "parentId": {
+      "type": "string",
+      "nullable": true
+    },
+    "durationMs": {
+      "type": "number",
+      "nullable": true
+    },
+    "outcome": {
+      "type": "string",
+      "nullable": true
+    },
+    "failureClass": {
+      "type": "string",
+      "nullable": true
+    },
+    "calls": {
+      "type": "integer",
+      "nullable": true
+    },
+    "tokens": {
+      "type": "integer",
+      "nullable": true
+    }
+  }
+}

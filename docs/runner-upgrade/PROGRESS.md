@@ -141,9 +141,35 @@ Built, wired end to end, tested:
   are real work now done per task (a real pulse spends seconds per model
   call, so this is invisible there).
 
+## Wave 5 — control plane, views, data contract, dashboard lockstep (done)
+
+- `src/control/dispatch.js` + `src/control/cli.js` + `.github/workflows/titan-control.yml`:
+  kill-switch / drain / safe-mode on|off, autonomy <level>, and the task
+  actions (cancel, pause, resume, retry, priority, approve, deny) — dispatched
+  by a user with write access, attributed to `github.actor`, applied through
+  the validated store, audited as `control.action` events, committed by the
+  workflow. Inputs reach the script only through the environment.
+- `src/observability/views.js`: `state/views/queue.json`, `analytics.json`,
+  `providers.json` rebuilt every pulse (never read back by the engine).
+  `src/observability/explain.js`: `explainTask` (what it waits on, how to
+  unblock it, facts, recent trail) and `replayTask` (ordered event trail).
+- Data contract: `SCHEMA_FILES` in `src/state/schema.js` exported to
+  `schemas/*.schema.json` by `scripts/export-schemas.mjs`; `test/contract.test.js`
+  fails on drift and checks the dashboard's `TaskStatus` / `WaitReason` /
+  `TaskPriority` / `AutonomyLevel` unions, `STATUS_META`, `TaskRecord` fields,
+  and the YAML builder's field names against the engine, textually.
+- Dashboard: `lib/types.ts` (11 statuses, v2 fields, ControlState, QueueView,
+  AnalyticsView), `lib/statusMeta.ts` (+ WAIT_REASON_LABEL), `lib/taskYaml.ts`
+  (urgent, dependsOn/deadline/ttlHours), the queue section, running panel,
+  and detail drawer render the new states; `copy-state.mjs` copies views.
+  Not built in this run (no dependency install) — D-31.
+- Bench: `beforePulse` hook (a human acting between pulses) and the
+  `tool-approval` scenario (approval autonomy: tool write asks, then delivery
+  asks; both approved; write lands in `state/workspaces/`).
+- Tests: 244/244 (+13). Harness (repeat 1, 23 scenarios): 23 pass.
+
 ## Next
 
-Wave 5: control plane (workflow_dispatch controls with audit, `/titan`
-commands already in), derived views + analytics + explain/replay, versioned
-schema files + contract test, dashboard types/statusMeta/taskYaml lockstep +
-minimal UI for the new states.
+Wave 6: `bin/titan` CLI (pulse, simulate, explain, replay, control, views,
+doctor), docs (RUNTIME.md rewrite for the v2 engine, DATA_CONTRACT.md,
+RUNBOOK.md, CONFIG.md, README updates), STRATEGY.md, workflow hardening pass.
