@@ -216,3 +216,11 @@ Built, wired end to end, tested:
   rewrite the three views for a timestamp.
 - Tests: 269/269 (+23). `bench/results/after.json` recorded on the final
   engine commit (repeat 5, with tests) — numbers in REPORT.md.
+
+## Final
+
+- `bench/results/after.json` (commit `3000beb`, repeat 5, with tests):
+  23 pass / 0 fail / 0 not supported; corpus completion 1.0; fault recovery
+  1.0; 73 model calls; 269/269 tests. Full comparison in REPORT.md §9.
+- Report: `docs/runner-upgrade/REPORT.md`. Rollout: `ROLLOUT.md`.
+- Next: none in this run. The owner's checklist is REPORT.md §12.

@@ -1,7 +1,7 @@
 {
   "meta": {
-    "at": "2026-09-18T11:18:26.926Z",
-    "commit": "5d4ace2c49857dfd4d86bb308408d017cb478162",
+    "at": "2026-09-18T11:21:10.429Z",
+    "commit": "3000beb89556774eea374a1c841aa93db3843fc8",
     "node": "v22.22.2",
     "platform": "linux x64",
     "repeat": 5,
@@ -38,10 +38,10 @@
     "faultRecoveryRate": 1,
     "duplicateSideEffectsTotal": 2,
     "modelCallsTotal": 73,
-    "idlePulseWallMsMedian": 95.6,
-    "idlePulseStateBytesMedian": 13490,
-    "singleStepWallMsMedian": 182,
-    "peakRssKbMax": 66776,
+    "idlePulseWallMsMedian": 96.8,
+    "idlePulseStateBytesMedian": 10558,
+    "singleStepWallMsMedian": 187.6,
+    "peakRssKbMax": 66772,
     "tests": {
       "tests": 269,
       "pass": 269,
@@ -83,11 +83,11 @@
         "providerCallsTotal": 4,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 182,
-        "peakRssKb": 66252,
+        "firstPulseWallMs": 166.3,
+        "peakRssKb": 66640,
         "stateBytesChangedPerPulse": [
-          23969,
-          17891
+          23965,
+          17619
         ],
         "taskOutcomes": [
           {
@@ -101,12 +101,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 182,
-          "peakRssKb": 66252,
+          "wallMs": 166.3,
+          "peakRssKb": 66640,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-7fb37e",
-            "durationMs": 101,
+            "pulseId": "run-bench-1-1-e10743",
+            "durationMs": 96,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -117,8 +117,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 100,
-              "remainingMs": 419900,
+              "elapsedMs": 95,
+              "remainingMs": 419905,
               "draining": false
             },
             "checkpoint": {
@@ -128,7 +128,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 23969,
+          "stateBytesChanged": 23965,
           "stateFilesChanged": 15,
           "stderrTail": ""
         },
@@ -136,12 +136,12 @@
           "pulse": 2,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 89.8,
-          "peakRssKb": 64312,
+          "wallMs": 80,
+          "peakRssKb": 64528,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-2-1-32838f",
-            "durationMs": 10,
+            "pulseId": "run-bench-2-1-4fcaa1",
+            "durationMs": 9,
             "tasksClaimed": 0,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -152,8 +152,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 12,
-              "remainingMs": 419988,
+              "elapsedMs": 10,
+              "remainingMs": 419990,
               "draining": false
             },
             "checkpoint": {
@@ -163,34 +163,34 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 17891,
-          "stateFilesChanged": 8,
+          "stateBytesChanged": 17619,
+          "stateFilesChanged": 7,
           "stderrTail": ""
         }
       ],
       "timing": {
         "firstPulseWallMs": {
-          "median": 182,
-          "min": 173.8,
-          "max": 185.6,
+          "median": 187.6,
+          "min": 166.3,
+          "max": 227.5,
           "n": 5
         },
         "allPulsesWallMs": {
-          "median": 138.8,
-          "min": 78.8,
-          "max": 185.6,
+          "median": 138.4,
+          "min": 80,
+          "max": 227.5,
           "n": 10
         },
         "peakRssKb": {
-          "median": 66472,
-          "min": 66252,
-          "max": 66736,
+          "median": 66320,
+          "min": 66256,
+          "max": 66640,
           "n": 5
         },
         "stateBytesChangedPerPulse": {
-          "median": 20928,
-          "min": 17881,
-          "max": 23969,
+          "median": 20797.5,
+          "min": 17619,
+          "max": 23971,
           "n": 10
         },
         "repeats": 5
@@ -232,12 +232,12 @@
         "providerCallsTotal": 7,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 232.5,
-        "peakRssKb": 66776,
+        "firstPulseWallMs": 219.8,
+        "peakRssKb": 66772,
         "stateBytesChangedPerPulse": [
-          29652,
-          20854,
-          22029
+          29651,
+          20591,
+          19070
         ],
         "taskOutcomes": [
           {
@@ -251,12 +251,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 232.5,
-          "peakRssKb": 66776,
+          "wallMs": 219.8,
+          "peakRssKb": 66772,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-6b64d7",
-            "durationMs": 140,
+            "pulseId": "run-bench-1-1-cd0762",
+            "durationMs": 149,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -267,8 +267,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 139,
-              "remainingMs": 419861,
+              "elapsedMs": 147,
+              "remainingMs": 419853,
               "draining": false
             },
             "checkpoint": {
@@ -278,7 +278,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 29652,
+          "stateBytesChanged": 29651,
           "stateFilesChanged": 15,
           "stderrTail": ""
         },
@@ -286,47 +286,12 @@
           "pulse": 2,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 99.4,
-          "peakRssKb": 64400,
+          "wallMs": 102.7,
+          "peakRssKb": 64436,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-2-1-76621e",
-            "durationMs": 10,
-            "tasksClaimed": 0,
-            "tasksCompleted": 0,
-            "tasksFailed": 0,
-            "tasksParked": 0,
-            "modelCalls": 0,
-            "upstreamCalls": 0,
-            "dryRun": false,
-            "error": null,
-            "budget": {
-              "budgetMs": 420000,
-              "elapsedMs": 11,
-              "remainingMs": 419989,
-              "draining": false
-            },
-            "checkpoint": {
-              "mode": "none",
-              "commits": 0,
-              "pushes": 0,
-              "failures": 0
-            }
-          },
-          "stateBytesChanged": 20854,
-          "stateFilesChanged": 8,
-          "stderrTail": ""
-        },
-        {
-          "pulse": 3,
-          "exitCode": 0,
-          "signal": null,
-          "wallMs": 91.1,
-          "peakRssKb": 64404,
-          "summary": {
-            "pulse": "complete",
-            "pulseId": "run-bench-3-1-152100",
-            "durationMs": 10,
+            "pulseId": "run-bench-2-1-14b637",
+            "durationMs": 11,
             "tasksClaimed": 0,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -348,33 +313,68 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 22029,
-          "stateFilesChanged": 8,
+          "stateBytesChanged": 20591,
+          "stateFilesChanged": 7,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 101.7,
+          "peakRssKb": 64420,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-3-1-5f86e7",
+            "durationMs": 11,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 12,
+              "remainingMs": 419988,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 19070,
+          "stateFilesChanged": 6,
           "stderrTail": ""
         }
       ],
       "timing": {
         "firstPulseWallMs": {
-          "median": 211.8,
-          "min": 207.7,
-          "max": 232.5,
+          "median": 219.8,
+          "min": 205.8,
+          "max": 252.5,
           "n": 5
         },
         "allPulsesWallMs": {
-          "median": 101.4,
-          "min": 80.1,
-          "max": 232.5,
+          "median": 103.9,
+          "min": 96.6,
+          "max": 252.5,
           "n": 15
         },
         "peakRssKb": {
-          "median": 66596,
-          "min": 66320,
-          "max": 66776,
+          "median": 66600,
+          "min": 66288,
+          "max": 66772,
           "n": 5
         },
         "stateBytesChangedPerPulse": {
-          "median": 22024,
-          "min": 20848,
+          "median": 20592,
+          "min": 19067,
           "max": 29652,
           "n": 15
         },
@@ -412,10 +412,10 @@
         "providerCallsTotal": 8,
         "githubMutations": 4,
         "duplicateComments": 0,
-        "firstPulseWallMs": 270.2,
-        "peakRssKb": 66524,
+        "firstPulseWallMs": 258.6,
+        "peakRssKb": 66452,
         "stateBytesChangedPerPulse": [
-          33603
+          33604
         ],
         "taskOutcomes": [
           {
@@ -433,12 +433,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 270.2,
-          "peakRssKb": 66524,
+          "wallMs": 258.6,
+          "peakRssKb": 66452,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-cd00b8",
-            "durationMs": 152,
+            "pulseId": "run-bench-1-1-2c3d41",
+            "durationMs": 170,
             "tasksClaimed": 2,
             "tasksCompleted": 2,
             "tasksFailed": 0,
@@ -449,8 +449,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 149,
-              "remainingMs": 419851,
+              "elapsedMs": 168,
+              "remainingMs": 419832,
               "draining": false
             },
             "checkpoint": {
@@ -460,7 +460,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 33603,
+          "stateBytesChanged": 33604,
           "stateFilesChanged": 16,
           "stderrTail": ""
         }
@@ -494,8 +494,8 @@
         "providerCallsTotal": 5,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 191.7,
-        "peakRssKb": 66280,
+        "firstPulseWallMs": 183.4,
+        "peakRssKb": 66392,
         "stateBytesChangedPerPulse": [
           25603
         ],
@@ -511,12 +511,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 191.7,
-          "peakRssKb": 66280,
+          "wallMs": 183.4,
+          "peakRssKb": 66392,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-9c6b90",
-            "durationMs": 102,
+            "pulseId": "run-bench-1-1-adc898",
+            "durationMs": 105,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -527,8 +527,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 101,
-              "remainingMs": 419899,
+              "elapsedMs": 103,
+              "remainingMs": 419897,
               "draining": false
             },
             "checkpoint": {
@@ -577,8 +577,8 @@
         "providerCallsTotal": 5,
         "githubMutations": 1,
         "duplicateComments": 0,
-        "firstPulseWallMs": 159.5,
-        "peakRssKb": 66316,
+        "firstPulseWallMs": 154.5,
+        "peakRssKb": 66304,
         "stateBytesChangedPerPulse": [
           26297
         ],
@@ -594,12 +594,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 159.5,
-          "peakRssKb": 66316,
+          "wallMs": 154.5,
+          "peakRssKb": 66304,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-204a50",
-            "durationMs": 72,
+            "pulseId": "run-bench-1-1-07346f",
+            "durationMs": 74,
             "tasksClaimed": 1,
             "tasksCompleted": 0,
             "tasksFailed": 1,
@@ -610,8 +610,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 70,
-              "remainingMs": 419930,
+              "elapsedMs": 74,
+              "remainingMs": 419926,
               "draining": false
             },
             "checkpoint": {
@@ -645,7 +645,7 @@
         {
           "name": "took more than one pulse",
           "ok": true,
-          "detail": "4 pulses"
+          "detail": "5 pulses"
         },
         {
           "name": "no sub-task ran twice",
@@ -659,19 +659,20 @@
         }
       ],
       "metrics": {
-        "pulsesRun": 4,
-        "pulsesToTerminal": 4,
+        "pulsesRun": 5,
+        "pulsesToTerminal": 5,
         "modelCalls": 7,
         "providerCallsTotal": 9,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 249.2,
-        "peakRssKb": 66548,
+        "firstPulseWallMs": 248.8,
+        "peakRssKb": 66428,
         "stateBytesChangedPerPulse": [
           21921,
-          30676,
+          27420,
           36474,
-          45408
+          42324,
+          49265
         ],
         "taskOutcomes": [
           {
@@ -685,12 +686,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 249.2,
-          "peakRssKb": 64908,
+          "wallMs": 248.8,
+          "peakRssKb": 65280,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-a86a94",
-            "durationMs": 158,
+            "pulseId": "run-bench-1-1-e8461c",
+            "durationMs": 159,
             "tasksClaimed": 1,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -701,7 +702,7 @@
             "error": null,
             "budget": {
               "budgetMs": 120,
-              "elapsedMs": 156,
+              "elapsedMs": 158,
               "remainingMs": 0,
               "draining": true
             },
@@ -720,47 +721,12 @@
           "pulse": 2,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 225.4,
-          "peakRssKb": 66072,
+          "wallMs": 177,
+          "peakRssKb": 65704,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-2-1-5d155d",
-            "durationMs": 151,
-            "tasksClaimed": 1,
-            "tasksCompleted": 0,
-            "tasksFailed": 0,
-            "tasksParked": 1,
-            "modelCalls": 3,
-            "upstreamCalls": 3,
-            "dryRun": false,
-            "error": null,
-            "budget": {
-              "budgetMs": 120,
-              "elapsedMs": 152,
-              "remainingMs": 0,
-              "draining": true
-            },
-            "checkpoint": {
-              "mode": "none",
-              "commits": 0,
-              "pushes": 0,
-              "failures": 0
-            }
-          },
-          "stateBytesChanged": 30676,
-          "stateFilesChanged": 13,
-          "stderrTail": ""
-        },
-        {
-          "pulse": 3,
-          "exitCode": 0,
-          "signal": null,
-          "wallMs": 176.9,
-          "peakRssKb": 65788,
-          "summary": {
-            "pulse": "complete",
-            "pulseId": "run-bench-3-1-e1d18b",
-            "durationMs": 88,
+            "pulseId": "run-bench-2-1-d7cbc0",
+            "durationMs": 89,
             "tasksClaimed": 1,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -771,8 +737,43 @@
             "error": null,
             "budget": {
               "budgetMs": 120,
-              "elapsedMs": 90,
-              "remainingMs": 30,
+              "elapsedMs": 91,
+              "remainingMs": 29,
+              "draining": true
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 27420,
+          "stateFilesChanged": 13,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 223.3,
+          "peakRssKb": 66084,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-3-1-ee211e",
+            "durationMs": 149,
+            "tasksClaimed": 1,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 1,
+            "modelCalls": 3,
+            "upstreamCalls": 3,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 120,
+              "elapsedMs": 150,
+              "remainingMs": 0,
               "draining": true
             },
             "checkpoint": {
@@ -790,23 +791,58 @@
           "pulse": 4,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 444.3,
-          "peakRssKb": 66548,
+          "wallMs": 177.6,
+          "peakRssKb": 66128,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-4-1-e5d385",
-            "durationMs": 367,
+            "pulseId": "run-bench-4-1-b374b0",
+            "durationMs": 91,
             "tasksClaimed": 1,
-            "tasksCompleted": 1,
+            "tasksCompleted": 0,
             "tasksFailed": 0,
-            "tasksParked": 0,
-            "modelCalls": 3,
-            "upstreamCalls": 3,
+            "tasksParked": 1,
+            "modelCalls": 1,
+            "upstreamCalls": 1,
             "dryRun": false,
             "error": null,
             "budget": {
               "budgetMs": 120,
-              "elapsedMs": 367,
+              "elapsedMs": 92,
+              "remainingMs": 28,
+              "draining": true
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 42324,
+          "stateFilesChanged": 13,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 5,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 374,
+          "peakRssKb": 66428,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-5-1-3a9319",
+            "durationMs": 301,
+            "tasksClaimed": 1,
+            "tasksCompleted": 1,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 2,
+            "upstreamCalls": 2,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 120,
+              "elapsedMs": 302,
               "remainingMs": 0,
               "draining": true
             },
@@ -817,7 +853,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 45408,
+          "stateBytesChanged": 49265,
           "stateFilesChanged": 13,
           "stderrTail": ""
         }
@@ -856,8 +892,8 @@
         "providerCallsTotal": 4,
         "githubMutations": 3,
         "duplicateComments": 0,
-        "firstPulseWallMs": 175.1,
-        "peakRssKb": 66304,
+        "firstPulseWallMs": 186,
+        "peakRssKb": 66280,
         "stateBytesChangedPerPulse": [
           27107
         ],
@@ -877,11 +913,11 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 175.1,
-          "peakRssKb": 66304,
+          "wallMs": 186,
+          "peakRssKb": 66280,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-36dcff",
+            "pulseId": "run-bench-1-1-816938",
             "durationMs": 102,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
@@ -893,8 +929,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 102,
-              "remainingMs": 419898,
+              "elapsedMs": 101,
+              "remainingMs": 419899,
               "draining": false
             },
             "checkpoint": {
@@ -948,10 +984,10 @@
         "providerCallsTotal": 4,
         "githubMutations": 1,
         "duplicateComments": 0,
-        "firstPulseWallMs": 170.7,
-        "peakRssKb": 66116,
+        "firstPulseWallMs": 167.4,
+        "peakRssKb": 66584,
         "stateBytesChangedPerPulse": [
-          24754
+          24755
         ],
         "taskOutcomes": [
           {
@@ -965,12 +1001,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 170.7,
-          "peakRssKb": 66116,
+          "wallMs": 167.4,
+          "peakRssKb": 66584,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-dd9a47",
-            "durationMs": 80,
+            "pulseId": "run-bench-1-1-771e37",
+            "durationMs": 81,
             "tasksClaimed": 1,
             "tasksCompleted": 0,
             "tasksFailed": 1,
@@ -981,8 +1017,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 78,
-              "remainingMs": 419922,
+              "elapsedMs": 79,
+              "remainingMs": 419921,
               "draining": false
             },
             "checkpoint": {
@@ -992,7 +1028,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 24754,
+          "stateBytesChanged": 24755,
           "stateFilesChanged": 15,
           "stderrTail": ""
         }
@@ -1031,11 +1067,11 @@
         "providerCallsTotal": 0,
         "githubMutations": 0,
         "duplicateComments": 0,
-        "firstPulseWallMs": 82.5,
-        "peakRssKb": 64444,
+        "firstPulseWallMs": 106.6,
+        "peakRssKb": 64432,
         "stateBytesChangedPerPulse": [
-          13767,
-          12829
+          13769,
+          9898
         ],
         "taskOutcomes": []
       },
@@ -1044,12 +1080,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 82.5,
-          "peakRssKb": 64360,
+          "wallMs": 106.6,
+          "peakRssKb": 64408,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-85cb82",
-            "durationMs": 10,
+            "pulseId": "run-bench-1-1-cbae03",
+            "durationMs": 13,
             "tasksClaimed": 0,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -1060,8 +1096,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 10,
-              "remainingMs": 419990,
+              "elapsedMs": 13,
+              "remainingMs": 419987,
               "draining": false
             },
             "checkpoint": {
@@ -1071,7 +1107,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 13767,
+          "stateBytesChanged": 13769,
           "stateFilesChanged": 12,
           "stderrTail": ""
         },
@@ -1079,12 +1115,12 @@
           "pulse": 2,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 79.2,
-          "peakRssKb": 64444,
+          "wallMs": 95,
+          "peakRssKb": 64432,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-2-1-a7934f",
-            "durationMs": 9,
+            "pulseId": "run-bench-2-1-5ff7bc",
+            "durationMs": 11,
             "tasksClaimed": 0,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -1095,8 +1131,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 9,
-              "remainingMs": 419991,
+              "elapsedMs": 12,
+              "remainingMs": 419988,
               "draining": false
             },
             "checkpoint": {
@@ -1106,8 +1142,8 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 12829,
-          "stateFilesChanged": 8,
+          "stateBytesChanged": 9898,
+          "stateFilesChanged": 6,
           "stderrTail": ""
         }
       ],
@@ -1150,11 +1186,11 @@
         "providerCallsTotal": 8,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 150.3,
-        "peakRssKb": 66488,
+        "firstPulseWallMs": 142.3,
+        "peakRssKb": 66144,
         "stateBytesChangedPerPulse": [
-          11324,
-          31161
+          11323,
+          31154
         ],
         "taskOutcomes": [
           {
@@ -1168,10 +1204,10 @@
           "pulse": 1,
           "exitCode": null,
           "signal": "SIGKILL",
-          "wallMs": 150.3,
-          "peakRssKb": 65324,
+          "wallMs": 142.3,
+          "peakRssKb": 65256,
           "summary": null,
-          "stateBytesChanged": 11324,
+          "stateBytesChanged": 11323,
           "stateFilesChanged": 9,
           "stderrTail": ""
         },
@@ -1179,12 +1215,12 @@
           "pulse": 2,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 197.4,
-          "peakRssKb": 66488,
+          "wallMs": 173,
+          "peakRssKb": 66144,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-2-1-f7bf67",
-            "durationMs": 111,
+            "pulseId": "run-bench-2-1-93db01",
+            "durationMs": 99,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -1195,8 +1231,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 112,
-              "remainingMs": 419888,
+              "elapsedMs": 100,
+              "remainingMs": 419900,
               "draining": false
             },
             "checkpoint": {
@@ -1206,7 +1242,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 31161,
+          "stateBytesChanged": 31154,
           "stateFilesChanged": 13,
           "stderrTail": ""
         }
@@ -1250,11 +1286,11 @@
         "providerCallsTotal": 4,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 168.2,
-        "peakRssKb": 65484,
+        "firstPulseWallMs": 178.5,
+        "peakRssKb": 65400,
         "stateBytesChangedPerPulse": [
-          12999,
-          23734
+          13000,
+          23735
         ],
         "taskOutcomes": [
           {
@@ -1268,10 +1304,10 @@
           "pulse": 1,
           "exitCode": null,
           "signal": "SIGKILL",
-          "wallMs": 168.2,
-          "peakRssKb": 65484,
+          "wallMs": 178.5,
+          "peakRssKb": 65400,
           "summary": null,
-          "stateBytesChanged": 12999,
+          "stateBytesChanged": 13000,
           "stateFilesChanged": 10,
           "stderrTail": ""
         },
@@ -1279,11 +1315,11 @@
           "pulse": 2,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 118.7,
-          "peakRssKb": 65144,
+          "wallMs": 111.9,
+          "peakRssKb": 65224,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-2-1-aebef9",
+            "pulseId": "run-bench-2-1-cdc3d7",
             "durationMs": 23,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
@@ -1295,8 +1331,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 23,
-              "remainingMs": 419977,
+              "elapsedMs": 24,
+              "remainingMs": 419976,
               "draining": false
             },
             "checkpoint": {
@@ -1306,7 +1342,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 23734,
+          "stateBytesChanged": 23735,
           "stateFilesChanged": 11,
           "stderrTail": ""
         }
@@ -1345,11 +1381,11 @@
         "providerCallsTotal": 4,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 332.4,
-        "peakRssKb": 66200,
+        "firstPulseWallMs": 324.5,
+        "peakRssKb": 66136,
         "stateBytesChangedPerPulse": [
-          25621,
-          16800
+          24936,
+          17492
         ],
         "taskOutcomes": [
           {
@@ -1363,12 +1399,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 332.4,
-          "peakRssKb": 66200,
+          "wallMs": 324.5,
+          "peakRssKb": 66136,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-1-e208f4",
-            "durationMs": 243,
+            "pulseId": "run-bench-1-1-1-249c0e",
+            "durationMs": 254,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -1379,8 +1415,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 241,
-              "remainingMs": 419759,
+              "elapsedMs": 253,
+              "remainingMs": 419747,
               "draining": false
             },
             "checkpoint": {
@@ -1390,7 +1426,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 25621,
+          "stateBytesChanged": 24936,
           "stateFilesChanged": 15,
           "stderrTail": ""
         },
@@ -1398,12 +1434,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 104.7,
-          "peakRssKb": 64516,
+          "wallMs": 94.5,
+          "peakRssKb": 64372,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-2-1-e8fe28",
-            "durationMs": 12,
+            "pulseId": "run-bench-1-2-1-1103f8",
+            "durationMs": 10,
             "tasksClaimed": 0,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -1414,8 +1450,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 14,
-              "remainingMs": 419986,
+              "elapsedMs": 10,
+              "remainingMs": 419990,
               "draining": false
             },
             "checkpoint": {
@@ -1425,8 +1461,8 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 16800,
-          "stateFilesChanged": 13,
+          "stateBytesChanged": 17492,
+          "stateFilesChanged": 15,
           "stderrTail": ""
         }
       ],
@@ -1459,8 +1495,8 @@
         "providerCallsTotal": 0,
         "githubMutations": 0,
         "duplicateComments": 0,
-        "firstPulseWallMs": 98.3,
-        "peakRssKb": 64460,
+        "firstPulseWallMs": 95.6,
+        "peakRssKb": 64376,
         "stateBytesChangedPerPulse": [
           15458
         ],
@@ -1480,12 +1516,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 98.3,
-          "peakRssKb": 64460,
+          "wallMs": 95.6,
+          "peakRssKb": 64376,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-1abed3",
-            "durationMs": 13,
+            "pulseId": "run-bench-1-1-fcd5b0",
+            "durationMs": 12,
             "tasksClaimed": 0,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -1509,7 +1545,7 @@
           },
           "stateBytesChanged": 15458,
           "stateFilesChanged": 14,
-          "stderrTail": "{\"ts\":\"2026-09-18T11:18:09.811Z\",\"level\":\"error\",\"scope\":\"state:store\",\"message\":\"state file corrupt\",\"meta\":{\"file\":\"tasks.json\",\"reason\":\"parse error: Unexpected token '<', \\\"<<<<<<< HE\\\"... is not valid JSON\"}}\n"
+          "stderrTail": "{\"ts\":\"2026-09-18T11:20:52.991Z\",\"level\":\"error\",\"scope\":\"state:store\",\"message\":\"state file corrupt\",\"meta\":{\"file\":\"tasks.json\",\"reason\":\"parse error: Unexpected token '<', \\\"<<<<<<< HE\\\"... is not valid JSON\"}}\n"
         }
       ],
       "timing": null,
@@ -1541,10 +1577,10 @@
         "providerCallsTotal": 4,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 172,
-        "peakRssKb": 66172,
+        "firstPulseWallMs": 192.4,
+        "peakRssKb": 66492,
         "stateBytesChangedPerPulse": [
-          24320
+          24325
         ],
         "taskOutcomes": [
           {
@@ -1558,12 +1594,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 172,
-          "peakRssKb": 66172,
+          "wallMs": 192.4,
+          "peakRssKb": 66492,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-6ddbf7",
-            "durationMs": 98,
+            "pulseId": "run-bench-1-1-b241b0",
+            "durationMs": 104,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -1574,8 +1610,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 98,
-              "remainingMs": 419902,
+              "elapsedMs": 102,
+              "remainingMs": 419898,
               "draining": false
             },
             "checkpoint": {
@@ -1585,7 +1621,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 24320,
+          "stateBytesChanged": 24325,
           "stateFilesChanged": 15,
           "stderrTail": ""
         }
@@ -1624,8 +1660,8 @@
         "providerCallsTotal": 10,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 140.5,
-        "peakRssKb": 66296,
+        "firstPulseWallMs": 132.9,
+        "peakRssKb": 66076,
         "stateBytesChangedPerPulse": [
           21510,
           24444,
@@ -1643,12 +1679,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 140.5,
-          "peakRssKb": 65304,
+          "wallMs": 132.9,
+          "peakRssKb": 65256,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-363576",
-            "durationMs": 61,
+            "pulseId": "run-bench-1-1-980dac",
+            "durationMs": 59,
             "tasksClaimed": 1,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -1659,8 +1695,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 61,
-              "remainingMs": 419939,
+              "elapsedMs": 57,
+              "remainingMs": 419943,
               "draining": false
             },
             "checkpoint": {
@@ -1678,12 +1714,12 @@
           "pulse": 2,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 129.2,
-          "peakRssKb": 65012,
+          "wallMs": 129.7,
+          "peakRssKb": 65040,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-2-1-2bd0ab",
-            "durationMs": 42,
+            "pulseId": "run-bench-2-1-d6f032",
+            "durationMs": 45,
             "tasksClaimed": 1,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -1694,8 +1730,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 43,
-              "remainingMs": 419957,
+              "elapsedMs": 45,
+              "remainingMs": 419955,
               "draining": false
             },
             "checkpoint": {
@@ -1713,12 +1749,12 @@
           "pulse": 3,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 152.7,
-          "peakRssKb": 66296,
+          "wallMs": 172.5,
+          "peakRssKb": 66076,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-3-1-c4efe5",
-            "durationMs": 78,
+            "pulseId": "run-bench-3-1-f583ee",
+            "durationMs": 86,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -1729,8 +1765,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 79,
-              "remainingMs": 419921,
+              "elapsedMs": 87,
+              "remainingMs": 419913,
               "draining": false
             },
             "checkpoint": {
@@ -1774,8 +1810,8 @@
         "providerCallsTotal": 5,
         "githubMutations": 1,
         "duplicateComments": 0,
-        "firstPulseWallMs": 140.5,
-        "peakRssKb": 66696,
+        "firstPulseWallMs": 146.1,
+        "peakRssKb": 66556,
         "stateBytesChangedPerPulse": [
           25648
         ],
@@ -1791,12 +1827,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 140.5,
-          "peakRssKb": 66696,
+          "wallMs": 146.1,
+          "peakRssKb": 66556,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-799b35",
-            "durationMs": 71,
+            "pulseId": "run-bench-1-1-bd39e9",
+            "durationMs": 75,
             "tasksClaimed": 1,
             "tasksCompleted": 0,
             "tasksFailed": 1,
@@ -1807,8 +1843,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 70,
-              "remainingMs": 419930,
+              "elapsedMs": 74,
+              "remainingMs": 419926,
               "draining": false
             },
             "checkpoint": {
@@ -1842,7 +1878,7 @@
         {
           "name": "Retry-After was honored (>= 200 ms between attempts)",
           "ok": true,
-          "detail": "210 ms"
+          "detail": "209 ms"
         }
       ],
       "metrics": {
@@ -1852,8 +1888,8 @@
         "providerCallsTotal": 5,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 381.9,
-        "peakRssKb": 66756,
+        "firstPulseWallMs": 395.9,
+        "peakRssKb": 66724,
         "stateBytesChangedPerPulse": [
           25082
         ],
@@ -1869,12 +1905,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 381.9,
-          "peakRssKb": 66756,
+          "wallMs": 395.9,
+          "peakRssKb": 66724,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-f4e7fd",
-            "durationMs": 309,
+            "pulseId": "run-bench-1-1-a356ce",
+            "durationMs": 312,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -1885,8 +1921,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 308,
-              "remainingMs": 419692,
+              "elapsedMs": 310,
+              "remainingMs": 419690,
               "draining": false
             },
             "checkpoint": {
@@ -1930,10 +1966,10 @@
         "providerCallsTotal": 6,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 194.1,
-        "peakRssKb": 66380,
+        "firstPulseWallMs": 203.2,
+        "peakRssKb": 66324,
         "stateBytesChangedPerPulse": [
-          26183
+          26180
         ],
         "taskOutcomes": [
           {
@@ -1947,12 +1983,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 194.1,
-          "peakRssKb": 66380,
+          "wallMs": 203.2,
+          "peakRssKb": 66324,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-14cc57",
-            "durationMs": 125,
+            "pulseId": "run-bench-1-1-fdaf2e",
+            "durationMs": 116,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -1963,8 +1999,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 125,
-              "remainingMs": 419875,
+              "elapsedMs": 115,
+              "remainingMs": 419885,
               "draining": false
             },
             "checkpoint": {
@@ -1974,7 +2010,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 26183,
+          "stateBytesChanged": 26180,
           "stateFilesChanged": 15,
           "stderrTail": ""
         }
@@ -2003,8 +2039,8 @@
         "providerCallsTotal": 5,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 188.8,
-        "peakRssKb": 66396,
+        "firstPulseWallMs": 194.5,
+        "peakRssKb": 66748,
         "stateBytesChangedPerPulse": [
           25032
         ],
@@ -2020,12 +2056,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 188.8,
-          "peakRssKb": 66396,
+          "wallMs": 194.5,
+          "peakRssKb": 66748,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-ba71d4",
-            "durationMs": 105,
+            "pulseId": "run-bench-1-1-ec47fd",
+            "durationMs": 110,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -2036,8 +2072,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 103,
-              "remainingMs": 419897,
+              "elapsedMs": 108,
+              "remainingMs": 419892,
               "draining": false
             },
             "checkpoint": {
@@ -2081,8 +2117,8 @@
         "providerCallsTotal": 6,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 142.8,
-        "peakRssKb": 65972,
+        "firstPulseWallMs": 150.3,
+        "peakRssKb": 66392,
         "stateBytesChangedPerPulse": [
           25812,
           31635
@@ -2099,12 +2135,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 142.8,
-          "peakRssKb": 65832,
+          "wallMs": 150.3,
+          "peakRssKb": 65548,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-5415e8",
-            "durationMs": 66,
+            "pulseId": "run-bench-1-1-f15dc6",
+            "durationMs": 70,
             "tasksClaimed": 1,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -2115,8 +2151,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 66,
-              "remainingMs": 419934,
+              "elapsedMs": 69,
+              "remainingMs": 419931,
               "draining": false
             },
             "checkpoint": {
@@ -2134,12 +2170,12 @@
           "pulse": 2,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 158.9,
-          "peakRssKb": 65972,
+          "wallMs": 160.3,
+          "peakRssKb": 66392,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-2-1-de4753",
-            "durationMs": 71,
+            "pulseId": "run-bench-2-1-3fdba9",
+            "durationMs": 74,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -2150,8 +2186,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 73,
-              "remainingMs": 419927,
+              "elapsedMs": 74,
+              "remainingMs": 419926,
               "draining": false
             },
             "checkpoint": {
@@ -2210,8 +2246,8 @@
         "providerCallsTotal": 6,
         "githubMutations": 4,
         "duplicateComments": 2,
-        "firstPulseWallMs": 149.3,
-        "peakRssKb": 66476,
+        "firstPulseWallMs": 146,
+        "peakRssKb": 66564,
         "stateBytesChangedPerPulse": [
           24063,
           34857,
@@ -2229,12 +2265,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 149.3,
-          "peakRssKb": 66476,
+          "wallMs": 146,
+          "peakRssKb": 66048,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-6400c7",
-            "durationMs": 64,
+            "pulseId": "run-bench-1-1-7d5edc",
+            "durationMs": 61,
             "tasksClaimed": 1,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -2245,8 +2281,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 65,
-              "remainingMs": 419935,
+              "elapsedMs": 62,
+              "remainingMs": 419938,
               "draining": false
             },
             "checkpoint": {
@@ -2264,12 +2300,12 @@
           "pulse": 2,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 142.1,
-          "peakRssKb": 66308,
+          "wallMs": 149.6,
+          "peakRssKb": 66564,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-2-1-996b54",
-            "durationMs": 57,
+            "pulseId": "run-bench-2-1-e0d45d",
+            "durationMs": 63,
             "tasksClaimed": 1,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -2280,8 +2316,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 57,
-              "remainingMs": 419943,
+              "elapsedMs": 63,
+              "remainingMs": 419937,
               "draining": false
             },
             "checkpoint": {
@@ -2299,12 +2335,12 @@
           "pulse": 3,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 116.5,
-          "peakRssKb": 65436,
+          "wallMs": 139,
+          "peakRssKb": 65756,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-3-1-2e82a4",
-            "durationMs": 26,
+            "pulseId": "run-bench-3-1-b355e4",
+            "durationMs": 33,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -2315,8 +2351,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 27,
-              "remainingMs": 419973,
+              "elapsedMs": 34,
+              "remainingMs": 419966,
               "draining": false
             },
             "checkpoint": {
@@ -2365,10 +2401,10 @@
         "providerCallsTotal": 4,
         "githubMutations": 2,
         "duplicateComments": 0,
-        "firstPulseWallMs": 183.7,
-        "peakRssKb": 66680,
+        "firstPulseWallMs": 178.1,
+        "peakRssKb": 66640,
         "stateBytesChangedPerPulse": [
-          25649
+          25654
         ],
         "taskOutcomes": [
           {
@@ -2382,12 +2418,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 183.7,
-          "peakRssKb": 66680,
+          "wallMs": 178.1,
+          "peakRssKb": 66640,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-1c80d3",
-            "durationMs": 99,
+            "pulseId": "run-bench-1-1-18644b",
+            "durationMs": 104,
             "tasksClaimed": 1,
             "tasksCompleted": 1,
             "tasksFailed": 0,
@@ -2398,8 +2434,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 97,
-              "remainingMs": 419903,
+              "elapsedMs": 103,
+              "remainingMs": 419897,
               "draining": false
             },
             "checkpoint": {
@@ -2409,7 +2445,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 25649,
+          "stateBytesChanged": 25654,
           "stateFilesChanged": 15,
           "stderrTail": ""
         }
@@ -2443,12 +2479,12 @@
         "providerCallsTotal": 0,
         "githubMutations": 0,
         "duplicateComments": 0,
-        "firstPulseWallMs": 76.6,
-        "peakRssKb": 64404,
+        "firstPulseWallMs": 82.8,
+        "peakRssKb": 64356,
         "stateBytesChangedPerPulse": [
-          13615,
-          12527,
-          13483
+          13618,
+          9595,
+          10551
         ],
         "taskOutcomes": []
       },
@@ -2457,12 +2493,12 @@
           "pulse": 1,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 76.6,
-          "peakRssKb": 64140,
+          "wallMs": 82.8,
+          "peakRssKb": 63900,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-1-1-b1f36e",
-            "durationMs": 8,
+            "pulseId": "run-bench-1-1-590684",
+            "durationMs": 10,
             "tasksClaimed": 0,
             "tasksCompleted": 0,
             "tasksFailed": 0,
@@ -2473,8 +2509,8 @@
             "error": null,
             "budget": {
               "budgetMs": 420000,
-              "elapsedMs": 8,
-              "remainingMs": 419992,
+              "elapsedMs": 10,
+              "remainingMs": 419990,
               "draining": false
             },
             "checkpoint": {
@@ -2484,7 +2520,7 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 13615,
+          "stateBytesChanged": 13618,
           "stateFilesChanged": 12,
           "stderrTail": ""
         },
@@ -2492,11 +2528,46 @@
           "pulse": 2,
           "exitCode": 0,
           "signal": null,
-          "wallMs": 95.7,
-          "peakRssKb": 64404,
+          "wallMs": 97.1,
+          "peakRssKb": 64324,
           "summary": {
             "pulse": "complete",
-            "pulseId": "run-bench-2-1-66e2cf",
+            "pulseId": "run-bench-2-1-718d8d",
+            "durationMs": 9,
+            "tasksClaimed": 0,
+            "tasksCompleted": 0,
+            "tasksFailed": 0,
+            "tasksParked": 0,
+            "modelCalls": 0,
+            "upstreamCalls": 0,
+            "dryRun": false,
+            "error": null,
+            "budget": {
+              "budgetMs": 420000,
+              "elapsedMs": 11,
+              "remainingMs": 419989,
+              "draining": false
+            },
+            "checkpoint": {
+              "mode": "none",
+              "commits": 0,
+              "pushes": 0,
+              "failures": 0
+            }
+          },
+          "stateBytesChanged": 9595,
+          "stateFilesChanged": 6,
+          "stderrTail": ""
+        },
+        {
+          "pulse": 3,
+          "exitCode": 0,
+          "signal": null,
+          "wallMs": 91.5,
+          "peakRssKb": 64356,
+          "summary": {
+            "pulse": "complete",
+            "pulseId": "run-bench-3-1-453be5",
             "durationMs": 9,
             "tasksClaimed": 0,
             "tasksCompleted": 0,
@@ -2519,68 +2590,33 @@
               "failures": 0
             }
           },
-          "stateBytesChanged": 12527,
-          "stateFilesChanged": 8,
-          "stderrTail": ""
-        },
-        {
-          "pulse": 3,
-          "exitCode": 0,
-          "signal": null,
-          "wallMs": 85.3,
-          "peakRssKb": 64328,
-          "summary": {
-            "pulse": "complete",
-            "pulseId": "run-bench-3-1-67c9b7",
-            "durationMs": 8,
-            "tasksClaimed": 0,
-            "tasksCompleted": 0,
-            "tasksFailed": 0,
-            "tasksParked": 0,
-            "modelCalls": 0,
-            "upstreamCalls": 0,
-            "dryRun": false,
-            "error": null,
-            "budget": {
-              "budgetMs": 420000,
-              "elapsedMs": 10,
-              "remainingMs": 419990,
-              "draining": false
-            },
-            "checkpoint": {
-              "mode": "none",
-              "commits": 0,
-              "pushes": 0,
-              "failures": 0
-            }
-          },
-          "stateBytesChanged": 13483,
-          "stateFilesChanged": 8,
+          "stateBytesChanged": 10551,
+          "stateFilesChanged": 6,
           "stderrTail": ""
         }
       ],
       "timing": {
         "firstPulseWallMs": {
-          "median": 95.6,
-          "min": 76.6,
-          "max": 136.7,
+          "median": 96.8,
+          "min": 80.1,
+          "max": 101.7,
           "n": 5
         },
         "allPulsesWallMs": {
-          "median": 95.6,
-          "min": 76.6,
-          "max": 136.7,
+          "median": 96.8,
+          "min": 80.1,
+          "max": 102.8,
           "n": 15
         },
         "peakRssKb": {
-          "median": 64424,
-          "min": 64404,
-          "max": 64436,
+          "median": 64408,
+          "min": 64356,
+          "max": 64448,
           "n": 5
         },
         "stateBytesChangedPerPulse": {
-          "median": 13490,
-          "min": 12527,
+          "median": 10558,
+          "min": 9595,
           "max": 13620,
           "n": 15
         },
