@@ -129,7 +129,7 @@ export const EVENT_SCHEMA = {
   properties: {
     seq: { type: 'integer', minimum: 1 },
     ts: { type: 'string', format: 'date-time' },
-    type: { type: 'string', pattern: '^[a-z]+(\\.[a-z-]+)+$' },
+    type: { type: 'string', pattern: '^[a-z][a-z-]*(\\.[a-z-]+)+$' },
     pulseId: { type: 'string' },
     taskId: { type: 'string', nullable: true },
     runId: { type: 'string', nullable: true },

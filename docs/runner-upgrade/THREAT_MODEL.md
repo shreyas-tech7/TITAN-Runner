@@ -73,10 +73,26 @@ dashboard. A push is a publication.
 | 9 | Fork PR tries to read secrets via CI | CI has no secrets | unchanged |
 | 10 | Bot's own self-improve PR touches `.github/workflows/` | refused in code, CI gate red | unchanged (hard fail), human PRs get an annotation instead of permanent red |
 | 11 | Rate-limited provider retried into a failed pulse | cooldown skip existed | breaker + quota ledger + per-class retry policy |
+| 12 | A step's model asks a tool to read `.env`, `.git/config`, `../outside`, or a symlinked path | no tools existed | read jail + the gate's deterministic layer refuse it; the model sees an error, the loop detector stops a repeat (`test/tools.test.js`, `test/security-corpus.test.js`) |
+| 13 | A step's model asks `http_fetch` for a host that resolves to a private address, an IP literal, `http:`, or a redirect to somewhere private | no tools existed | allowlist + DNS-resolved public-address check + `redirect: manual` refuse before any connection (`test/tools.test.js`) |
+| 14 | A filer sets `autonomy: autonomous`, `status`, `approvals`, or `lease` in the YAML block to loosen policy | no policy existed | only whitelisted fields parse; `autonomy` is taken as the *stricter* of the task's and the control file's, so a filer can only lower autonomy |
+| 15 | A stranger comments `/titan approve all` on someone's parked task, or hides a command in a fence | no approvals existed | commands only from authorized associations, only as the first non-blank line, exact bounded plain-token arguments |
+| 16 | Someone dispatches the control workflow to flip the kill switch off or set `autonomy autonomous` | no control plane existed | only write-access users can dispatch; the actor is recorded and audited; inputs reach the script through env; the concurrency group serializes it with the pulse |
+| 17 | A model returns a tool call that repeats forever, or a plan that never converges | no tools; retries unbounded per provider | tool loop detector (3 identical calls or 6 rounds), per-step attempt ceiling, per-task call/token/time budgets, park ceiling — each ends in `dead-lettered` with a reason |
 
 ## Residual risks (accepted, documented)
 
 - The task prompt and the model's answer are public by design.
+- `http_fetch` resolves DNS itself and refuses private addresses, but the
+  connection is made by the platform's resolver: a host whose answer flips
+  between the check and the connect (rebinding within one call) is not
+  defended against beyond the allowlist. Keep the allowlist small.
+- The two self-improve revisit notifications (`revisitSelfImprovePr`) post
+  directly, not through the checkpointed ledger; a crash between the
+  comment and the state save could repeat one comment. Low value, noted.
+- Free-tier judge availability: with fewer than two configured providers
+  every run is "unjudged" (recorded as such); `TITAN_VERIFY_STRICT=1` turns
+  that into a failure if the operator prefers.
 - The dashboard's admin token gates the Worker only; the page and `state/` are public.
 - The Worker (if ever deployed) holds a PAT with Secrets write; its intake mirror gets
   the same author filter, but the Worker is denylisted for self-improve and cannot be

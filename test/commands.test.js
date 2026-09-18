@@ -29,9 +29,13 @@ test('prose mentioning a verb, fenced commands, unknown verbs, missing args, and
   assert.equal(parseTitanCommand(''), null);
 });
 
-test('arguments are capped in count and length so a comment cannot smuggle a payload through', () => {
-  const r = parseTitanCommand(`/titan approve ${'a'.repeat(500)} b c d e f g`);
-  assert.equal(r.args.length, 4);
-  assert.equal(r.args[0].length, 64);
+test('arguments are exact in count and bounded plain tokens, so a comment cannot smuggle a payload through', () => {
+  assert.equal(parseTitanCommand(`/titan approve ${'a'.repeat(500)} b c d e f g`), null, 'over-long and extra tokens');
+  assert.equal(parseTitanCommand('/titan approve key; rm -rf /'), null, 'shell text');
+  assert.equal(parseTitanCommand('/titan cancel now please'), null, 'a verb that takes no argument, given some');
+  const r = parseTitanCommand(`/titan approve tool:workspace_write:${'a'.repeat(8)}`);
+  assert.deepEqual(r.args, [`tool:workspace_write:${'a'.repeat(8)}`]);
+  assert.ok(parseTitanCommand(`/titan approve ${'k'.repeat(64)}`), 'a 64-char key is the maximum');
+  assert.equal(parseTitanCommand(`/titan approve ${'k'.repeat(65)}`), null);
   assert.ok(r.raw.length <= 200);
 });

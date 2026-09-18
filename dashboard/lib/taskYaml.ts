@@ -26,6 +26,8 @@ export interface TaskInput {
   dependsOn?: string[];
   deadline?: string | null;
   ttlHours?: number | null;
+  /** Only ever stricter than the repo's control file: dry-run | propose | approval | autonomous. */
+  autonomy?: "dry-run" | "propose" | "approval" | "autonomous" | null;
 }
 
 const FENCE_START = "<!-- titan-task-v1";
@@ -54,6 +56,7 @@ export function buildYamlBlock(input: TaskInput): string {
   if (deps.length > 0) lines.push(`dependsOn: ${deps.join(", ")}`);
   if (input.deadline) lines.push(`deadline: ${input.deadline}`);
   if (input.ttlHours && input.ttlHours > 0) lines.push(`ttlHours: ${Math.round(input.ttlHours)}`);
+  if (input.autonomy) lines.push(`autonomy: ${input.autonomy}`);
   lines.push(`description: |`, blockScalar(input.description), FENCE_END);
   return lines.join("\n");
 }

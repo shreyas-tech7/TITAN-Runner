@@ -87,13 +87,20 @@ test('providers view carries the breaker, the explain line, and quota use; write
     store.ensureLayout();
     mkdirSync(join(dir, 'events'), { recursive: true });
     writeFileSync(join(dir, 'events', '2026-05-01.jsonl'), `${JSON.stringify(ev('pulse.finished', { durationMs: 50, calls: 1 }))}\n`);
-    const out = writeViews({ store, tasksFile: { tasks: [t('x', 'pending')] }, health, providerIds: ['groq'], quota, now: NOW });
+    const idleQueue = { tasks: [t('x', 'complete', { completedAt: '2026-05-01T11:00:00.000Z' })] };
+    const out = writeViews({ store, tasksFile: idleQueue, health, providerIds: ['groq'], quota, now: NOW });
     for (const name of ['queue', 'analytics', 'providers']) {
       assert.ok(existsSync(join(dir, 'views', `${name}.json`)), name);
       assert.equal(JSON.parse(readFileSync(join(dir, 'views', `${name}.json`), 'utf8')).version, 1);
     }
     assert.equal(out.queue.total, 1);
     assert.equal(out.analytics.pulses.count, 1);
+    // An idle rebuild fifteen minutes later (nothing changed but the clock)
+    // must not rewrite the files: three files of churn per idle pulse add up.
+    const before = Object.fromEntries(['queue', 'analytics', 'providers'].map((n) => [n, readFileSync(join(dir, 'views', `${n}.json`), 'utf8')]));
+    writeViews({ store, tasksFile: idleQueue, health, providerIds: ['groq'], quota, now: () => new Date('2026-05-01T12:15:00.000Z') });
+    for (const n of ['queue', 'analytics', 'providers']) assert.equal(readFileSync(join(dir, 'views', `${n}.json`), 'utf8'), before[n], `${n}.json rewritten for a timestamp`);
+    assert.equal(store.written.has(join(dir, 'views', 'queue.json')), true, 'the first write was recorded');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

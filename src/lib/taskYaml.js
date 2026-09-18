@@ -27,6 +27,7 @@ const VALID_ROUTING_HINTS = new Set(['fast', 'cheap', 'careful', 'any']);
 const TASK_ID_PATTERN = /^(issue|manual)-[0-9]+$/;
 const MAX_DEPENDENCIES = 8;
 const MAX_TTL_HOURS = 24 * 30;
+const VALID_AUTONOMY = new Set(['dry-run', 'propose', 'approval', 'autonomous']);
 
 /** Reverse of the browser's `quoteScalar()` — unescape `\\` and `\"`. */
 function unquoteScalar(raw) {
@@ -102,8 +103,12 @@ export function parseTaskYaml(issueBody) {
   const deadline = Number.isFinite(deadlineMs) ? new Date(deadlineMs).toISOString() : null;
   const ttlRaw = Number(scalars.ttlHours);
   const ttlHours = Number.isFinite(ttlRaw) && ttlRaw > 0 ? Math.min(ttlRaw, MAX_TTL_HOURS) : null;
+  //   autonomy: propose               — this task's own level; the engine runs at the
+  //                                     stricter of it and state/control.json, so a filer can
+  //                                     only ever ask for *less* autonomy, never more
+  const autonomy = VALID_AUTONOMY.has(scalars.autonomy) ? scalars.autonomy : null;
 
-  return { title, description, priority, routingHint, filedVia: scalars.filedVia ?? null, dependsOn, deadline, ttlHours };
+  return { title, description, priority, routingHint, filedVia: scalars.filedVia ?? null, dependsOn, deadline, ttlHours, autonomy };
 }
 
 export default parseTaskYaml;

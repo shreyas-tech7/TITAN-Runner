@@ -21,7 +21,7 @@
     },
     "type": {
       "type": "string",
-      "pattern": "^[a-z]+(\\.[a-z-]+)+$"
+      "pattern": "^[a-z][a-z-]*(\\.[a-z-]+)+$"
     },
     "pulseId": {
       "type": "string"

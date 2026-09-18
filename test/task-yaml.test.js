@@ -40,6 +40,7 @@ test('parses a single-line task filed through the dashboard', () => {
     dependsOn: [],
     deadline: null,
     ttlHours: null,
+    autonomy: null,
   });
 });
 

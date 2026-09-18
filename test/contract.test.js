@@ -63,7 +63,7 @@ test('the dashboard\'s TaskRecord names every field of the engine\'s task schema
 test('the dashboard\'s YAML builder and the engine\'s parser agree on the field names and the fence', () => {
   const builder = read('dashboard/lib/taskYaml.ts');
   const parser = read('src/lib/taskYaml.js');
-  for (const field of ['title', 'priority', 'routingHint', 'filedVia', 'description', 'dependsOn', 'deadline', 'ttlHours']) {
+  for (const field of ['title', 'priority', 'routingHint', 'filedVia', 'description', 'dependsOn', 'deadline', 'ttlHours', 'autonomy']) {
     assert.ok(builder.includes(`${field}:`), `builder lacks ${field}`);
     assert.ok(parser.includes(field), `parser lacks ${field}`);
   }

@@ -185,8 +185,34 @@ Built, wired end to end, tested:
   `TITAN_EGRESS_ALLOWLIST` from a repo variable; `.env.example` extended.
 - Tests: 246/246 (+2).
 
-## Next
+## Wave 7 — adversarial tests, after.json, review (done)
 
-Wave 7: crash matrix (every step boundary), chaos invariants, security
-corpus, migration on the real committed state, memory ceiling; `after.json`;
-hostile self-review; REPORT.md; push; draft PR.
+- `test/crash-matrix.test.js`: a real pulse process SIGKILLed right after
+  the plan and after each of four steps (child processes, fake latency
+  40–50 ms, kill 20 ms after the reply); the next pulse reclaims the zombie,
+  plans once, runs every step exactly once, comments once, closes once.
+- `test/chaos.test.js`: eight seeds × three pulses of random provider faults
+  (5xx, 429, 402, 401, malformed, truncated, empty, refusal, statusless,
+  dropped connection, failing judge); invariants: schema-valid state, no
+  task left running, no orphan lease, no checkpoint on a terminal task,
+  ≤ 1 completion comment and close per issue, continuous event seq, every
+  event schema-valid, calls bounded.
+- `test/security-corpus.test.js`: YAML cannot set internal fields; a secret
+  in an issue reaches no state file, event, or comment; `/titan` grammar
+  (first line only, exact bounded plain tokens — tightened here); an
+  unauthorized author with a valid block, the self-improve label, and an
+  approval comment causes zero calls and zero posts; hostile tool
+  arguments; tripwires (no eval, no shell in tools/engine, the only direct
+  GitHub mutations are the two revisit notifications, gate before policy
+  before tool run, no OIDC outside Pages, control workflow contents-only).
+- `test/migration.test.js`: the repository's own committed `state/` loads
+  with no repair; every legacy status migrates; unknown fields survive;
+  an invalid control file is repaired from backup or defaulted.
+- `test/memory-ceiling.test.js`: a six-step pulse process peaks under 200 MB
+  RSS (measured ~66 MB) with a 256 MB heap cap.
+- Found and fixed by these tests: the event schema rejected hyphenated
+  type names (`side-effect.fired`), so the contract had never matched the
+  log; the command parser tolerated trailing tokens. Idle pulses no longer
+  rewrite the three views for a timestamp.
+- Tests: 269/269 (+23). `bench/results/after.json` recorded on the final
+  engine commit (repeat 5, with tests) — numbers in REPORT.md.

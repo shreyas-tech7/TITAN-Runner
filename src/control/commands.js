@@ -28,6 +28,9 @@ export const COMMANDS = Object.freeze({
   deny: { args: 1, description: 'Deny a gated step by id (or "all").' },
 });
 
+/** One argument: a task id, an approval key (`tool:workspace_write:1a2b3c4d`, `deliver:<runId>`), a priority, or `all`. */
+const ARG_PATTERN = /^[A-Za-z0-9][A-Za-z0-9:_.-]{0,63}$/;
+
 const DASHBOARD_RETRY_MARKER = /^\*\*Retry requested\*\* from the TITAN-Runner dashboard/;
 
 /**
@@ -42,8 +45,12 @@ export function parseTitanCommand(body) {
   if (!match) return null;
   const verb = match[1].toLowerCase();
   if (!Object.prototype.hasOwnProperty.call(COMMANDS, verb)) return null;
-  const args = (match[2] ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 4).map((a) => a.slice(0, 64));
-  if (args.length < COMMANDS[verb].args) return null;
+  // Arguments are task ids, approval keys, priorities: a bounded, plain
+  // token each, exactly as many as the verb takes. Anything else (a
+  // trailing sentence, shell text, an over-long key) is not a command.
+  const args = (match[2] ?? '').trim().split(/\s+/).filter(Boolean);
+  if (args.length !== COMMANDS[verb].args) return null;
+  if (!args.every((a) => ARG_PATTERN.test(a))) return null;
   return { verb, args, raw: firstLine.slice(0, 200) };
 }
 

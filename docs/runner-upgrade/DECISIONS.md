@@ -129,3 +129,17 @@ complexity.
   fields. The dashboard itself is not built in this run (no dependency
   install), so its TypeScript changes are checked by inspection and by those
   tests, not by a compiler — stated as such in the report.
+- **D-32** Crash recovery is proven with a real SIGKILL of a real pulse
+  process at every step boundary, not with an in-process exception: an
+  event-log subscriber's throw is swallowed by design, and only a dead
+  process proves "nothing in memory survived".
+- **D-33** `/titan` arguments are exactly as many plain bounded tokens as
+  the verb takes; a comment with trailing text, shell characters, or an
+  over-long key is not a command at all (it used to be truncated and
+  accepted).
+- **D-34** A derived view is rewritten only when something other than its
+  timestamp changed; an idle pulse must not churn files for a clock tick.
+- **D-35** A filer may set `autonomy` in the task YAML, but the engine runs
+  at the stricter of the task's level and the control file's, so the field
+  can only ever ask for less autonomy. Every other engine-internal field in
+  the block is ignored.

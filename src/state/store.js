@@ -333,8 +333,23 @@ export class StateStore {
 
   /* ---- views ------------------------------------------------------------- */
 
+  /**
+   * A view is rewritten only when something other than its `updatedAt`
+   * changed: an idle pulse must not churn three files (and three commits'
+   * worth of blobs) just to move a timestamp.
+   */
   writeView(name, data) {
-    return this.writeJson(join(this.viewsDir, name), data, { backup: false });
+    const path = join(this.viewsDir, name);
+    if (existsSync(path)) {
+      try {
+        const current = readFileSync(path, 'utf8');
+        const next = `${JSON.stringify(scrubForState(data), null, 2)}\n`;
+        if (stripUpdatedAt(current) === stripUpdatedAt(next)) return false;
+      } catch {
+        // unreadable: rewrite it
+      }
+    }
+    return this.writeJson(path, data, { backup: false });
   }
 }
 

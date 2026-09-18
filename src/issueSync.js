@@ -148,6 +148,7 @@ export async function syncIssuesIntoTasks(tasksState, deps = {}) {
       dependsOn: structured?.dependsOn ?? [],
       deadline: structured?.deadline ?? null,
       expiresAt: structured?.ttlHours ? new Date(now().getTime() + structured.ttlHours * 3_600_000).toISOString() : null,
+      autonomy: structured?.autonomy ?? null,
       idempotencyKey: key,
       // Start the control cursor at the issue's creation so a command posted
       // between filing and the first pulse is still examined once.
