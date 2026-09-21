@@ -3,8 +3,8 @@
   "killSwitch": false,
   "drain": false,
   "safeMode": false,
-  "autonomy": "autonomous",
-  "updatedAt": "2026-09-18T13:33:46.273Z",
-  "updatedBy": null,
-  "reason": null
+  "autonomy": "propose",
+  "updatedAt": "2026-09-21T22:07:55.603Z",
+  "updatedBy": "shreyas-tech7",
+  "reason": "Enabling autonomy propose mode after redeploying titan-runner-brain with current main."
 }
