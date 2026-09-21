@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-18T13:33:46.629Z",
+  "updatedAt": "2026-09-21T17:05:18.419Z",
   "providers": {
     "groq": {
       "breaker": "disabled",
@@ -35,10 +35,10 @@
     "openrouter": {
       "breaker": "half-open",
       "until": null,
-      "reason": "cooldown over after 3 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 3 failure(s); next call is a probe); error rate 66%; model inclusionai/ling-3.0-flash-vl:free",
+      "reason": "cooldown over after 5 failure(s); next call is a probe",
+      "explain": "openrouter: breaker half-open (cooldown over after 5 failure(s); next call is a probe); error rate 83%; model inclusionai/ling-3.0-flash-vl:free",
       "status": "error",
-      "consecutiveFailures": 3,
+      "consecutiveFailures": 5,
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
@@ -48,12 +48,12 @@
       }
     },
     "gemini": {
-      "breaker": "closed",
+      "breaker": "half-open",
       "until": null,
-      "reason": "healthy",
-      "explain": "gemini: breaker closed (healthy); p50 1991 ms; model gemini-2.5-flash",
-      "status": "ok",
-      "consecutiveFailures": 0,
+      "reason": "cooldown over after 1 failure(s); next call is a probe",
+      "explain": "gemini: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 1279 ms; error rate 30%; model gemini-2.5-flash",
+      "status": "error",
+      "consecutiveFailures": 1,
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
