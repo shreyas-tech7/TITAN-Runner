@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-21T13:31:23.542Z",
+  "updatedAt": "2026-09-21T13:41:45.221Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -44,14 +44,14 @@
       "id": "openrouter",
       "configured": true,
       "status": "error",
-      "lastCheckedAt": "2026-09-21T13:31:22.869Z",
+      "lastCheckedAt": "2026-09-21T13:41:33.483Z",
       "lastSuccessAt": null,
       "latencyMs": null,
       "p50LatencyMs": null,
-      "samples": 4,
-      "errorRate": 0.76,
-      "consecutiveFailures": 4,
-      "cooldownUntil": "2026-09-21T14:11:22.869Z",
+      "samples": 5,
+      "errorRate": 0.832,
+      "consecutiveFailures": 5,
+      "cooldownUntil": "2026-09-21T14:41:33.483Z",
       "lastError": "OpenRouter returned no message content",
       "model": "inclusionai/ling-3.0-flash-vl:free",
       "discoveredModels": [
@@ -80,23 +80,23 @@
         "nvidia/nemotron-3-super-120b-a12b:free",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-09-21T13:31:22.146Z",
+      "modelsDiscoveredAt": "2026-09-21T13:41:32.535Z",
       "note": null,
       "lastFailureClass": null
     },
     "gemini": {
       "id": "gemini",
       "configured": true,
-      "status": "ok",
-      "lastCheckedAt": "2026-09-21T13:31:23.542Z",
+      "status": "error",
+      "lastCheckedAt": "2026-09-21T13:41:45.220Z",
       "lastSuccessAt": "2026-09-21T13:31:23.542Z",
       "latencyMs": 566,
       "p50LatencyMs": 1279,
-      "samples": 4,
-      "errorRate": 0,
-      "consecutiveFailures": 0,
-      "cooldownUntil": null,
-      "lastError": null,
+      "samples": 5,
+      "errorRate": 0.3,
+      "consecutiveFailures": 1,
+      "cooldownUntil": "2026-09-21T13:46:45.220Z",
+      "lastError": "Gemini upstream error (500): An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting",
       "model": "gemini-2.5-flash",
       "discoveredModels": [
         "gemini-2.5-flash",
@@ -132,7 +132,7 @@
         "lyria-3-pro-preview",
         "deep-research-pro-preview-12-2025"
       ],
-      "modelsDiscoveredAt": "2026-09-21T13:31:22.976Z",
+      "modelsDiscoveredAt": "2026-09-21T13:41:33.613Z",
       "note": null,
       "lastFailureClass": null
     },
