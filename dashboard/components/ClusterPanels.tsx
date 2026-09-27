@@ -20,6 +20,7 @@ import ProviderKeysPanel from "./ProviderKeysPanel";
 import OmniRouteStatusPanel from "./OmniRouteStatusPanel";
 import OsintPanel from "./OsintPanel";
 import SystemMemoryPanel from "./SystemMemoryPanel";
+import VmFleetPanel from "./VmFleetPanel";
 
 export default function ClusterPanels({
   token,
@@ -80,6 +81,7 @@ export default function ClusterPanels({
       />
       <ProviderKeysPanel token={token} providers={status.data?.providers ?? []} onChanged={status.refresh} />
       <OmniRouteStatusPanel subagents={status.data?.subagents ?? []} />
+      <VmFleetPanel token={token} />
       <OsintPanel token={token} subagents={status.data?.subagents ?? []} onQueued={status.refresh} />
       <SystemMemoryPanel token={token} />
     </>

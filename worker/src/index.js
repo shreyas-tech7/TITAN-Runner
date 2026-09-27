@@ -52,6 +52,26 @@ const CORS_HEADERS = Object.freeze({
   'Access-Control-Allow-Headers': 'Content-Type, X-Titan-Auth',
 });
 
+/** Railway free-VM fixed specs — see railway.com/free-vm. A box is 2 vCPU /
+ * 2 GB RAM, free with no account and no card (identity is the SSH key). The
+ * build/claim windows below are the deadlines the driver script computes
+ * from connect time when Railway's own manifest doesn't supply them. */
+const RAILWAY_VM = Object.freeze({
+  provider: 'railway',
+  vcpu: 2,
+  ramMb: 2048,
+  buildWindowMs: 60 * 60 * 1000, // 60 minutes to build
+  claimWindowMs: 24 * 60 * 60 * 1000, // 24 hours to claim
+});
+
+/** VM lifecycle states POST /internal/vm-status will accept. */
+const VM_STATUSES = Object.freeze(['requested', 'provisioning', 'live', 'claimed', 'expired', 'failed']);
+
+/** Cap VMs dispatched per tick well under Railway's 3-boxes-per-IP-per-day
+ * limit — an Actions runner's egress IP is shared, so a burst of provisions
+ * would trip "Anonymous trials are temporarily disabled" for all of them. */
+const MAX_VMS_DISPATCHED_PER_TICK = 3;
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -179,11 +199,11 @@ async function ghFetchRaw(path) {
   return res.text();
 }
 
-async function ghDispatch(env, payload) {
+async function ghDispatch(env, payload, eventType = 'spawn-subagent') {
   const res = await fetch(`${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/dispatches`, {
     method: 'POST',
     headers: ghHeaders(env, { 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ event_type: 'spawn-subagent', client_payload: payload }),
+    body: JSON.stringify({ event_type: eventType, client_payload: payload }),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
@@ -337,6 +357,93 @@ async function handleInternalStatus(request, env) {
     .bind(...vals)
     .run();
   if (result.meta.changes === 0) return json({ error: `no subagent row with id "${id}"` }, 404);
+  return json({ ok: true });
+}
+
+// ---------------------------------------------------------------------
+// VM fleet — Railway free VMs (ssh railway.new). A third execution surface
+// alongside the pulse and the sub-agent cluster; see schema.sql's `vms`
+// table comment. Every route here is admin-token-gated like the rest.
+// ---------------------------------------------------------------------
+
+/** GET /vms — recent VM rows for the dashboard's VM Fleet panel. */
+export async function handleListVms(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT id, subagent_id, brief, status, provider, region, vcpu, ram_mb,
+            preview_url, claim_url, build_deadline, claim_deadline, run_url,
+            result_summary, created_at, updated_at
+     FROM vms ORDER BY created_at DESC LIMIT 100`,
+  ).all();
+  return json({ vms: results, generatedAt: new Date().toISOString() });
+}
+
+/** POST /vms/provision — file a request for a free Railway VM. The 1-minute
+ * tick's dispatchQueuedVms() picks it up and fires the vm-agent workflow.
+ * Never provisions inline: the Worker's 10ms CPU budget can't hold an SSH
+ * session open, and the actual `ssh railway.new` happens on a GitHub runner. */
+export async function handleProvisionVm(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'invalid JSON body' }, 400);
+  }
+  const brief = typeof body?.brief === 'string' ? body.brief.trim().slice(0, 4000) : '';
+  const subagentId = typeof body?.subagent_id === 'string' && body.subagent_id.trim() ? body.subagent_id.trim() : null;
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO vms (id, subagent_id, brief, status, provider, vcpu, ram_mb, created_at)
+     VALUES (?, ?, ?, 'requested', ?, ?, ?, ?)`,
+  )
+    .bind(id, subagentId, brief, RAILWAY_VM.provider, RAILWAY_VM.vcpu, RAILWAY_VM.ramMb, now)
+    .run();
+  return json({ ok: true, id });
+}
+
+/** POST /internal/vm-status — the vm-agent workflow callback. Partial update
+ * of only the provided fields, same shape as handleInternalStatus. */
+export async function handleInternalVmStatus(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'invalid JSON body' }, 400);
+  }
+  const id = typeof body?.id === 'string' ? body.id : '';
+  const status = typeof body?.status === 'string' ? body.status : '';
+  if (!id || !VM_STATUSES.includes(status)) {
+    return json({ error: `id is required and status must be one of: ${VM_STATUSES.join(', ')}` }, 400);
+  }
+
+  const now = new Date().toISOString();
+  const sets = ['status = ?', 'updated_at = ?'];
+  const vals = [status, now];
+  const optionalStringFields = {
+    preview_url: body?.preview_url,
+    claim_url: body?.claim_url,
+    build_deadline: body?.build_deadline,
+    claim_deadline: body?.claim_deadline,
+    run_url: body?.run_url,
+    region: body?.region,
+  };
+  for (const [col, value] of Object.entries(optionalStringFields)) {
+    if (typeof value === 'string' && value) {
+      sets.push(`${col} = ?`);
+      vals.push(value.slice(0, 500));
+    }
+  }
+  if (typeof body?.result_summary === 'string' && body.result_summary) {
+    sets.push('result_summary = ?');
+    vals.push(body.result_summary.slice(0, 2000));
+  }
+  vals.push(id);
+
+  const result = await env.DB.prepare(`UPDATE vms SET ${sets.join(', ')} WHERE id = ?`)
+    .bind(...vals)
+    .run();
+  if (result.meta.changes === 0) return json({ error: `no vm row with id "${id}"` }, 404);
   return json({ ok: true });
 }
 
@@ -717,9 +824,50 @@ async function dispatchQueuedTasks(env) {
   }
 }
 
+/** Fire the vm-agent workflow for any `requested` VM row, capped well under
+ * Railway's 3-per-IP-per-day limit. A dispatch failure leaves the row
+ * `requested` so the next tick retries — same pattern as dispatchQueuedTasks. */
+export async function dispatchQueuedVms(env) {
+  if (!env.GITHUB_PAT) return;
+  const { results } = await env.DB.prepare(
+    `SELECT id, brief FROM vms WHERE status = 'requested' ORDER BY created_at ASC LIMIT ?`,
+  )
+    .bind(MAX_VMS_DISPATCHED_PER_TICK)
+    .all();
+  for (const row of results) {
+    try {
+      await ghDispatch(env, { id: row.id, brief: row.brief }, 'provision-vm');
+      await env.DB.prepare(`UPDATE vms SET status = 'provisioning', updated_at = ? WHERE id = ?`)
+        .bind(new Date().toISOString(), row.id)
+        .run();
+    } catch (err) {
+      console.error('titan-runner-brain: vm dispatch failed for', row.id, err instanceof Error ? err.message : err);
+    }
+  }
+}
+
+/** Move a VM past its window: an unclaimed box dies 24h after creation (or,
+ * if it never even reported live, 60m after). Honest lifecycle — the row
+ * reflects that the free box and its files are gone, never a stale "live". */
+export async function expireStaleVms(env) {
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `UPDATE vms SET status = 'expired', updated_at = ?
+     WHERE status IN ('live', 'provisioning', 'requested')
+       AND (
+         (claim_deadline IS NOT NULL AND claim_deadline < ?)
+         OR (claim_deadline IS NULL AND build_deadline IS NOT NULL AND build_deadline < ?)
+       )`,
+  )
+    .bind(now, now, now)
+    .run();
+}
+
 async function handleTick(env) {
   await mirrorGithubIssues(env);
   await dispatchQueuedTasks(env);
+  await dispatchQueuedVms(env);
+  await expireStaleVms(env);
 }
 
 // ---------------------------------------------------------------------
@@ -817,6 +965,23 @@ export default {
     if (url.pathname === '/internal/status' && request.method === 'POST') {
       if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
       return handleInternalStatus(request, env);
+    }
+
+    // VM fleet — Railway free VMs (ssh railway.new). Admin-token-gated like
+    // everything else; /internal/vm-status is the vm-agent workflow callback.
+    if (url.pathname === '/vms' && request.method === 'GET') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleListVms(env);
+    }
+
+    if (url.pathname === '/vms/provision' && request.method === 'POST') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleProvisionVm(request, env);
+    }
+
+    if (url.pathname === '/internal/vm-status' && request.method === 'POST') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleInternalVmStatus(request, env);
     }
 
     return json({ error: 'not found' }, 404);

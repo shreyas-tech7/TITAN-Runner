@@ -1,0 +1,87 @@
+name: VM Agent (Railway free VM)
+
+# Fired by the titan-runner-brain Cloudflare Worker's 1-minute cron tick via
+# `repository_dispatch` (dispatchQueuedVms in worker/src/index.js), or run by
+# hand from the Actions tab. A third execution surface alongside
+# titan-pulse.yml and spawn-subagent.yml — it never replaces either.
+#
+# It provisions a FREE Railway VM with `ssh railway.new`: 2 vCPU / 2 GB RAM,
+# a live public preview URL, no account and no credit card (Railway
+# identifies the caller by SSH key — see scripts/provision-railway-vm.mjs,
+# which generates a throwaway ed25519 key per run). Standard GitHub-hosted
+# runner, no self-hosted runner, no paid tier.
+on:
+  repository_dispatch:
+    types: [provision-vm]
+  workflow_dispatch:
+    inputs:
+      brief:
+        description: "What the VM should build (optional). Runs past the Reviewer Gate before Railway is touched."
+        required: false
+        default: ""
+
+# One job per VM id — two different VMs may provision concurrently, but the
+# same id must never be picked up twice at once.
+concurrency:
+  group: vm-agent-${{ github.event.client_payload.id || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  provision-vm:
+    runs-on: ubuntu-latest
+    # One provision, then stop — an SSH session that hangs fails loudly
+    # rather than holding a runner slot, same reasoning as the other
+    # workflows' ceilings. Comfortably inside Railway's 60-minute build
+    # window (the box keeps running after this job exits).
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # GitHub auto-masks any log text matching a secret referenced via
+      # secrets.* in this workflow, but mask the admin token explicitly too
+      # (defence in depth, same as spawn-subagent.yml).
+      - name: Mask secret-derived values before anything can log them
+        run: |
+          if [ -n "$TITAN_ADMIN_TOKEN" ]; then echo "::add-mask::$TITAN_ADMIN_TOKEN"; fi
+        env:
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+
+      - name: Provision a Railway free VM
+        env:
+          # Where and how to call back titan-runner-brain to mark this VM
+          # row provisioning/live/failed. TITAN_WORKER_URL is a repo
+          # VARIABLE (not sensitive on its own — the admin token gates the
+          # Worker), the same one spawn-subagent.yml and pages-deploy.yml read.
+          TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          # Untrusted dispatch/input fields reach the script ONLY through env,
+          # never interpolated into a run: line (the workflow linter enforces
+          # this). A manual workflow_dispatch has no client_payload id, so
+          # fall back to the run id so the script always has a stable id.
+          TITAN_VM_ID: ${{ github.event.client_payload.id || format('manual-{0}', github.run_id) }}
+          TITAN_VM_BRIEF: ${{ github.event.client_payload.brief || inputs.brief }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # The five provider secrets the rest of the repo already injects —
+          # available for a VM brief that needs a model call via the existing
+          # registry, never a new adapter.
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          TOGETHER_MODEL: ${{ secrets.TOGETHER_MODEL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+          HF_API_KEY: ${{ secrets.HF_API_KEY }}
+          HF_MODEL: ${{ secrets.HF_MODEL }}
+        run: node scripts/provision-railway-vm.mjs

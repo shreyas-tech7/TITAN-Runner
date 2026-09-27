@@ -132,9 +132,9 @@ schemas/          the data contract (exported from src/state/schema.js)
 state/            the database (see docs/DATA_CONTRACT.md)
 dashboard/        static Next.js export published to GitHub Pages
 scripts/          CI gates (denylist, secret scans, workflow lint, schema check), rollup, dead-man
-worker/           the Cloudflare Worker sub-agent coordinator (unchanged, not deployed)
+worker/           the Cloudflare Worker sub-agent coordinator + Railway VM-fleet routes
 test/             unit, integration, crash, concurrency, security, contract tests (node:test)
-.github/          workflows: pulse, control, CI, Pages deploy, keep-alive, dead-man, self-test, spawn-subagent, worker-deploy
+.github/          workflows: pulse, control, CI, Pages deploy, keep-alive, dead-man, self-test, spawn-subagent, worker-deploy, vm-agent
 docs/             RUNTIME.md (how it works), RUNBOOK.md (when it breaks), CONFIG.md (every knob),
                   DATA_CONTRACT.md (every file), runner-upgrade/ (the upgrade's own record)
 ```

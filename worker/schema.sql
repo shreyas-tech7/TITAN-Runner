@@ -161,3 +161,52 @@ CREATE TABLE IF NOT EXISTS system_memory_audit (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_system_memory_audit_memory_id ON system_memory_audit(memory_id);
+
+-- ---------------------------------------------------------------------
+-- VM fleet: Railway free VMs (ssh railway.new).
+--
+-- A third, additional execution surface layered alongside the 15-minute
+-- pulse and the 1-minute sub-agent cluster — never a replacement for
+-- either. A Railway free VM is a real disposable Linux box (2 vCPU, 2 GB
+-- RAM) with a live public preview URL, provisioned by `ssh railway.new`
+-- with NO account and NO credit card: Railway identifies the caller purely
+-- by SSH key, and .github/workflows/vm-agent.yml generates a throwaway
+-- ed25519 keypair per run (never committed, never persisted) to stay inside
+-- that cardless free path. Compute for an unclaimed box is free.
+--
+-- Lifecycle (the `status` column):
+--   requested    -> a row filed via POST /vms/provision, not yet dispatched
+--   provisioning -> the 1-minute tick fired a `provision-vm` repository_dispatch
+--   live         -> the box is up; preview_url/claim_url/deadlines are populated
+--   claimed      -> the operator opened the claim link and kept the box
+--   expired      -> past the 24h claim window (or the 60m build window unclaimed)
+--   failed       -> SSH failed, the daily 3-per-IP cap was hit, or the
+--                   Reviewer Gate blocked the brief
+--
+-- Railway's own limits, enforced/observed by the workflow, not this table:
+-- 60 minutes to build, 24 hours to claim, 3 boxes per IP address per day.
+-- The preview URL is private to the creating IP until the box is claimed.
+-- Everything here is world-readable (this repo is PUBLIC), so the driver
+-- script scrubs every manifest/brief string with scrubForState() before it
+-- is ever written to a row.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS vms (
+  id TEXT PRIMARY KEY,
+  subagent_id TEXT,               -- optional link to a subagents row
+  brief TEXT,                     -- what the VM was asked to build (may be empty)
+  status TEXT NOT NULL DEFAULT 'requested',
+  provider TEXT NOT NULL DEFAULT 'railway',
+  region TEXT,
+  vcpu INTEGER,
+  ram_mb INTEGER,
+  preview_url TEXT,
+  claim_url TEXT,
+  build_deadline TEXT,            -- ISO: created + ~60 min
+  claim_deadline TEXT,            -- ISO: created + ~24 h
+  run_url TEXT,                   -- the vm-agent workflow run that provisioned it
+  result_summary TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_vms_status ON vms(status);
+CREATE INDEX IF NOT EXISTS idx_vms_created_at ON vms(created_at);

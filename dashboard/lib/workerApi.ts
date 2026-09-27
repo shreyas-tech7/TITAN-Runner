@@ -88,6 +88,27 @@ export interface SystemMemoryRow {
   created_at: string;
 }
 
+export type VmStatus = "requested" | "provisioning" | "live" | "claimed" | "expired" | "failed";
+
+export interface VmRow {
+  id: string;
+  subagent_id: string | null;
+  brief: string | null;
+  status: VmStatus;
+  provider: string;
+  region: string | null;
+  vcpu: number | null;
+  ram_mb: number | null;
+  preview_url: string | null;
+  claim_url: string | null;
+  build_deadline: string | null;
+  claim_deadline: string | null;
+  run_url: string | null;
+  result_summary: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
 export class WorkerApiError extends Error {
   status: number | null;
   constructor(message: string, status: number | null = null) {
@@ -213,6 +234,28 @@ export async function fetchGeospatialEvents(token: string): Promise<{ events: Ge
 
 export async function fetchSystemMemory(token: string): Promise<{ lessons: SystemMemoryRow[] }> {
   const res = await callWorker("/system-memory", token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+// ---------------------------------------------------------------------
+// VM fleet — Railway free VMs (ssh railway.new). A VM is provisioned by the
+// vm-agent workflow on a GitHub runner (never by the Worker or the browser);
+// these two calls just file a request and read the fleet. Same admin-token
+// gate as everything else.
+// ---------------------------------------------------------------------
+
+export async function fetchVms(token: string): Promise<{ vms: VmRow[]; generatedAt: string }> {
+  const res = await callWorker("/vms", token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function provisionVm(token: string, brief: string): Promise<{ ok: true; id: string }> {
+  const res = await callWorker("/vms/provision", token, {
+    method: "POST",
+    body: JSON.stringify({ brief }),
+  });
   if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
   return res.json();
 }

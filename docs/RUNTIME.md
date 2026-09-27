@@ -636,6 +636,52 @@ one-time setup is done:
    `/admin/keys` would give, so a bad PAT shows up immediately instead of on
    the next real key paste.
 
+## Always-on VM fleet (Railway free VMs)
+
+A *third* execution surface layered alongside the 15-minute pulse and the
+1-minute sub-agent cluster — never a replacement for either, and it reuses the
+same admin-token gate and the same Reviewer Gate. Where a `spawn-subagent` job
+runs a brief on an ephemeral GitHub runner (no public URL, gone in minutes), a
+Railway free VM is a real disposable Linux box (**2 vCPU, 2 GB RAM**) with a
+**live public preview URL** — provisioned by `ssh railway.new` with **no
+account and no credit card**. Railway identifies the caller purely by SSH key,
+so `.github/workflows/vm-agent.yml` generates a **throwaway ed25519 keypair per
+run** (never committed, never persisted) to stay on that cardless free path.
+Limits (Railway's, observed by the workflow): **60 minutes** to build, **24
+hours** to claim, **3 boxes per IP per day**; the preview URL is private to the
+creating IP until the box is claimed, and an unclaimed box and its files are
+deleted.
+
+Routes on `titan-runner-brain` (all `X-Titan-Auth`-gated like the rest):
+
+| Route | Purpose |
+|---|---|
+| `GET /vms` | Recent `vms` rows — what the dashboard's VM Fleet panel polls every ~30s. |
+| `POST /vms/provision` | `{brief?}` → a new `vms` row, `status: 'requested'`. Never provisions inline (the Worker's 10ms CPU budget can't hold an SSH session) — the tick dispatches it. |
+| `POST /internal/vm-status` | Called back by `vm-agent.yml` to move a row `provisioning`→`live`/`failed` and record the preview URL, claim link, and deadlines. |
+
+The 1-minute tick gained two steps: `dispatchQueuedVms()` fires a
+`repository_dispatch` (`provision-vm`) for up to 3 `requested` rows and flips
+them to `provisioning`; `expireStaleVms()` moves a box past its claim/build
+window to `expired` so the row never shows a stale "live". **`vm-agent.yml`**
+runs `scripts/provision-railway-vm.mjs` on a standard runner: it reports
+`provisioning`, runs any brief **past the same Reviewer Gate** before touching
+Railway, opens one SSH session to `railway.new` with the throwaway key, parses
+the JSON manifest (or the welcome banner) for the preview URL and claim link,
+computes the 60-minute/24-hour deadlines, and reports `live` — every captured
+string scrubbed with `scrubForState()` first, since a `vms` row is world-
+readable once the admin token is entered. The retryable "Anonymous trials are
+temporarily disabled" capacity message is reported as `failed` with a clear
+"try again" reason, never a hard crash. The dashboard's **VM Fleet panel**
+(`dashboard/components/VmFleetPanel.tsx`) shows each box with a live countdown
+to both windows, a clickable preview link, and a claim button.
+
+**One-time setup**: the `vms` table must be applied to the live D1 database
+once — `wrangler d1 execute titan-runner-brain --remote --file=./worker/schema.sql`
+from `worker/` (the whole file is idempotent). Everything else rides the
+existing `TITAN_ADMIN_TOKEN` / `GITHUB_PAT` / `TITAN_WORKER_URL` wiring the
+sub-agent cluster already uses — no new secret, no Railway credential.
+
 ## Human checkpoints not resolved in this build
 
 - **GitHub Pages is not enabled yet.** Dispatching `pages-deploy.yml` live
