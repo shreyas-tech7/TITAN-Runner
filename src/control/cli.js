@@ -15,6 +15,7 @@ import { resolveStateDir } from '../state/paths.js';
 import { StateStore } from '../state/store.js';
 import { EventLog } from '../observability/events.js';
 import { applyControlAction } from './dispatch.js';
+import { ApprovalLog } from '../policy/approvalLog.js';
 import { now as clockNow } from '../lib/clock.js';
 import { join } from 'node:path';
 import { userInfo } from 'node:os';
@@ -47,7 +48,8 @@ export function runControl(argv, env = process.env) {
       by = 'local';
     }
   }
-  const result = applyControlAction({ action, target, argument, reason, by, control, tasksFile, now, events });
+  const approvalLog = new ApprovalLog({ path: store.paths.approvalLog, now });
+  const result = applyControlAction({ action, target, argument, reason, by, control, tasksFile, now, events, approvalLog });
   if (result.ok) {
     store.saveControl(result.control);
     store.saveTasks(tasksFile);

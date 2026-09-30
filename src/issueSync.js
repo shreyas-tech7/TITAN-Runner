@@ -35,6 +35,7 @@ import { taskDefaults } from './state/schema.js';
 import { redactString } from './lib/redact.js';
 import { scrubForState } from './lib/secretScrub.js';
 import { parseTaskYaml } from './lib/taskYaml.js';
+import { categoryForApprovalKey } from './policy/safetyRules.js';
 import { createLogger } from './lib/logger.js';
 
 const log = createLogger('issueSync');
@@ -50,6 +51,7 @@ const DEFAULT_DUPLICATE_WINDOW_MS = 24 * 3_600_000;
  * @property {{ append: Function } | null} [events]
  * @property {number} [maxAttempts]
  * @property {number} [duplicateWindowMs]
+ * @property {{ append: Function } | null} [approvalLog] Append-only record of approve/deny decisions (policy/approvalLog.js).
  */
 
 function defaultAuthz() {
@@ -242,7 +244,7 @@ export async function reconcileIssueState(tasksState, openIssues, deps = {}) {
         events?.append('control.rejected', { taskId: task.id, verb: command.verb, outcome: 'unauthorized' });
         continue;
       }
-      const outcome = applyCommand(task, command, { now, events, by: auth.login });
+      const outcome = applyCommand(task, command, { now, events, by: auth.login, approvalLog: deps.approvalLog ?? null, via: 'issue-comment' });
       counts.commands += 1;
       if (outcome === 'retried') counts.retried += 1;
       if (outcome === 'approval-recorded') counts.approvals += 1;
@@ -308,7 +310,15 @@ export function applyCommand(task, command, ctx) {
     case 'approve':
     case 'deny': {
       const step = String(command.args[0] ?? 'all').slice(0, 64);
-      task.approvals = { ...(task.approvals ?? {}), [step]: { decision: command.verb === 'approve' ? 'approved' : 'denied', by: ctx.by, at: ctx.now().toISOString() } };
+      const decision = command.verb === 'approve' ? 'approved' : 'denied';
+      task.approvals = { ...(task.approvals ?? {}), [step]: { decision, by: ctx.by, at: ctx.now().toISOString() } };
+      // The history the safety rules are tuned from. A failing log must never
+      // undo or block the decision itself, which is already recorded above.
+      try {
+        ctx.approvalLog?.append({ taskId: task.id, issueNumber: task.issueNumber ?? null, key: step, category: categoryForApprovalKey(step), decision, by: ctx.by, via: ctx.via ?? 'issue-comment' });
+      } catch (err) {
+        log.warn('approval log not written', { error: redactString(err instanceof Error ? err.message : String(err)) });
+      }
       if (task.status === 'waiting' && task.waitReason === 'approval') {
         transition(task, 'pending', { ...base, reason: `${command.verb} by ${ctx.by} for ${step}` });
       }

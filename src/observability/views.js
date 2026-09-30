@@ -13,12 +13,17 @@
  *                   durations (p50/p95), calls per pulse
  *   providers.json  breaker state per provider with the human `explain()` line
  *                   and today's quota use
+ *   safety.json     the safety rules in force (config/safety-rules.yml), the
+ *                   hard floor, any load warnings, and a summary of the
+ *                   approve/deny history in state/approval-log.jsonl
  *
  * Views are rebuilt at the end of every pulse from the state the pulse just
  * wrote; they are never read back by the engine, so a stale or missing view
  * can never change a decision.
  */
 import { readEventsDir } from './events.js';
+import { HARD_ASK } from '../policy/safetyRules.js';
+import { summarizeApprovals } from '../policy/approvalLog.js';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -196,6 +201,25 @@ export function readEventArchive(eventsDir) {
  * @param {{ store: object, tasksFile: object, health: object, providerIds: string[], quota: object|null, now: () => Date }} args
  * @returns {{ queue: object, analytics: object, providers: object }}
  */
+/**
+ * @param {{ rules: import('../policy/safetyRules.js').SafetyRules, approvals: object[], now: () => Date }} args
+ */
+export function buildSafetyView({ rules, approvals, now }) {
+  return {
+    version: VIEWS_VERSION,
+    updatedAt: now().toISOString(),
+    rules: {
+      source: rules.source,
+      default: rules.default,
+      autoApprove: [...rules.autoApprove],
+      alwaysAsk: [...rules.alwaysAsk],
+      hardFloor: [...HARD_ASK],
+      warnings: [...rules.warnings],
+    },
+    approvals: summarizeApprovals(approvals),
+  };
+}
+
 export function writeViews(args) {
   const queue = buildQueueView(args.tasksFile, { now: args.now });
   const events = readEventsDir(args.store.eventsDir);
@@ -204,7 +228,12 @@ export function writeViews(args) {
   args.store.writeView('queue.json', queue);
   args.store.writeView('analytics.json', analytics);
   args.store.writeView('providers.json', providers);
-  return { queue, analytics, providers };
+  const result = { queue, analytics, providers };
+  if (args.safetyRules) {
+    result.safety = buildSafetyView({ rules: args.safetyRules, approvals: args.approvalEntries ?? [], now: args.now });
+    args.store.writeView('safety.json', result.safety);
+  }
+  return result;
 }
 
 export default { buildQueueView, buildAnalyticsView, buildProvidersView, readEventArchive, writeViews, VIEWS_VERSION };

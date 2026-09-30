@@ -94,7 +94,7 @@ export function applyControlAction(input) {
   if (!task) return { ok: false, outcome: audit('rejected-no-such-task'), control: input.control, message: `no such task: ${target}` };
   const args = spec.args > 0 ? [argument ?? (action === 'approve' || action === 'deny' ? 'all' : '')] : [];
   if (spec.args > 0 && args[0] === '') return { ok: false, outcome: audit('rejected-bad-argument'), control: input.control, message: `${action} needs an argument` };
-  const outcome = applyCommand(task, { verb: action, args }, { now, events, by });
+  const outcome = applyCommand(task, { verb: action, args }, { now, events, by, approvalLog: input.approvalLog ?? null, via: 'control-workflow' });
   const ok = !outcome.startsWith('ignored');
   audit(outcome, { taskId: target });
   return { ok, outcome, control: input.control, message: ok ? `${action} ${target}: ${outcome}` : `${action} ${target} was ignored (${outcome}; status ${task.status})` };
