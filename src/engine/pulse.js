@@ -61,6 +61,7 @@ import { ToolRegistry } from '../tools/registry.js';
 import { builtinTools } from '../tools/builtin.js';
 import { decide as policyDecide, effectiveAutonomy } from '../policy/engine.js';
 import { loadSafetyRules } from '../policy/safetyRules.js';
+import { runDailyResearch, researchEnabledFromEnv } from '../research/dailyResearch.js';
 import { ApprovalLog } from '../policy/approvalLog.js';
 import { writeViews } from '../observability/views.js';
 
@@ -365,6 +366,23 @@ export async function runPulse(deps = {}) {
         await claimAndRun(tasksFile, ctx, counts, control);
       } else {
         events.append('pulse.draining', { reason: control.reason ?? 'drain control is on', outcome: 'no-claims', audit: true });
+      }
+
+      // Daily research digest: at most one low-priority model call per UTC
+      // day, after the real work, never failing the pulse. Off whenever a
+      // caller injects fakes (simulation, harness, tests) unless it asks for
+      // it, so nothing there can reach a live provider. `TITAN_RESEARCH=0`
+      // turns it off in production.
+      const researchEnabled = deps.research?.enabled ?? (researchEnabledFromEnv() && !deps.pools && !deps.github);
+      if (researchEnabled) {
+        await runDailyResearch({
+          store, now, events, control, dryRun,
+          registry: deps.research?.registry ?? defaultRegistry,
+          rules: ctx.safetyRules,
+          topicsConfig: deps.research?.topicsConfig,
+          retryMinutes: deps.research?.retryMinutes ?? positiveInt(process.env.TITAN_RESEARCH_RETRY_MINUTES, 180),
+          shouldStop: () => budget.shouldDrain(),
+        });
       }
     }
 

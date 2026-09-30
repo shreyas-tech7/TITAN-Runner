@@ -34,6 +34,7 @@ export function resolveStateDir(explicit) {
  * @property {string} digests
  * @property {string} reviews
  * @property {string} approvalLog
+ * @property {string} research
  */
 
 /**
@@ -53,6 +54,7 @@ export function statePaths(stateDir = resolveStateDir()) {
     digests: join(stateDir, 'digests'),
     reviews: join(stateDir, 'reviews'),
     approvalLog: join(stateDir, 'approval-log.jsonl'),
+    research: join(stateDir, 'research.json'),
   });
 }
 

@@ -1,0 +1,18 @@
+# Standing topics for the daily research digest (src/research/dailyResearch.js).
+#
+# Once per UTC day the pulse makes ONE low-priority call to a free-tier
+# provider and writes state/digests/<date>-research.md. The model has no web
+# access: the digest is its own training knowledge, labelled as such, so read
+# it as a list of leads to verify. Skipped silently when every provider is
+# rate-limited or unconfigured; set TITAN_RESEARCH=0 to turn it off.
+#
+# Format: `topic-id: "what to cover"`. If there are more topics than
+# max_topics, the pass rotates through them by day.
+
+version: 1
+max_topics: 3
+
+topics:
+  free-tier-llm-landscape: "Recent changes to free-tier limits, models and terms at Groq, Together, OpenRouter, Google Gemini and Hugging Face that could break an agent that runs only on free tiers."
+  agent-safety-practice: "Current good practice for keeping autonomous coding agents safe: approval tiers, sandboxing, prompt-injection defences and audit logs."
+  actions-automation: "GitHub Actions changes that affect scheduled, public-repository automation: cron reliability, free-minute limits, token permissions and supply-chain hardening."
