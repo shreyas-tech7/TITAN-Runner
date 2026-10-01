@@ -179,6 +179,22 @@ export async function diagnoseGithubPat(token: string): Promise<{ ok: boolean; e
   return res.json();
 }
 
+export interface GevTokenResponse {
+  token: string;
+  expires_at: string;
+  ttl_seconds: number;
+}
+
+/** A short lived (about five minute) access link credential for the God's Eye
+ * View tab (GET /gev/token). The TITAN-GEV Space trades it for a session
+ * cookie. A 503 with `gev_not_configured` means the Worker has no
+ * GEV_SHARED_SECRET yet. */
+export async function fetchGevToken(token: string): Promise<GevTokenResponse> {
+  const res = await callWorker("/gev/token", token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
 // ---------------------------------------------------------------------
 // Phase 2 — OSINT catalog + owner-gated investigation. Every call here
 // carries the same admin token as everything else — POST /osint/investigate
