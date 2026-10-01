@@ -18,9 +18,12 @@ holds its unions to the engine's lists.
 | `state/events/archive/<date>.json` | counts by type / outcome / failure class | 1 | event compaction (after 14 days) | analytics |
 | `state/quota.json` | `schemas/quota.schema.json` | 1 | pulse | registry (before every call) |
 | `state/leases/<taskId>.json` | `{ owner, acquiredAt, expiresAt }` | – | pulse (O_EXCL) | reconcile |
-| `state/views/{queue,analytics,providers}.json` | see `src/observability/views.js` | 1 | pulse (end) | dashboard, operator; never the engine |
+| `state/views/{queue,analytics,providers,safety}.json` | see `src/observability/views.js` | 1 | pulse (end) | dashboard, operator; never the engine |
+| `state/views/research.json` | see `src/research/dailyResearch.js` | 1 | pulse (research step) | dashboard; never the engine |
+| `state/approval-log.jsonl` | one object per line (`src/policy/approvalLog.js`): task, key, category, decision, who, channel | 1 | pulse, control CLI — **append-only** | the safety view; humans tuning `config/safety-rules.yml` |
+| `state/research.json` | bookkeeping for the daily digest (last attempt, status, last digest) | 1 | pulse (research step) | the research step's once-a-day gate |
 | `state/runs/<runId>.json` | run record (`src/engine/pulse.js#writeRunRecord`) | – | pulse | dashboard drawer |
-| `state/providers.json`, `state/agents.json`, `state/pulse-history.json`, `state/reviews/`, `state/digests/` | unchanged from v1 | – | pulse, self-test, rollup | dashboard |
+| `state/providers.json`, `state/agents.json`, `state/pulse-history.json`, `state/reviews/`, `state/digests/` | unchanged from v1 (`state/digests/` also holds `<date>-research.md`, written by the research step) | – | pulse, self-test, rollup | dashboard |
 | `state/backup/<file>` | previous good copy of tasks.json / control.json | – | store (before each write) | store (repair) |
 | `state/archive/tasks-<month>.jsonl` | archived terminal tasks | – | retention | nobody (history) |
 

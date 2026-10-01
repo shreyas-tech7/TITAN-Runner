@@ -15,6 +15,8 @@
  *   titan doctor                         check the checkout, state, schemas, and env
  *   titan bench [--repeat N] [--filter id]
  *                                        run the benchmark harness
+ *   titan hermes status | ping           the Hermes agent cluster (HERMES_<N>_* env):
+ *                                        what is configured (no network) / one tiny call each
  *
  * Output is plain text for humans, or one line of JSON (the last line of
  * output) with `--json`.
@@ -53,6 +55,7 @@ const USAGE = `titan — TITAN-Runner operator CLI
   titan control <action> [target] [argument] [--reason "..."]
   titan doctor                                check the checkout, state files, schemas, and env
   titan bench [--repeat N] [--filter id] [--out file]
+  titan hermes status | ping                  the Hermes agent cluster: what is configured / a live check
 
 Flags: --state <dir>  --json
 `;
@@ -204,6 +207,37 @@ async function cmdDoctor(args) {
   return ok ? 0 : 1;
 }
 
+async function cmdHermes(args) {
+  const sub = args._[1] ?? 'status';
+  if (sub !== 'status' && sub !== 'ping') {
+    console.error('usage: titan hermes status | ping');
+    return 2;
+  }
+  const { HermesCluster } = await import('../src/orchestrator/hermesCluster.js');
+  const cluster = new HermesCluster();
+  const instances = cluster.describe();
+  if (sub === 'status') {
+    print({ configured: cluster.isConfigured(), instances, warnings: cluster.warnings }, args.flags.json, (o) => [
+      o.configured ? `${o.instances.length} Hermes instance(s) configured` : 'no Hermes instance configured (set HERMES_1_BASE_URL and HERMES_1_API_KEY; see .env.example)',
+      ...o.instances.map((i) => `  ${i.id} ${i.name} ${i.origin} model=${i.model} specialization=${i.specialization.join(',')}`),
+      ...o.warnings.map((w) => `  warning: ${w}`),
+    ].join('\n'));
+    return 0;
+  }
+  if (!cluster.isConfigured()) {
+    print({ ok: false, error: 'no Hermes instance configured', warnings: cluster.warnings }, args.flags.json, (o) => `${o.error}\n${o.warnings.map((w) => `warning: ${w}`).join('\n')}`);
+    return 1;
+  }
+  if (process.env.TITAN_DRY_RUN === '1') {
+    print({ ok: false, error: 'TITAN_DRY_RUN=1 forbids network calls; unset it to ping' }, args.flags.json, (o) => o.error);
+    return 1;
+  }
+  const results = await cluster.ping({ signal: AbortSignal.timeout(60_000) });
+  const ok = results.every((r) => r.ok);
+  print({ ok, results }, args.flags.json, (o) => o.results.map((r) => `${r.ok ? 'ok  ' : 'FAIL'} ${r.id} ${r.name} ${r.ms}ms ${r.ok ? `model=${r.model} reply=${JSON.stringify(r.sample)}` : r.error}`).join('\n'));
+  return ok ? 0 : 1;
+}
+
 function cmdBench(args) {
   const argv = [join(ROOT, 'bench', 'harness.mjs')];
   for (const f of ['repeat', 'filter', 'out', 'scratch']) if (args.flags[f] != null) argv.push(`--${f}`, String(args.flags[f]));
@@ -226,6 +260,7 @@ export async function main(argv) {
     case 'control': return cmdControl(args);
     case 'doctor': return cmdDoctor(args);
     case 'bench': return cmdBench(args);
+    case 'hermes': return cmdHermes(args);
     case undefined: case 'help': case '--help': case '-h':
       console.log(USAGE);
       return 0;

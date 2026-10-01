@@ -152,6 +152,38 @@ export interface AnalyticsView {
   pulses: { count: number; p50Ms: number | null; p95Ms: number | null; maxMs: number | null };
 }
 
+/** state/views/safety.json — the safety rules in force and the approve/deny history (src/observability/views.js). */
+export interface SafetyView {
+  version: number;
+  updatedAt: string;
+  rules: {
+    source: string;
+    default: "ask" | "auto";
+    autoApprove: string[];
+    alwaysAsk: string[];
+    /** Categories that always ask regardless of the rules file (src/policy/safetyRules.js). */
+    hardFloor: string[];
+    warnings: string[];
+  };
+  approvals: {
+    total: number;
+    approved: number;
+    denied: number;
+    byCategory: Record<string, { approved: number; denied: number }>;
+    recent: Array<{ at: string; taskId: string; key: string; category: string; decision: "approved" | "denied"; by: string; via: string }>;
+  };
+}
+
+/** state/views/research.json — the daily research digest (src/research/dailyResearch.js). */
+export interface ResearchView {
+  version: number;
+  updatedAt: string;
+  lastAttemptAt: string | null;
+  lastStatus: "written" | "skipped" | null;
+  lastReason: string | null;
+  digest: { date: string; file: string | null; provider: string | null; model: string | null; topics: string[]; preview: string | null } | null;
+}
+
 export interface TasksState {
   version: number;
   updatedAt: string;

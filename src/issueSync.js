@@ -35,6 +35,8 @@ import { taskDefaults } from './state/schema.js';
 import { redactString } from './lib/redact.js';
 import { scrubForState } from './lib/secretScrub.js';
 import { parseTaskYaml } from './lib/taskYaml.js';
+import { normalizeIssueBody, normalizeIssueTitle } from './lib/issueBody.js';
+import { categoryForApprovalKey } from './policy/safetyRules.js';
 import { createLogger } from './lib/logger.js';
 
 const log = createLogger('issueSync');
@@ -50,6 +52,7 @@ const DEFAULT_DUPLICATE_WINDOW_MS = 24 * 3_600_000;
  * @property {{ append: Function } | null} [events]
  * @property {number} [maxAttempts]
  * @property {number} [duplicateWindowMs]
+ * @property {{ append: Function } | null} [approvalLog] Append-only record of approve/deny decisions (policy/approvalLog.js).
  */
 
 function defaultAuthz() {
@@ -126,9 +129,18 @@ export async function syncIssuesIntoTasks(tasksState, deps = {}) {
     // modal carries a machine-readable YAML block, and the pulse must parse
     // ONLY that — never scrape prose out of the body. An issue with no such
     // block falls back to the whole-body-as-prompt behavior, unchanged.
-    const structured = parseTaskYaml(issue.body ?? '');
-    const title = redactString(structured?.title ?? issue.title ?? '').slice(0, 200);
-    const prompt = redactString(structured?.description ?? issue.body ?? '').slice(0, 8000);
+    //
+    // An issue an automation tool created (Zapier, Make) may wrap the task in
+    // a header/footer a person would not type; `normalizeIssueBody` removes
+    // that first (docs/ZAPIER_MAKE.md). It is the identity for a hand-typed
+    // or dashboard-filed body apart from tidying line endings and invisible
+    // characters, and it decides nothing about who may file a task.
+    const normalized = normalizeIssueBody(issue.body ?? '');
+    const structured = parseTaskYaml(normalized.text);
+    const title = redactString(structured?.title ?? normalizeIssueTitle(issue.title, normalized.text)).slice(0, 200);
+    // A body that was nothing but automation boilerplate leaves the title as the task.
+    const promptText = normalized.text === '' && normalized.source !== 'plain' ? title : normalized.text;
+    const prompt = redactString(structured?.description ?? promptText).slice(0, 8000);
     const createdAt = now().toISOString();
     const key = idempotencyKeyFor(type, title, prompt);
 
@@ -168,7 +180,7 @@ export async function syncIssuesIntoTasks(tasksState, deps = {}) {
 
     tasksState.tasks.push(task);
     added += 1;
-    events?.append('intake.accepted', { taskId: id, taskType: type, priority: task.priority, dependsOn: task.dependsOn, authorizedBy: auth.reason });
+    events?.append('intake.accepted', { taskId: id, taskType: type, priority: task.priority, dependsOn: task.dependsOn, authorizedBy: auth.reason, bodySource: normalized.source === 'marked' || !structured ? normalized.source : 'fence' });
     log.info('picked up new issue as a task', { id, title: issue.title, selfImprove: isSelfImprove, authorizedBy: auth.reason });
   }
 
@@ -242,7 +254,7 @@ export async function reconcileIssueState(tasksState, openIssues, deps = {}) {
         events?.append('control.rejected', { taskId: task.id, verb: command.verb, outcome: 'unauthorized' });
         continue;
       }
-      const outcome = applyCommand(task, command, { now, events, by: auth.login });
+      const outcome = applyCommand(task, command, { now, events, by: auth.login, approvalLog: deps.approvalLog ?? null, via: 'issue-comment' });
       counts.commands += 1;
       if (outcome === 'retried') counts.retried += 1;
       if (outcome === 'approval-recorded') counts.approvals += 1;
@@ -308,7 +320,15 @@ export function applyCommand(task, command, ctx) {
     case 'approve':
     case 'deny': {
       const step = String(command.args[0] ?? 'all').slice(0, 64);
-      task.approvals = { ...(task.approvals ?? {}), [step]: { decision: command.verb === 'approve' ? 'approved' : 'denied', by: ctx.by, at: ctx.now().toISOString() } };
+      const decision = command.verb === 'approve' ? 'approved' : 'denied';
+      task.approvals = { ...(task.approvals ?? {}), [step]: { decision, by: ctx.by, at: ctx.now().toISOString() } };
+      // The history the safety rules are tuned from. A failing log must never
+      // undo or block the decision itself, which is already recorded above.
+      try {
+        ctx.approvalLog?.append({ taskId: task.id, issueNumber: task.issueNumber ?? null, key: step, category: categoryForApprovalKey(step), decision, by: ctx.by, via: ctx.via ?? 'issue-comment' });
+      } catch (err) {
+        log.warn('approval log not written', { error: redactString(err instanceof Error ? err.message : String(err)) });
+      }
       if (task.status === 'waiting' && task.waitReason === 'approval') {
         transition(task, 'pending', { ...base, reason: `${command.verb} by ${ctx.by} for ${step}` });
       }

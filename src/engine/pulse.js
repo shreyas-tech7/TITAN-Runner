@@ -60,6 +60,9 @@ import { now as clockNow } from '../lib/clock.js';
 import { ToolRegistry } from '../tools/registry.js';
 import { builtinTools } from '../tools/builtin.js';
 import { decide as policyDecide, effectiveAutonomy } from '../policy/engine.js';
+import { loadSafetyRules } from '../policy/safetyRules.js';
+import { runDailyResearch, researchEnabledFromEnv } from '../research/dailyResearch.js';
+import { ApprovalLog } from '../policy/approvalLog.js';
 import { writeViews } from '../observability/views.js';
 
 import { syncIssuesIntoTasks, reconcileIssueState, addManualTask } from '../issueSync.js';
@@ -297,6 +300,19 @@ export async function runPulse(deps = {}) {
     activeTaskId: null,
   };
 
+  // The safety rules (config/safety-rules.yml) are read once per pulse. A
+  // missing or malformed file falls back to built-in rules with the same hard
+  // floor, and the problem is recorded rather than thrown.
+  // Test seam: `proposeSelfImprovement` shells out to real `git` in the cwd, so a
+  // test that lets a self-improve task reach delivery must inject a stub.
+  ctx.proposeSelfImprovement = deps.proposeSelfImprovement ?? null;
+  ctx.safetyRules = deps.safetyRules ?? loadSafetyRules({ path: deps.safetyRulesPath });
+  ctx.approvalLog = deps.approvalLog === undefined ? new ApprovalLog({ path: store.paths.approvalLog, now }) : deps.approvalLog;
+  if (ctx.safetyRules.warnings.length > 0) {
+    log.warn('safety rules loaded with warnings', { source: ctx.safetyRules.source, warnings: ctx.safetyRules.warnings });
+    events.append('policy.rules-warning', { source: ctx.safetyRules.source, warnings: ctx.safetyRules.warnings.slice(0, 10), outcome: 'built-in-floor-applies' });
+  }
+
   primeProviderHealth();
   const control = store.loadControl();
   const heartbeat = store.loadHeartbeat();
@@ -332,7 +348,7 @@ export async function runPulse(deps = {}) {
             await ledger.comment(dup.issueNumber, `dup:${dup.id}`, `TITAN-Runner did not run this task: it is a duplicate of ${dup.duplicateOf}${dup.error ? '' : '.'}\n\n${dup.error ?? ''}`);
           }
         }
-        const controls = await reconcileIssueState(tasksFile, intake.issues, { listComments: github.listIssueComments.bind(github), now, events });
+        const controls = await reconcileIssueState(tasksFile, intake.issues, { listComments: github.listIssueComments.bind(github), now, events, approvalLog: ctx.approvalLog });
         if (controls.cancelled > 0) log.info('cancelled tasks whose issue was closed', { cancelled: controls.cancelled });
         if (controls.commands > 0) log.info('applied authorized control commands', { commands: controls.commands, retried: controls.retried });
       }
@@ -350,6 +366,23 @@ export async function runPulse(deps = {}) {
         await claimAndRun(tasksFile, ctx, counts, control);
       } else {
         events.append('pulse.draining', { reason: control.reason ?? 'drain control is on', outcome: 'no-claims', audit: true });
+      }
+
+      // Daily research digest: at most one low-priority model call per UTC
+      // day, after the real work, never failing the pulse. Off whenever a
+      // caller injects fakes (simulation, harness, tests) unless it asks for
+      // it, so nothing there can reach a live provider. `TITAN_RESEARCH=0`
+      // turns it off in production.
+      const researchEnabled = deps.research?.enabled ?? (researchEnabledFromEnv() && !deps.pools && !deps.github);
+      if (researchEnabled) {
+        await runDailyResearch({
+          store, now, events, control, dryRun,
+          registry: deps.research?.registry ?? defaultRegistry,
+          rules: ctx.safetyRules,
+          topicsConfig: deps.research?.topicsConfig,
+          retryMinutes: deps.research?.retryMinutes ?? positiveInt(process.env.TITAN_RESEARCH_RETRY_MINUTES, 180),
+          shouldStop: () => budget.shouldDrain(),
+        });
       }
     }
 
@@ -370,7 +403,7 @@ export async function runPulse(deps = {}) {
     // Derived views (state/views/*.json): rebuilt from what this pulse wrote;
     // never read back by the engine, so a failure here is logged, not fatal.
     try {
-      writeViews({ store, tasksFile, health: providerHealth, providerIds: ALL_PROVIDER_IDS, quota, now });
+      writeViews({ store, tasksFile, health: providerHealth, providerIds: ALL_PROVIDER_IDS, quota, now, safetyRules: ctx.safetyRules, approvalEntries: ctx.approvalLog?.read() ?? [] });
     } catch (err) {
       log.warn('views not rebuilt', { error: redactString(err instanceof Error ? err.message : String(err)) });
       events.append('views.failed', { outcome: 'error', error: redactString(err instanceof Error ? err.message : String(err)).slice(0, 300) });
@@ -575,8 +608,8 @@ async function processTaskInner(task, ctx, control) {
   const policyTask = () => ({ autonomy: task.autonomy, approvals: task.approvals ?? null });
   const autonomy = effectiveAutonomy(control, policyTask());
   const policy = (action) => {
-    const d = policyDecide({ action, control, task: policyTask() });
-    events.append('policy.decision', { taskId: task.id, runId: cp.runId, action: action.kind === 'tool' ? `tool:${action.toolId}` : action.kind, effect: action.effect, outcome: d.decision, reason: d.reason, approvalKey: d.approvalKey, autonomy: d.autonomy, audit: true });
+    const d = policyDecide({ action, control, task: policyTask(), rules: ctx.safetyRules });
+    events.append('policy.decision', { taskId: task.id, runId: cp.runId, action: action.kind === 'tool' ? `tool:${action.toolId}` : action.kind, effect: action.effect, outcome: d.decision, reason: d.reason, approvalKey: d.approvalKey, autonomy: d.autonomy, category: d.category, audit: true });
     return d;
   };
   // Dry-run autonomy and safe mode keep every comment inside the process:
@@ -584,7 +617,7 @@ async function processTaskInner(task, ctx, control) {
   if (autonomy === 'dry-run') ledger.suppressed = 'autonomy is dry-run';
   else if (control.safeMode) ledger.suppressed = 'safe mode is on';
   cp.tools = cp.tools ?? {};
-  const toolContext = { control, task: policyTask(), taskId: task.id, ledger: cp.tools, events, now };
+  const toolContext = { control, task: policyTask(), rules: ctx.safetyRules, taskId: task.id, ledger: cp.tools, events, now };
   const judge = { ...ctx.judgeSettings, chat: ctx.judgeSettings.chat ?? judgeChatFor(pools) };
   const askApproval = async (key, what) => {
     await ledger.comment(task.issueNumber, `approval:${key}`, `TITAN-Runner needs an authorized user's approval before it continues with this task.\n\n${what}\n\nReply \`/titan approve ${key}\` to allow it or \`/titan deny ${key}\` to stop it. (Autonomy: ${autonomy}.)`);
@@ -739,7 +772,7 @@ async function processTaskInner(task, ctx, control) {
   await persist(cp, 'delivering');
 
   if (task.type === 'self-improve') {
-    const { ran, result: outcome } = await ledger.once(`pr:${cp.runId}`, () => proposeSelfImprovement(task, result.synthesis, { github, reviewerOpts: ctx.reviewerOpts }));
+    const { ran, result: outcome } = await ledger.once(`pr:${cp.runId}`, () => (ctx.proposeSelfImprovement ?? proposeSelfImprovement)(task, result.synthesis, { github, reviewerOpts: ctx.reviewerOpts }));
     const final = ran ? outcome : { status: 'pr-open', prNumber: task.prNumber, prUrl: task.prUrl, reason: 'recorded on a previous pulse' };
     if (final.status === 'pr-open') {
       task.prNumber = final.prNumber ?? task.prNumber ?? null;

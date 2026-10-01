@@ -1,0 +1,46 @@
+# TITAN-Runner safety rules — which actions the engine may take on its own
+# and which always wait for an authorized human's `/titan approve <key>`.
+#
+# Read by src/policy/safetyRules.js and applied inside src/policy/engine.js
+# `decide()`, for every tool call and every delivery the engine is about to
+# cause. These rules sit BENEATH the autonomy dial (docs/RUNBOOK.md): the
+# dial (dry-run / propose / approval / autonomous) can only make things
+# stricter than this file says, never looser.
+#
+# Every action is first CLASSIFIED into one category (src/policy/safetyRules.js
+# `classifyAction` — by kind, tool id, effect and path arguments; this is
+# code, not config, so a rules edit cannot re-label an action). This file then
+# says, per category, whether it is auto-approved or always asks.
+#
+# Categories: read, scratch-write, external-fetch, external-effect,
+#   issue-comment, state-append, git-commit, file-delete, credential-change,
+#   state-mutation
+#
+# HARD FLOOR (in code, not editable here): git-commit, file-delete,
+# credential-change and state-mutation ALWAYS ask, even if they are listed
+# under auto_approve below, and an `/titan approve all` does not cover them —
+# only the exact approval key does.
+#
+# Approve/deny decisions humans actually make are appended to
+# state/approval-log.jsonl so this file can later be tuned from real history.
+
+version: 1
+
+# Anything not listed in either list below falls back to this: ask | auto
+default: ask
+
+# Low-risk categories the engine may perform without asking.
+auto_approve:
+  - read            # repo_read_file, repo_list_files, repo_search — no side effect
+  - scratch-write   # workspace_write: the task's own throwaway workspace
+  - external-fetch  # http_fetch: GET-only, already limited by TITAN_EGRESS_ALLOWLIST + SSRF guard
+  - external-effect # any other external tool; move to always_ask to review every new one
+  - issue-comment   # the result comment / close on the task's own issue
+  - state-append    # appending to state/ (the engine's own bookkeeping)
+
+# Categories that always wait for approval.
+always_ask:
+  - git-commit         # opening a self-improvement pull request (branch, commit, push), or any git write
+  - file-delete        # deleting or truncating anything
+  - credential-change  # anything touching secrets, tokens, keys or .env files
+  - state-mutation     # changing or removing existing state/ content (appending is fine)

@@ -32,6 +32,16 @@ pulse commits its state to `state/` — that's the whole database, since a
 GitHub Actions runner is wiped clean after every run. A weekly self-test
 re-discovers each provider's live model catalog.
 
+## What is automated, and what still needs a person
+
+| Capability | State | What a person still has to do |
+|---|---|---|
+| **Safety rules** (`config/safety-rules.yml`) | Automated, always on. Hard-ask floor in code. | Answer `/titan approve` / `deny` when asked; tune the file in a PR from `state/approval-log.jsonl` if you want. |
+| **Daily research digest** (`state/digests/<date>-research.md`) | Automated, on by default, once per UTC day inside the existing pulse. Skipped silently if every provider is rate-limited. | At least one provider key must be a repository secret, or it never runs. It is a free model's training knowledge with no web access, so verify what you read. `TITAN_RESEARCH=0` turns it off. |
+| **Zapier / Make.com intake** (`docs/ZAPIER_MAKE.md`) | The normalizing of automation-created `titan-task` issues is automated. No server, no webhook endpoint. | Build the Zap or scenario in Zapier's or Make's own UI, and connect a GitHub account that is authorized to file tasks. |
+| **Hermes agent cluster** | **Client code and tests only.** No instance exists and nothing in the pulse calls it. | Provision the services, add the secrets, make a reviewed workflow edit, run `titan hermes ping`. See `docs/RUNTIME.md`. |
+| **Dashboard "Research & safety" panel** | Deploys with the next push to `main` that touches `dashboard/**`; data arrives with the first pulse after that. | Nothing. |
+
 ## Security — read this before filing a task
 
 - Everything under `state/` and everything TITAN-Runner posts as an issue
@@ -47,6 +57,13 @@ re-discovers each provider's live model catalog.
   self-improvement proposal before it runs, and blocks anything that looks
   destructive (a recursive delete, a force push, a database drop, …) —
   see `docs/RUNTIME.md`'s "Reviewer Gate" section.
+- **Some actions always wait for a human** (`config/safety-rules.yml`, see
+  `docs/RUNTIME.md`'s "Safety rules"): a git commit (which includes opening
+  a self-improvement pull request), a deletion, a change touching
+  credentials, or a change to existing `state/` content. That floor is in
+  code — it holds even if the rules file is edited, missing or malformed,
+  and `/titan approve all` does not clear it. Every approve/deny a human
+  makes is logged to `state/approval-log.jsonl`.
 - The agent can propose changes to its own code, but only as a draft pull
   request — it can never push straight to `main`, and a fixed denylist
   (`src/denylist.js`) plus a path jail keep it from ever touching
@@ -116,18 +133,20 @@ src/engine/       the pulse engine: runPulse, orchestration, checkpoints, side-e
 src/task/         lifecycle state machine, leases, reconciliation
 src/reliability/  failure taxonomy, retry policy, output repair, loop detection, quota ledger
 src/tools/        the tool registry, built-in tools, SSRF guard
-src/policy/       the policy engine (autonomy levels, approvals)
+src/policy/       the policy engine (autonomy levels, approvals), the safety rules, the approval log
+src/research/     the daily research digest
 src/verify/       deterministic checks, the judge, verification
 src/control/      /titan command grammar, control-plane dispatch and CLI
 src/observability/ event log, derived views, explain/replay
 src/state/        schemas, versioned validated store, migrations, paths
 src/security/     intake authorization
 src/fakes/        scripted fake provider and fake GitHub (simulation, harness, tests)
-src/orchestrator/ decomposer, scheduler, router, synthesizer, capability registry
+src/orchestrator/ decomposer, scheduler, router, synthesizer, capability registry, Hermes cluster client
 src/providers/    the five free-tier adapters, registry failover, health/breakers
 src/reviewer/     the Reviewer Gate
 bin/titan.js      the operator CLI
 bench/            the benchmark harness, scenarios, results (before/after)
+config/           safety-rules.yml, research-topics.yml (read by the pulse)
 schemas/          the data contract (exported from src/state/schema.js)
 state/            the database (see docs/DATA_CONTRACT.md)
 dashboard/        static Next.js export published to GitHub Pages
@@ -136,7 +155,8 @@ worker/           the Cloudflare Worker sub-agent coordinator + Railway VM-fleet
 test/             unit, integration, crash, concurrency, security, contract tests (node:test)
 .github/          workflows: pulse, control, CI, Pages deploy, keep-alive, dead-man, self-test, spawn-subagent, worker-deploy, vm-agent
 docs/             RUNTIME.md (how it works), RUNBOOK.md (when it breaks), CONFIG.md (every knob),
-                  DATA_CONTRACT.md (every file), runner-upgrade/ (the upgrade's own record)
+                  DATA_CONTRACT.md (every file), ZAPIER_MAKE.md (wiring Zapier/Make to the issue queue),
+                  runner-upgrade/ (the upgrade's own record)
 ```
 
 **Always-on sub-agent cluster**: a second, additional layer — a Cloudflare

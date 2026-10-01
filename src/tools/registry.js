@@ -107,8 +107,8 @@ export class ToolRegistry {
       return finish({ ok: false, callId, output: '', error: { code: 'TOOL_DENIED', class: 'policy_blocked', message: `refused by the reviewer gate: ${gate.reasons.join('; ')}` }, effect: def.effect, decision: { decision: 'deny', reason: 'reviewer gate', matchedRules: gate.matchedRules } });
     }
 
-    const decision = decide({ action: { kind: 'tool', toolId: def.id, effect: def.effect, args }, control: ctx.control ?? {}, task: ctx.task ?? {} });
-    events?.append('policy.decision', { taskId: ctx.taskId ?? null, stepId: ctx.stepId ?? null, action: `tool:${def.id}`, effect: def.effect, outcome: decision.decision, reason: decision.reason, approvalKey: decision.approvalKey, autonomy: decision.autonomy, audit: true });
+    const decision = decide({ action: { kind: 'tool', toolId: def.id, effect: def.effect, args }, control: ctx.control ?? {}, task: ctx.task ?? {}, rules: ctx.rules });
+    events?.append('policy.decision', { taskId: ctx.taskId ?? null, stepId: ctx.stepId ?? null, action: `tool:${def.id}`, effect: def.effect, outcome: decision.decision, reason: decision.reason, approvalKey: decision.approvalKey, autonomy: decision.autonomy, category: decision.category, audit: true });
     if (decision.decision === 'deny') return finish({ ok: false, callId, output: '', error: { code: 'TOOL_DENIED', class: 'policy_blocked', message: `not allowed: ${decision.reason}` }, effect: def.effect, decision });
     if (decision.decision === 'approve') return finish({ ok: false, callId, output: '', error: { code: 'APPROVAL_REQUIRED', message: decision.reason, approvalKey: decision.approvalKey }, effect: def.effect, decision });
 

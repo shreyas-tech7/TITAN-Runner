@@ -13,6 +13,7 @@ import TaskQueueSection from "@/components/TaskQueueSection";
 import RunHistorySection from "@/components/RunHistorySection";
 import ProviderHealthStrip from "@/components/ProviderHealthStrip";
 import PrPanel from "@/components/PrPanel";
+import SafetyResearchPanel from "@/components/SafetyResearchPanel";
 import TaskDetailDrawer from "@/components/TaskDetailDrawer";
 import NewTaskModal from "@/components/NewTaskModal";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -228,6 +229,8 @@ export default function DashboardPage() {
       <RunHistorySection tasks={filteredTasks} onSelectTask={setSelectedTaskId} />
 
       <ProviderHealthStrip providers={providers.data?.providers} />
+
+      <SafetyResearchPanel />
 
       <PrPanel />
 
