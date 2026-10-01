@@ -66,7 +66,8 @@ test('writes one digest to state/digests/, labelled as model knowledge with no w
     assert.equal(registry.calls.length, 1);
     const { messages, opts } = registry.calls[0];
     assert.equal(opts.priority, 'low');
-    assert.ok(opts.maxTokens <= 700 && opts.maxProviders <= 2);
+    // Room for a thinking model's hidden tokens (700 was too tight on a live Gemini run), still one bounded call.
+    assert.ok(opts.maxTokens >= 2048 && opts.maxTokens <= 4096 && opts.maxProviders <= 2);
     assert.match(messages[1].content, /Date: 2026-06-10/);
     for (const id of ['free-tier-llm-landscape', 'agent-safety-practice', 'actions-automation']) assert.ok(messages[1].content.includes(id), id);
     assert.match(messages[0].content, /no web access/);
@@ -239,6 +240,28 @@ test('a later skipped attempt does not blank the last digest the dashboard shows
     assert.equal(view.lastReason, 'rate_limited');
     assert.equal(view.digest.date, '2026-06-10', 'still points at the last real digest');
     assert.ok(view.digest.preview.includes('Limits move often'));
+  } finally {
+    w.cleanup();
+  }
+});
+
+test('an unusable answer records what came back (size, tokens, provider) so a too-small budget is diagnosable, and a later success clears it', async () => {
+  const w = world();
+  try {
+    // The shape of the first live run: a thinking model spent its budget and returned almost nothing.
+    const spent = fakeRegistry({ reply: { text: 'Here', service: 'gemini', model: 'gemini-2.5-flash', tokensUsed: 949 } });
+    const r = await run(w, spent);
+    assert.deepEqual([r.status, r.reason], ['skipped', 'empty-response']);
+    assert.deepEqual(w.state().lastDetail, { provider: 'gemini', model: 'gemini-2.5-flash', chars: 4, tokensUsed: 949 });
+    assert.deepEqual(w.events.map((e) => [e.type, e.reason, e.chars, e.tokensUsed]), [['research.skipped', 'empty-response', 4, 949]]);
+    assert.equal(w.digests().length, 0);
+
+    // Provider output stays out of the detail: sizes and ids only.
+    assert.ok(!JSON.stringify(w.state().lastDetail).includes('Here'));
+
+    const later = await run(w, fakeRegistry(), { now: () => new Date(DAY1.getTime() + 181 * 60_000) });
+    assert.equal(later.status, 'written');
+    assert.equal(w.state().lastDetail, null);
   } finally {
     w.cleanup();
   }

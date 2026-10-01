@@ -41,7 +41,11 @@ const MAX_DIGEST_CHARS = 6000;
 const MIN_USABLE_CHARS = 80;
 const DEFAULT_RETRY_MINUTES = 180;
 const CALL_TIMEOUT_MS = 60_000;
-const MAX_TOKENS = 700;
+// Headroom, not length: the prompt asks for under 350 words. Gemini 2.5 models
+// count hidden "thinking" tokens against the output limit, and the first live
+// run with 700 spent nearly all of it (949 tokens in total, per the quota
+// ledger) and left too little text to use.
+const MAX_TOKENS = 2048;
 
 /** @param {NodeJS.ProcessEnv} [env] */
 export function researchEnabledFromEnv(env = process.env) {
@@ -217,8 +221,10 @@ export async function runDailyResearch(deps) {
 
     const body = sanitizeDigestBody(result?.text);
     if (body.length < MIN_USABLE_CHARS) {
-      record({ lastStatus: 'skipped', lastReason: 'empty-response' });
-      deps.events?.append('research.skipped', { date, reason: 'empty-response', outcome: 'skipped' });
+      // Enough to tell a too-small token budget from a model that said nothing.
+      const detail = { provider: result?.service ?? null, model: result?.model ?? null, chars: body.length, tokensUsed: result?.tokensUsed ?? null };
+      record({ lastStatus: 'skipped', lastReason: 'empty-response', lastDetail: detail });
+      deps.events?.append('research.skipped', { date, reason: 'empty-response', outcome: 'skipped', ...detail });
       return skipped('empty-response');
     }
 
@@ -226,7 +232,7 @@ export async function runDailyResearch(deps) {
     const model = String(result.model ?? 'unknown');
     mkdirSync(deps.store.paths.digests, { recursive: true });
     writeFileSync(digestPath, renderDigest({ date, at: attempt.at, provider, model, body }), 'utf8');
-    record({ lastStatus: 'written', lastReason: null, lastDigestDate: date, lastDigestFile: `state/digests/${file}`, provider, model, topicIds: attempt.topics, preview: body.slice(0, 1200) });
+    record({ lastStatus: 'written', lastReason: null, lastDigestDate: date, lastDigestFile: `state/digests/${file}`, provider, model, topicIds: attempt.topics, preview: body.slice(0, 1200), lastDetail: null });
     deps.events?.append('research.written', { date, provider, model, topics: attempt.topics, chars: body.length, outcome: 'written' });
     log.info('daily research digest written', { date, provider, model, chars: body.length });
     return { status: 'written', reason: 'ok', date, file: `state/digests/${file}`, provider, model };

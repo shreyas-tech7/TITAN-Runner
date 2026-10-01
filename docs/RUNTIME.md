@@ -410,8 +410,9 @@ for this exact scenario, not by inspection — see `test/provider-health.test.js
 ## Daily research digest
 
 Once per UTC day the pulse makes **one** low-priority call over the existing
-free-provider pool (`Registry.chat`, `priority: 'low'`, at most 700 tokens,
-at most two providers) and writes `state/digests/<date>-research.md`, next
+free-provider pool (`Registry.chat`, `priority: 'low'`, a 2048-token ceiling
+that leaves room for a thinking model's hidden tokens — the output itself is
+asked to stay under 350 words — and at most two providers) and writes `state/digests/<date>-research.md`, next
 to the weekly summaries. It runs inside the existing 15-minute pulse after
 task claiming — there is no second scheduler and no workflow change — and is
 gated to once a day by `state/research.json`. The topics are the small
@@ -428,7 +429,7 @@ length) before it is written to this public repo.
 switch, drain, autonomy `dry-run`, no provider configured, out of pulse
 budget: skipped, nothing written. Every provider rate-limited, down or out
 of quota (the low priority also keeps the quota ledger's reserve for real
-tasks), or an empty answer: recorded in `state/research.json`, and retried
+tasks), or an empty answer (recorded with its size and token count): recorded in `state/research.json`, and retried
 no sooner than `TITAN_RESEARCH_RETRY_MINUTES` (default 180). No exception
 escapes it. Writing the digest is a `state-append`, so if
 `config/safety-rules.yml` stops auto-approving that category, research
