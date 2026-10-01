@@ -28,6 +28,10 @@ const nextConfig: NextConfig = {
     // reads via lib/workerApi.ts's isWorkerConfigured(). See
     // .github/workflows/pages-deploy.yml's own comment on this var.
     NEXT_PUBLIC_TITAN_WORKER_URL: process.env.NEXT_PUBLIC_TITAN_WORKER_URL || "",
+    // The TITAN-GEV Space URL for the God's Eye View tab, for example
+    // https://cozmik7-titan-gev.hf.space. Empty shows the tab's empty state.
+    // Not a secret. The gate secret lives on the Worker and the Space only.
+    NEXT_PUBLIC_GEV_URL: process.env.NEXT_PUBLIC_GEV_URL || "",
   },
 };
 

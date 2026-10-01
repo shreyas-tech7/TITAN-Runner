@@ -1241,3 +1241,128 @@ button {
   font-size: 11px;
   color: var(--text-1);
 }
+
+/* ---------------------------------------------------------------------- */
+/* Top level tabs + the God's Eye View tab                                 */
+/* ---------------------------------------------------------------------- */
+
+.top-tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.top-tab {
+  padding: 8px 14px;
+  margin-bottom: -1px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-1);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.top-tab:hover {
+  color: var(--text-0);
+}
+
+.top-tab[aria-current="page"] {
+  color: var(--text-0);
+  border-bottom-color: var(--accent);
+}
+
+.gev-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  font-size: 12px;
+}
+
+.gev-bar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.gev-bar-host {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+}
+
+.gev-bar-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.gev-stage {
+  position: relative;
+  height: calc(100dvh - 280px);
+  min-height: 480px;
+  overflow: hidden;
+  background: var(--bg-0);
+  border: 1px solid var(--line-strong);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.gev-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+}
+
+.gev-state {
+  display: grid;
+  place-content: center;
+  gap: var(--space-2);
+  height: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.gev-state h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.gev-state p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.gev-banner {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  left: var(--space-3);
+  z-index: 2;
+  padding: var(--space-2) var(--space-3);
+  font-size: 12px;
+  color: var(--warning);
+  background: var(--bg-2);
+  border: 1px solid var(--warning-dim);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 640px) {
+  .gev-stage {
+    height: calc(100dvh - 330px);
+    min-height: 360px;
+  }
+}

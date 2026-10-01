@@ -24,6 +24,7 @@ import ClusterPanels from "@/components/ClusterPanels";
 import CommandClock from "@/components/CommandClock";
 import WeatherPanel from "@/components/WeatherPanel";
 import GodsEyeSection from "@/components/GodsEyeSection";
+import TopTabs from "@/components/TopTabs";
 import RunningTasksPanel from "@/components/RunningTasksPanel";
 import AgentsPanel from "@/components/AgentsPanel";
 
@@ -197,6 +198,8 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      <TopTabs active="dashboard" />
 
       <StalenessBanner lastPulseAt={heartbeat.data?.lastPulseAt ?? null} />
 

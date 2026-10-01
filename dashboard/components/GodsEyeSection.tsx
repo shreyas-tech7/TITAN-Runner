@@ -45,9 +45,14 @@ export default function GodsEyeSection({
           <span className="dot dot-accent dot-pulsing" aria-hidden />
           God&apos;s Eye View
         </div>
-        <Link className="btn btn-quiet" href="/ops/geospatial" style={{ fontSize: 11 }}>
-          Full investigation log →
-        </Link>
+        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          <Link className="btn btn-quiet" href="/ops/gods-eye" style={{ fontSize: 11 }}>
+            Live 3D Earth tab →
+          </Link>
+          <Link className="btn btn-quiet" href="/ops/geospatial" style={{ fontSize: 11 }}>
+            Full investigation log →
+          </Link>
+        </div>
       </div>
 
       <div className="hero-grid">

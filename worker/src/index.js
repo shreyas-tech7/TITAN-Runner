@@ -26,6 +26,7 @@
 // properties.
 import sealedbox from 'tweetnacl-sealedbox-js';
 import { runMetaAgent } from './meta-agent.js';
+import { GEV_MIN_SECRET_LENGTH, GEV_TOKEN_TTL_SECONDS, mintGevToken } from './gev-token.js';
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -232,6 +233,25 @@ async function handleStatus(env) {
     learningPaths: learningPaths.results,
     generatedAt: new Date().toISOString(),
   });
+}
+
+/**
+ * GET /gev/token mints a 5 minute access token for the God's Eye View tab.
+ *
+ * The dashboard calls this with the admin token it already holds (the same
+ * login gate as every other route here), then loads the TITAN-GEV Space with
+ * the token in the URL. The Space swaps it for a session cookie, so this
+ * value never has to live longer than a few minutes. A missing or short
+ * GEV_SHARED_SECRET returns 503 and never mints, so a weak secret cannot
+ * produce a token that opens the gate.
+ */
+export async function handleGevToken(env) {
+  const secret = typeof env.GEV_SHARED_SECRET === 'string' ? env.GEV_SHARED_SECRET.trim() : '';
+  if (secret.length < GEV_MIN_SECRET_LENGTH) return json({ error: 'gev_not_configured' }, 503);
+  const { token, exp } = await mintGevToken(secret);
+  const res = json({ token, expires_at: new Date(exp * 1000).toISOString(), ttl_seconds: GEV_TOKEN_TTL_SECONDS });
+  res.headers.set('Cache-Control', 'no-store');
+  return res;
 }
 
 async function handleCreateTask(request, env) {
@@ -902,6 +922,13 @@ export default {
     if (url.pathname === '/admin/diagnose' && request.method === 'GET') {
       if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
       return handleAdminDiagnose(env);
+    }
+
+    // God's Eye View tab. See handleGevToken. Admin-token-gated like every
+    // other route, so only a logged-in dashboard session can mint a token.
+    if (url.pathname === '/gev/token' && request.method === 'GET') {
+      if (!isAuthed(request, env)) return json({ error: 'unauthorized' }, 401);
+      return handleGevToken(env);
     }
 
     // Phase 2 — OSINT catalog + owner-gated investigation/geospatial feed.
