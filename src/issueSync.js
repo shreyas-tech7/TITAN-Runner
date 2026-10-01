@@ -35,6 +35,7 @@ import { taskDefaults } from './state/schema.js';
 import { redactString } from './lib/redact.js';
 import { scrubForState } from './lib/secretScrub.js';
 import { parseTaskYaml } from './lib/taskYaml.js';
+import { normalizeIssueBody, normalizeIssueTitle } from './lib/issueBody.js';
 import { categoryForApprovalKey } from './policy/safetyRules.js';
 import { createLogger } from './lib/logger.js';
 
@@ -128,9 +129,18 @@ export async function syncIssuesIntoTasks(tasksState, deps = {}) {
     // modal carries a machine-readable YAML block, and the pulse must parse
     // ONLY that — never scrape prose out of the body. An issue with no such
     // block falls back to the whole-body-as-prompt behavior, unchanged.
-    const structured = parseTaskYaml(issue.body ?? '');
-    const title = redactString(structured?.title ?? issue.title ?? '').slice(0, 200);
-    const prompt = redactString(structured?.description ?? issue.body ?? '').slice(0, 8000);
+    //
+    // An issue an automation tool created (Zapier, Make) may wrap the task in
+    // a header/footer a person would not type; `normalizeIssueBody` removes
+    // that first (docs/ZAPIER_MAKE.md). It is the identity for a hand-typed
+    // or dashboard-filed body apart from tidying line endings and invisible
+    // characters, and it decides nothing about who may file a task.
+    const normalized = normalizeIssueBody(issue.body ?? '');
+    const structured = parseTaskYaml(normalized.text);
+    const title = redactString(structured?.title ?? normalizeIssueTitle(issue.title, normalized.text)).slice(0, 200);
+    // A body that was nothing but automation boilerplate leaves the title as the task.
+    const promptText = normalized.text === '' && normalized.source !== 'plain' ? title : normalized.text;
+    const prompt = redactString(structured?.description ?? promptText).slice(0, 8000);
     const createdAt = now().toISOString();
     const key = idempotencyKeyFor(type, title, prompt);
 
@@ -170,7 +180,7 @@ export async function syncIssuesIntoTasks(tasksState, deps = {}) {
 
     tasksState.tasks.push(task);
     added += 1;
-    events?.append('intake.accepted', { taskId: id, taskType: type, priority: task.priority, dependsOn: task.dependsOn, authorizedBy: auth.reason });
+    events?.append('intake.accepted', { taskId: id, taskType: type, priority: task.priority, dependsOn: task.dependsOn, authorizedBy: auth.reason, bodySource: normalized.source === 'marked' || !structured ? normalized.source : 'fence' });
     log.info('picked up new issue as a task', { id, title: issue.title, selfImprove: isSelfImprove, authorizedBy: auth.reason });
   }
 
