@@ -26,6 +26,13 @@ jobs:
       - name: Unit tests (dry-run, zero network/credentials required)
         run: npm test
 
+      - name: Dashboard typecheck and tests
+        working-directory: dashboard
+        run: |
+          npm ci --no-audit --no-fund
+          npx tsc --noEmit
+          npm test
+
       - name: Secret scan of state/
         run: node scripts/check-secrets-in-state.mjs
 
