@@ -82,7 +82,7 @@ export type HealthResult = "ready" | "starting" | "down";
 
 /**
  * Ask the host whether it is awake. A sleeping host answers with the platform's
- * Face's own page, which carries no CORS headers, so the fetch fails and the
+ * own wake-up page, which carries no CORS headers, so the fetch fails and the
  * result is "down". An awake gateway answers with its own JSON.
  */
 export async function checkGevHealth(
