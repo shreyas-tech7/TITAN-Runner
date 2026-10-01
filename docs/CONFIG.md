@@ -48,7 +48,7 @@ key makes that provider `not_configured`, and the pulse still runs.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `state/control.json` → `autonomy` | `autonomous` | `dry-run` \| `propose` \| `approval` \| `autonomous`. Set with `titan control autonomy <level>` or the control workflow, never by env. |
+| `state/control.json` → `autonomy` | `autonomous` | `dry-run` \| `propose` \| `approval` \| `autonomous`. Set with `titan control autonomy <level>` or the control workflow, never by env. The safety rules (`config/safety-rules.yml`) sit beneath this: the dial can only make things stricter. |
 | `state/control.json` → `killSwitch`, `drain`, `safeMode` | `false` | Same. Safe mode forbids external effects at every level. |
 | `TITAN_TOOLS` | on | `off` gives steps no tools at all. |
 | `TITAN_MAX_TOOL_CALLS_PER_STEP` | `6` | Tool rounds one step may make; more is a loop. |
@@ -58,6 +58,18 @@ key makes that provider `not_configured`, and the pulse still runs.
 | `TITAN_MAX_REMEDIATIONS` | `1` | Times a failed verification sends the steps at fault back with feedback. |
 | `TITAN_REVIEWER` | `1` | `0` disables the Reviewer Gate. Do not. |
 | `TITAN_REVIEWER_TIMEOUT_MS` | see `src/config.js` | Reviewer model call deadline. |
+
+## Safety rules, research, Hermes
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `config/safety-rules.yml` | shipped | Per-category `auto_approve` / `always_ask` / `default`. `git-commit`, `file-delete`, `credential-change`, `state-mutation` always ask regardless. Read once per pulse; a missing or malformed file falls back to identical built-in rules. See `docs/RUNTIME.md` "Safety rules". |
+| `config/research-topics.yml` | shipped | The standing topics for the daily research digest (`max_topics`, and `topic-id: "what to cover"`). |
+| `TITAN_RESEARCH` | on | `0` turns the daily research digest off. |
+| `TITAN_RESEARCH_RETRY_MINUTES` | `180` | After a skipped attempt (every provider limited, empty answer), the soonest the next try may be. |
+| `HERMES_<N>_BASE_URL`, `_API_KEY` | unset | Hermes agent instance N (1..3). https only; an instance without a key is never called. Client code only — see `docs/RUNTIME.md` "Hermes agent cluster". |
+| `HERMES_<N>_SPECIALIZATION` | empty | Comma-separated task aspects (`src/orchestrator/taxonomy.js`); empty = generalist. |
+| `HERMES_<N>_MODEL`, `_CHAT_PATH`, `_NAME` | `hermes-agent`, `/v1/chat/completions`, `hermes-<N>` | Optional per-instance overrides. |
 
 ## Runtime and simulation
 

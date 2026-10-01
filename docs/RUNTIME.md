@@ -314,6 +314,19 @@ runs tasks changed — only how they get created:
 2. **The original GitHub issue template**, or filing directly on GitHub —
    still works exactly as before; an issue with no YAML block falls back
    to the whole body as the task prompt.
+3. **A Zapier "Create Issue" or Make.com "Create an Issue" action** pointed
+   at this repo with the `titan-task` label. There is no webhook endpoint
+   and no TITAN-Runner code that talks to either service: their GitHub
+   integration creates the issue, and intake reads it like any other. What
+   this repo adds is `src/lib/issueBody.js`, which runs before the YAML
+   parser and removes whatever header, footer or signature an automation
+   wraps around the task (reliably, if the body template uses the
+   `<!-- titan-intake:begin/end -->` markers; best-effort, for a "Sent via
+   Zapier"-style banner on the first or last line). Setup, the exact
+   template, and the security consequence — the issue is authored by the
+   connected GitHub account, so it carries that account's authority — are in
+   `docs/ZAPIER_MAKE.md`. Automated: the normalizing. **Not automated:**
+   building the Zap or scenario, which is done in Zapier's or Make's own UI.
 
 **The token**: a GitHub *fine-grained* personal access token, scoped to
 this repository only, with **Issues: Read and write** and nothing else.
@@ -394,6 +407,38 @@ healthy) for every provider with a key at the start of each pulse,
 specifically to prevent this deadlock. Both were caught by tests written
 for this exact scenario, not by inspection — see `test/provider-health.test.js`.
 
+## Daily research digest
+
+Once per UTC day the pulse makes **one** low-priority call over the existing
+free-provider pool (`Registry.chat`, `priority: 'low'`, at most 700 tokens,
+at most two providers) and writes `state/digests/<date>-research.md`, next
+to the weekly summaries. It runs inside the existing 15-minute pulse after
+task claiming — there is no second scheduler and no workflow change — and is
+gated to once a day by `state/research.json`. The topics are the small
+standing set in `config/research-topics.yml` (rotating by day if you add
+more than `max_topics`).
+
+**What it is, plainly.** The free-tier models have no web access. The digest
+is the model's own training knowledge, and every file says so at the top. It
+is a list of leads to verify, not research in the sense of having read
+anything. Model output is scrubbed (credentials, emails, code fences,
+length) before it is written to this public repo.
+
+**It cannot fail the pulse.** Disabled (`TITAN_RESEARCH=0`), dry-run, kill
+switch, drain, autonomy `dry-run`, no provider configured, out of pulse
+budget: skipped, nothing written. Every provider rate-limited, down or out
+of quota (the low priority also keeps the quota ledger's reserve for real
+tasks), or an empty answer: recorded in `state/research.json`, and retried
+no sooner than `TITAN_RESEARCH_RETRY_MINUTES` (default 180). No exception
+escapes it. Writing the digest is a `state-append`, so if
+`config/safety-rules.yml` stops auto-approving that category, research
+simply does not run.
+
+`state/views/research.json` feeds the dashboard's "Research & safety" panel.
+**Automated:** everything above, on by default. **Needs a person:** at least
+one provider key must exist as a repository secret, otherwise it silently
+never runs; and reading the digest critically.
+
 ## Self-improvement, with a leash
 
 A `titan-self-improve`-labeled task's synthesis result (the files the
@@ -406,7 +451,10 @@ model proposed) goes to `src/selfImprove.js` instead of an issue comment:
 2. **Reviewer Gate**, same gate every ordinary task goes through, run
    against the proposed change as a `destructive`-capable action. A block
    ends it here.
-3. Only then: create a branch, write the proposed files (**exactly** those
+3. Only then — and only after an authorized user has replied
+   `/titan approve self-improve:<runId>`, because opening a pull request is
+   a git commit and a git commit always asks (see "Safety rules") —
+   create a branch, write the proposed files (**exactly** those
    files — never a broader `git add -A`, so the pulse's own uncommitted
    `state/` changes from earlier in the same run never leak into a code
    PR), commit, push, and open a **draft** PR against `main` via the
@@ -447,6 +495,51 @@ effect), or forbids it (`dry-run`; safe mode for anything external). Tool
 calls also pass the gate's deterministic layer: a destructive pattern in a
 tool argument is refused outright. Every decision is a `policy.decision`
 audit event.
+
+## Safety rules
+
+`config/safety-rules.yml` says which actions the engine may take on its own
+and which always wait for a human. `src/policy/engine.js#decide()` applies
+it to every tool call and every delivery, beneath the autonomy dial: the
+dial can only make an action *stricter* than the rules say, never looser.
+
+**Two layers, on purpose.** *Classification is code*: `classifyAction()` in
+`src/policy/safetyRules.js` sorts every action into one category
+(`read`, `scratch-write`, `external-fetch`, `external-effect`,
+`issue-comment`, `state-append`, `git-commit`, `file-delete`,
+`credential-change`, `state-mutation`) from its kind, its tool id, its
+declared effect and its path arguments, so a config edit cannot relabel an
+action. *Policy per category is data*: the file's `auto_approve` and
+`always_ask` lists, plus a `default` for anything unlisted.
+
+**The hard floor.** `git-commit`, `file-delete`, `credential-change` and
+`state-mutation` always ask, in code, even if the file lists them under
+`auto_approve` (the loader warns) or is missing or malformed (it falls back
+to built-in rules identical to the shipped file; a test keeps them in sync,
+and the problem is recorded as a `policy.rules-warning` event). A blanket
+`/titan approve all` does not clear a hard-ask action — only the approval
+key for that exact action does. The five built-in tools use a fixed table;
+the name and path heuristics are for tools added later, and an unknown tool
+with no signal falls back to its declared effect.
+
+**What changed in behaviour.** A self-improvement task (branch, commit,
+push, draft PR) is `git-commit`, so it now waits for
+`/titan approve self-improve:<runId>` at every autonomy level except
+dry-run (which still forbids it) — before this, `autonomous` opened the PR
+on its own. Everything else behaves as before. The deployed `state/control.json` is
+currently at `propose` (set 2026-09-21), where every delivery already asks.
+
+**The record.** Every approve/deny a human makes — as an issue comment or
+through the TITAN Control workflow — is appended to
+`state/approval-log.jsonl` (one scrubbed JSON object per line: task, key,
+category, decision, who, which channel). It is append-only by construction
+and exists so the lists can later be tuned from real history: a category
+approved every time is a candidate for `auto_approve`. `state/views/safety.json`
+summarises it for the dashboard. **Not automated:** nothing edits
+`config/safety-rules.yml` for you; tuning is a human decision made in a PR.
+The Cloudflare Worker's sub-agent path
+(`worker/`, `scripts/run-subagent-task.mjs`) does not go through the policy
+engine and is unchanged.
 
 ## Keeping it alive
 
@@ -682,16 +775,51 @@ from `worker/` (the whole file is idempotent). Everything else rides the
 existing `TITAN_ADMIN_TOKEN` / `GITHUB_PAT` / `TITAN_WORKER_URL` wiring the
 sub-agent cluster already uses — no new secret, no Railway credential.
 
+## Hermes agent cluster (client only)
+
+The roadmap calls for 2-3 Hermes Agent instances on Railway, with work split
+between them by specialization. **Only the client side is built here.** No
+instance exists, nothing in the pulse calls the cluster, and the workflow
+passes none of its variables yet. (Unrelated to the Worker's "Hermes
+self-improvement loop" in `worker/src/meta-agent.js`, which only shares the
+name.)
+
+What exists: `src/providers/hermes.js` (one instance, same shape as the other
+provider adapters, with its own health sink so a `hermes-N` never enters
+`state/providers.json`), and `src/orchestrator/hermesCluster.js`, which reads
+`HERMES_<N>_BASE_URL` / `_API_KEY` / `_SPECIALIZATION` / `_MODEL` /
+`_CHAT_PATH` (N = 1..3, listed in `.env.example`), routes a task to the
+instance specialized in its aspect (then generalists, then anything else,
+load and recent failures breaking ties), and fails over to a second
+instance. An instance without a key, or with a non-https URL, is never
+called. `node bin/titan.js hermes status` shows what is configured (no
+network, no secrets); `hermes ping` makes one tiny call to each.
+
+**The wire format is unverified.** The adapter assumes the OpenAI-compatible
+`POST /v1/chat/completions` with a Bearer key, because no live instance was
+available to check; the assumption is isolated in one method and one env var
+per instance (`providers/hermes.js` says so at the top). Run
+`titan hermes ping` against the first provisioned instance before trusting
+anything else here.
+
+**Needs a person, in order:** (1) provision the Railway services and note
+their URLs and keys; (2) add them as repository secrets named exactly as in
+`.env.example`; (3) a reviewed edit to `.github/workflows/titan-pulse.yml`
+adding those secrets to the pulse step's `env` (a protected path, so a
+maintainer makes it by hand); (4) run `titan hermes ping`; (5) only then
+decide where in the scheduler to call `HermesCluster#dispatch`.
+
 ## Human checkpoints not resolved in this build
 
-- **GitHub Pages is not enabled yet.** Dispatching `pages-deploy.yml` live
-  (to verify the redesigned dashboard) failed at the `deploy` job with no
-  step logs at all — the signature of a Pages site that has never been
-  turned on for this repo. Enable it once: Settings -> Pages -> Build and
-  deployment -> Source: **GitHub Actions**. After that, the next push to
-  `main` touching `dashboard/**` (or a manual `workflow_dispatch`) will
-  publish for real; nothing else about the workflow needs to change.
-- **No provider API keys are configured as repository secrets yet** — every
+- **GitHub Pages is enabled** (Settings -> Pages -> Source: GitHub Actions)
+  and the site is serving at `https://<owner>.github.io/TITAN-Runner/`;
+  `pages-deploy.yml` has been succeeding on its daily schedule (checked
+  2026-10-01). This bullet used to say it was not enabled yet; that was fixed
+  after this section was written.
+- **Provider keys (status checked 2026-10-01: only `GEMINI_API_KEY` and
+  `OPENROUTER_API_KEY` are set as secrets; the rest are not).** The original
+  note, written when none were set:
+  **No provider API keys are configured as repository secrets yet** — every
   provider correctly reports `not_configured` in `state/providers.json`
   rather than crashing anything, verified live, but this also means no
   provider's live wire format has actually been exercised against a real
