@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "updatedAt": "2026-10-01T00:12:59.830Z",
+  "rules": {
+    "source": "config/safety-rules.yml",
+    "default": "ask",
+    "autoApprove": [
+      "read",
+      "scratch-write",
+      "external-fetch",
+      "external-effect",
+      "issue-comment",
+      "state-append"
+    ],
+    "alwaysAsk": [
+      "git-commit",
+      "file-delete",
+      "credential-change",
+      "state-mutation"
+    ],
+    "hardFloor": [
+      "git-commit",
+      "file-delete",
+      "credential-change",
+      "state-mutation"
+    ],
+    "warnings": []
+  },
+  "approvals": {
+    "total": 0,
+    "approved": 0,
+    "denied": 0,
+    "byCategory": {},
+    "recent": []
+  }
+}
