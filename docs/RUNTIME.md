@@ -796,19 +796,30 @@ instance. An instance without a key, or with a non-https URL, is never
 called. `node bin/titan.js hermes status` shows what is configured (no
 network, no secrets); `hermes ping` makes one tiny call to each.
 
-**The wire format is unverified.** The adapter assumes the OpenAI-compatible
-`POST /v1/chat/completions` with a Bearer key, because no live instance was
-available to check; the assumption is isolated in one method and one env var
-per instance (`providers/hermes.js` says so at the top). Run
-`titan hermes ping` against the first provisioned instance before trusting
-anything else here.
+**The wire format is documented, but not yet exercised end to end.** The
+adapter speaks the OpenAI-compatible surface that Hermes Agent's own API-server
+docs describe (`POST /v1/chat/completions`, Bearer `API_SERVER_KEY`, model name
+`hermes-agent`). Against the first live instance, checked 2026-10-01 without
+any credential, an unauthenticated POST to that path returns 401 while an
+unknown route returns 404, so the route exists and wants a key. No
+authenticated call has gone through this client yet: run
+`node bin/titan.js hermes ping` for that (`providers/hermes.js` documents the
+details, and the one place to change if the response differs).
+
+**A Hermes instance is not a read.** Upstream describes the agent as handling
+requests with its full toolset — terminal, file operations, web search, memory.
+Work sent to it can act on its own host. Wiring `HermesCluster#dispatch` into the
+scheduler must therefore go through `policy/engine.js#decide()` as an external
+effect (and, at minimum, ask under `propose`), not be treated as a plain chat
+completion like the five providers.
 
 **Needs a person, in order:** (1) provision the Railway services and note
 their URLs and keys; (2) add them as repository secrets named exactly as in
 `.env.example`; (3) a reviewed edit to `.github/workflows/titan-pulse.yml`
 adding those secrets to the pulse step's `env` (a protected path, so a
 maintainer makes it by hand); (4) run `titan hermes ping`; (5) only then
-decide where in the scheduler to call `HermesCluster#dispatch`.
+decide where in the scheduler to call `HermesCluster#dispatch`, behind the
+policy engine as described above.
 
 ## Human checkpoints not resolved in this build
 

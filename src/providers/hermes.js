@@ -1,19 +1,31 @@
-// UNVERIFIED CONTRACT
+// DOCUMENTED UPSTREAM, NOT YET EXERCISED END TO END
 //
 // One Hermes agent instance (Nous Research's Hermes Agent, run as its own
-// service — the roadmap puts 2-3 of them on Railway). No instance exists yet,
-// so this adapter's wire format could not be checked against a live one. It
-// assumes the OpenAI-compatible shape every other adapter here already uses:
+// service — the plan is Railway). Hermes Agent's API server documents an
+// OpenAI-compatible surface (NousResearch/hermes-agent,
+// website/docs/user-guide/features/api-server.md), which is what this adapter
+// speaks:
 //
 //     POST {baseUrl}{chatPath}      (chatPath defaults to /v1/chat/completions)
-//     authorization: Bearer <key>
+//     authorization: Bearer <API_SERVER_KEY>
 //     body: { model, messages, temperature, max_tokens, stream: false }
-//     -> { choices: [{ message: { content } }], model?, usage? }
+//     -> { choices: [{ message: { content, reasoning_content? } }], model, usage }
 //
-// The ENTIRE live HTTP call is isolated in `_doChat` below, and the path is a
-// per-instance setting (`HERMES_<N>_CHAT_PATH`), so correcting either against
-// the real service is a one-function / one-env-var fix. `titan hermes ping`
-// is the check to run against a freshly provisioned instance.
+// `model` defaults to "hermes-agent", the name upstream advertises for the
+// default profile. Checked without any credential on 2026-10-01 against a live
+// instance: an unauthenticated POST to /v1/chat/completions answers 401 (the
+// route exists and wants a key) while an unknown route answers 404. What has
+// NOT been done is an authenticated call through this client — run
+// `node bin/titan.js hermes ping` once for that. If the real shape differs,
+// the whole live HTTP call is isolated in `_doChat` below and the path is a
+// per-instance setting (`HERMES_<N>_CHAT_PATH`): a one-function fix.
+//
+// WHAT AN INSTANCE CAN DO. Upstream describes the agent as handling requests
+// "with its full toolset (terminal, file operations, web search, memory,
+// skills)". Sending it work is therefore NOT a read: it can act on its own
+// host. Whatever eventually calls `HermesCluster#dispatch` must route that
+// through `policy/engine.js#decide()` as an external effect, not treat it as
+// a plain chat completion.
 //
 // Deliberately NOT one of `registry.js`'s FAILOVER_ORDER entries (that array
 // is a public contract the Worker and dashboard key off), and deliberately
