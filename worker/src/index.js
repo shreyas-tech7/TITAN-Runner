@@ -239,8 +239,8 @@ async function handleStatus(env) {
  * GET /gev/token mints a 5 minute access token for the God's Eye View tab.
  *
  * The dashboard calls this with the admin token it already holds (the same
- * login gate as every other route here), then loads the TITAN-GEV Space with
- * the token in the URL. The Space swaps it for a session cookie, so this
+ * login gate as every other route here), then loads the TITAN-GEV host with
+ * the token in the URL. The host swaps it for a session cookie, so this
  * value never has to live longer than a few minutes. A missing or short
  * GEV_SHARED_SECRET returns 503 and never mints, so a weak secret cannot
  * produce a token that opens the gate.

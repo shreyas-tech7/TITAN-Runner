@@ -21,7 +21,7 @@
 #                      GET /admin/diagnose before trusting a real key paste.
 #   GEV_SHARED_SECRET  32 or more random characters. Signs the 5 minute access
 #                      links that GET /gev/token hands the dashboard for the God's
-#                      Eye View tab. The TITAN-GEV Hugging Face Space holds the same
+#                      Eye View tab. The TITAN-GEV host holds the same
 #                      value as its own secret. Without it, /gev/token returns 503
 #                      and the tab shows a setup message. See docs/GODS-EYE-VIEW.md.
 #

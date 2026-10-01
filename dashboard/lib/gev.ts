@@ -3,17 +3,17 @@
  *
  * Everything here is plain TypeScript with no React and no `@/` imports, so the
  * root layout can read it on the server and the tests can run it directly. The
- * `GevController` owns the lifecycle: check that the Space is awake, mint a
+ * `GevController` owns the lifecycle: check that the host is awake, mint a
  * short lived access link through the Worker, show the iframe, and keep
- * watching. A free Hugging Face Space sleeps when idle, so "waking" is a normal
+ * watching. A free host sleeps when idle, so "waking" is a normal
  * state with automatic retry, not an error.
  *
- * `NEXT_PUBLIC_GEV_URL` is the Space URL. It is not a secret. The access link
+ * `NEXT_PUBLIC_GEV_URL` is the host URL. It is not a secret. The access link
  * is, which is why it comes from the Worker and lives about five minutes.
  */
 
 // ---------------------------------------------------------------------
-// The Space URL
+// The host URL
 // ---------------------------------------------------------------------
 
 export type GevTarget =
@@ -42,14 +42,14 @@ export function parseGevUrl(raw: string | undefined): GevTarget {
 }
 
 /**
- * The CSP for the dashboard page. It allows framing the Space origin and sets no
- * other directive, so nothing else about the page changes. Null when no Space is set.
+ * The CSP for the dashboard page. It allows framing the host origin and sets no
+ * other directive, so nothing else about the page changes. Null when no host is set.
  */
 export function gevFrameSrcPolicy(target: GevTarget): string | null {
   return target.ok ? `frame-src ${target.origin}` : null;
 }
 
-/** The iframe address. The token rides in the query only until the Space redeems it. */
+/** The iframe address. The token rides in the query only until the host redeems it. */
 export function buildGevSrc(origin: string, token: string): string {
   return `${origin}/?gev_token=${encodeURIComponent(token)}`;
 }
@@ -61,8 +61,8 @@ export function buildGevSrc(origin: string, token: string): string {
 export type GevMessage = "session-blocked" | "unauthorized";
 
 /**
- * The Space posts these when the browser drops its cookie or when it sees a 401.
- * Accept a message only from the Space origin itself.
+ * The host posts these when the browser drops its cookie or when it sees a 401.
+ * Accept a message only from the host origin itself.
  */
 export function parseGevMessage(event: { origin: string; data: unknown }, origin: string): GevMessage | null {
   if (event.origin !== origin) return null;
@@ -81,7 +81,7 @@ export function parseGevMessage(event: { origin: string; data: unknown }, origin
 export type HealthResult = "ready" | "starting" | "down";
 
 /**
- * Ask the Space whether it is awake. A sleeping Space answers with Hugging
+ * Ask the host whether it is awake. A sleeping host answers with the platform's
  * Face's own page, which carries no CORS headers, so the fetch fails and the
  * result is "down". An awake gateway answers with its own JSON.
  */
@@ -190,7 +190,7 @@ export interface GevState {
   sessionBlocked: boolean;
   /** Changes whenever the iframe must reload, so React remounts it. */
   frameKey: number;
-  /** For the empty state: why there is no Space URL. */
+  /** For the empty state: why there is no host URL. */
   emptyReason: "unset" | "invalid" | null;
 }
 
@@ -219,7 +219,7 @@ export interface GevControllerDeps {
 
 const MONITOR_INTERVAL_MS = 30_000;
 const MINT_RETRY_MS = 15_000;
-// The Space ends a session after 6 hours. Start a fresh one before that.
+// The host ends a session after 6 hours. Start a fresh one before that.
 const SESSION_REFRESH_MS = 5.5 * 60 * 60 * 1000;
 const AUTO_RELOAD_WINDOW_MS = 120_000;
 const AUTO_RELOAD_LIMIT = 2;
@@ -287,7 +287,7 @@ export class GevController {
         ...this.state,
         phase: "error",
         src: null,
-        message: "The globe keeps rejecting its access link. Check that GEV_SHARED_SECRET matches on the Worker and the Space.",
+        message: "The globe keeps rejecting its access link. Check that GEV_SHARED_SECRET matches on the Worker and the host.",
       });
       return;
     }

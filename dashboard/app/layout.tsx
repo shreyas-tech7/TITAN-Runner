@@ -36,7 +36,7 @@ export const viewport: Viewport = {
 };
 
 // GitHub Pages cannot send response headers, so this dashboard has no CSP of its
-// own. The only frame it ever embeds is the God's Eye View Space. When that URL
+// own. The only frame it ever embeds is the God's Eye View host. When that URL
 // is set, a meta CSP allows framing that one origin and nothing else. It sets no
 // other directive, so it changes nothing else about the page.
 const gevFramePolicy = gevFrameSrcPolicy(parseGevUrl(process.env.NEXT_PUBLIC_GEV_URL));
