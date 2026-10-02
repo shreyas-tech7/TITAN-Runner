@@ -19,11 +19,15 @@
 #                      repository_dispatch steps no-op rather than error —
 #                      see docs/RUNTIME.md. Verify it works with
 #                      GET /admin/diagnose before trusting a real key paste.
-#   GEV_SHARED_SECRET  32 or more random characters. Signs the 5 minute access
-#                      links that GET /gev/token hands the dashboard for the God's
-#                      Eye View tab. The TITAN-GEV Hugging Face Space holds the same
-#                      value as its own secret. Without it, /gev/token returns 503
-#                      and the tab shows a setup message. See docs/GODS-EYE-VIEW.md.
+#   GEV_SIGNING_KEY    the Ed25519 private key (a JWK string) that signs the 5
+#                      minute access links GET /gev/token hands the dashboard
+#                      for the God's Eye View tab. Do not set it by hand. The
+#                      gev-provision workflow makes it inside a GitHub runner
+#                      and pipes it into this secret, so no person ever sees it.
+#                      The matching public key is served at GET /gev/jwks and
+#                      the TITAN-GEV host holds it as GEV_VERIFY_KEY. Without
+#                      the key, /gev/token and /gev/jwks return 503 and the tab
+#                      shows a setup message. See docs/GODS-EYE-VIEW.md.
 #
 # Separately, ../.github/workflows/worker-deploy.yml deploys THIS directory
 # on every push to worker/** — that needs its own two **GitHub repo**

@@ -26,7 +26,13 @@
 // properties.
 import sealedbox from 'tweetnacl-sealedbox-js';
 import { runMetaAgent } from './meta-agent.js';
-import { GEV_MIN_SECRET_LENGTH, GEV_TOKEN_TTL_SECONDS, mintGevToken } from './gev-token.js';
+import {
+  GEV_TOKEN_TTL_SECONDS,
+  mintGevToken,
+  parseSigningJwk,
+  publicJwkOf,
+  signingKeyIsConsistent,
+} from './gev-token.js';
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -239,18 +245,38 @@ async function handleStatus(env) {
  * GET /gev/token mints a 5 minute access token for the God's Eye View tab.
  *
  * The dashboard calls this with the admin token it already holds (the same
- * login gate as every other route here), then loads the TITAN-GEV Space with
- * the token in the URL. The Space swaps it for a session cookie, so this
- * value never has to live longer than a few minutes. A missing or short
- * GEV_SHARED_SECRET returns 503 and never mints, so a weak secret cannot
- * produce a token that opens the gate.
+ * login gate as every other route here), then loads the TITAN-GEV host with
+ * the token in the URL. The host swaps it for a session cookie, so this
+ * value never has to live longer than a few minutes. The token is an Ed25519
+ * signature made with the private key in GEV_SIGNING_KEY. A missing or broken
+ * key returns 503 and never mints.
  */
 export async function handleGevToken(env) {
-  const secret = typeof env.GEV_SHARED_SECRET === 'string' ? env.GEV_SHARED_SECRET.trim() : '';
-  if (secret.length < GEV_MIN_SECRET_LENGTH) return json({ error: 'gev_not_configured' }, 503);
-  const { token, exp } = await mintGevToken(secret);
+  const raw = typeof env.GEV_SIGNING_KEY === 'string' ? env.GEV_SIGNING_KEY : '';
+  const jwk = parseSigningJwk(raw);
+  if (!jwk || !(await signingKeyIsConsistent(raw))) return json({ error: 'gev_not_configured' }, 503);
+  const { token, exp } = await mintGevToken(jwk);
   const res = json({ token, expires_at: new Date(exp * 1000).toISOString(), ttl_seconds: GEV_TOKEN_TTL_SECONDS });
   res.headers.set('Cache-Control', 'no-store');
+  return res;
+}
+
+/**
+ * GET /gev/jwks publishes the public half of the signing key so the gateway
+ * host can verify tokens. It needs no admin token because a public key is not
+ * a secret. The response holds kty, crv, and x and nothing else. It never
+ * includes the private `d` value. With no usable key it returns 503.
+ */
+export async function handleGevJwks(env) {
+  const raw = typeof env.GEV_SIGNING_KEY === 'string' ? env.GEV_SIGNING_KEY : '';
+  const jwk = parseSigningJwk(raw);
+  if (!jwk || !(await signingKeyIsConsistent(raw))) {
+    const res = json({ error: 'gev_not_configured' }, 503);
+    res.headers.set('Cache-Control', 'no-store');
+    return res;
+  }
+  const res = json(publicJwkOf(jwk));
+  res.headers.set('Cache-Control', 'public, max-age=300');
   return res;
 }
 
@@ -902,6 +928,11 @@ export default {
 
     if (url.pathname === '/' && request.method === 'GET') {
       return json({ ok: true, service: 'titan-runner-brain' });
+    }
+
+    // Public key for the God's Eye View gateway. Not secret, so no admin token. See handleGevJwks.
+    if (url.pathname === '/gev/jwks' && request.method === 'GET') {
+      return handleGevJwks(env);
     }
 
     if (url.pathname === '/status' && request.method === 'GET') {
