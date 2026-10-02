@@ -48,11 +48,23 @@ jobs:
           set -o pipefail
           node scripts/gev-secretless-check.mjs | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Mint a one-time access token
+      - name: Check out TITAN-GEV
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: shreyas-tech7/TITAN-GEV
+          ref: ${{ inputs.gev_ref }}
+          path: titan-gev
+          persist-credentials: false
+
+      # Mint and verify in one step so the one-time token never reaches a later step's
+      # environment. The admin token is removed from the child process, because the verify
+      # script comes from another repository and only needs the access token.
+      - name: Mint a one-time token and verify the live host
         env:
           TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
         run: |
           set +x
+          set -o pipefail
           if [ -z "$TITAN_ADMIN_TOKEN" ]; then
             echo "::error::The TITAN_ADMIN_TOKEN repo secret is not set."
             exit 1
@@ -66,21 +78,7 @@ jobs:
           token="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync("mint.json","utf8")).token)')"
           rm -f mint.json
           echo "::add-mask::$token"
-          echo "GEV_TOKEN=$token" >> "$GITHUB_ENV"
-          echo "Minted a token."
-
-      - name: Check out TITAN-GEV
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          repository: shreyas-tech7/TITAN-GEV
-          ref: ${{ inputs.gev_ref }}
-          path: titan-gev
-          persist-credentials: false
-
-      - name: Verify the live host
-        run: |
-          set -o pipefail
-          node titan-gev/scripts/verify-live.mjs "$GEV_HOST" | tee -a "$GITHUB_STEP_SUMMARY"
+          env -u TITAN_ADMIN_TOKEN GEV_TOKEN="$token" node titan-gev/scripts/verify-live.mjs "$GEV_HOST" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Install Playwright Chromium
         run: |

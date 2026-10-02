@@ -80,7 +80,7 @@ jobs:
           ROTATE: ${{ inputs.rotate }}
         run: |
           set +x
-          set -eu
+          set -euo pipefail
           umask 077
 
           # Secret names only. wrangler never returns secret values.

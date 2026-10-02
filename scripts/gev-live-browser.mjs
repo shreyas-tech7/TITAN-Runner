@@ -18,6 +18,21 @@
 import { pathToFileURL } from 'node:url';
 
 export const ADMIN_TOKEN_KEY = 'titan-runner:admin-token:v1';
+/**
+ * Runs in every page and frame the context opens, so it must act only on the dashboard
+ * origin. Without the origin check it would also write the admin token into the
+ * localStorage of the God's Eye View host, where the third party globe app could read it.
+ * Playwright sends this function as text, so it must not use anything outside itself.
+ */
+export function seedAdminToken([key, value, origin]) {
+  if (window.location.origin !== origin) return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // storage blocked
+  }
+}
+
 const SWIFTSHADER_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 
 /** Strip anything that looks like a secret, a token, or a cookie from text. */
@@ -38,13 +53,7 @@ async function attempt({ chromium, adminToken, dashboardUrl, waitMs, swiftshader
   const browser = await chromium.launch({ headless: true, args: swiftshader ? SWIFTSHADER_ARGS : [] });
   try {
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-    await context.addInitScript(([key, value]) => {
-      try {
-        window.localStorage.setItem(key, value);
-      } catch {
-        // storage blocked
-      }
-    }, [ADMIN_TOKEN_KEY, adminToken]);
+    await context.addInitScript(seedAdminToken, [ADMIN_TOKEN_KEY, adminToken, new URL(dashboardUrl).origin]);
     const page = await context.newPage();
     const started = Date.now();
     await page.goto(dashboardUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
