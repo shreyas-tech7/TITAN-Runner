@@ -9,6 +9,9 @@ name: GEV live check
 #      run TITAN-GEV's verify script with it.
 #   3. Open the live tab in headless Chromium, log in, wait for a cold host, and
 #      check that the globe loads.
+#   4. Optional, with the perf input: watch the network for a while and report
+#      sizes, compression, caching, slow responses, and polling. It also checks
+#      that a static asset fetched with no cookie still returns 401.
 #
 # The token and the admin token are masked. The scripts print PASS, FAIL, INFO,
 # and WARN lines only. Nothing here takes a screenshot, records a trace, or
@@ -20,6 +23,10 @@ on:
         description: "TITAN-GEV ref that holds scripts/verify-live.mjs"
         type: string
         default: main
+      perf:
+        description: "Also measure what the tab asks of the host (sizes, compression, caching, polling)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -113,3 +120,12 @@ jobs:
         run: |
           set -o pipefail
           node scripts/gev-live-browser.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Performance probe of the live tab
+        if: ${{ inputs.perf }}
+        env:
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          GEV_HOST: ${{ env.GEV_HOST }}
+        run: |
+          set -o pipefail
+          node scripts/gev-perf-probe.mjs | tee -a "$GITHUB_STEP_SUMMARY"
