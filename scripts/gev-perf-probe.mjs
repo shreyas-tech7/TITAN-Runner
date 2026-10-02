@@ -13,7 +13,7 @@
  *   TITAN_ADMIN_TOKEN  the dashboard login (required, comes from a repo secret)
  *   GEV_DASHBOARD_URL  the tab URL (default: the GitHub Pages tab)
  *   GEV_HOST           the host origin (default: https://titan-gev.onrender.com)
- *   GEV_PROBE_SECONDS  how long to watch after the globe appears (default 45)
+ *   GEV_PROBE_SECONDS  how long to watch after the globe appears (default 30)
  *   GEV_WAIT_SECONDS   how long to wait for a cold host (default 120)
  */
 import { pathToFileURL } from 'node:url';
@@ -88,7 +88,7 @@ async function main() {
   const adminToken = (process.env.TITAN_ADMIN_TOKEN || '').trim();
   const dashboardUrl = process.env.GEV_DASHBOARD_URL || 'https://shreyas-tech7.github.io/TITAN-Runner/ops/gods-eye/';
   const hostOrigin = new URL(process.env.GEV_HOST || 'https://titan-gev.onrender.com').origin;
-  const probeMs = Number(process.env.GEV_PROBE_SECONDS || 45) * 1000;
+  const probeMs = Number(process.env.GEV_PROBE_SECONDS || 30) * 1000;
   const waitMs = Number(process.env.GEV_WAIT_SECONDS || 120) * 1000;
   if (!adminToken) {
     console.error('Set TITAN_ADMIN_TOKEN.');
@@ -146,29 +146,81 @@ async function main() {
 
     const handle = await page.waitForSelector('iframe.gev-frame', { timeout: 30_000 }).catch(() => null);
     const frame = handle ? await handle.contentFrame() : null;
+    const installMeter = (withFrames) => {
+      window.__gevMeter = { n: 0, ms: 0, max: 0, frames: 0 };
+      try {
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) {
+            window.__gevMeter.n += 1;
+            window.__gevMeter.ms += e.duration;
+            window.__gevMeter.max = Math.max(window.__gevMeter.max, e.duration);
+          }
+        }).observe({ entryTypes: ['longtask'] });
+      } catch {
+        // long task timing is not available
+      }
+      if (withFrames) {
+        const tick = () => {
+          window.__gevMeter.frames += 1;
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }
+    };
+    const readMeter = () => (target) =>
+      target
+        .evaluate(() => {
+          const m = window.__gevMeter;
+          window.__gevMeter = { n: 0, ms: 0, max: 0, frames: 0 };
+          return m;
+        })
+        .catch(() => null);
+    const describeMeter = (label, m, seconds, withFrames) =>
+      m
+        ? `INFO  ${label}: ${m.n} long tasks, ${Math.round(m.ms)} ms in total, longest ${Math.round(m.max)} ms${withFrames ? `, ${(m.frames / seconds).toFixed(1)} frames per second` : ''}`
+        : `INFO  ${label}: not measured`;
+
     if (frame) {
       await frame.waitForSelector('canvas', { timeout: 60_000 }).catch(() => {});
-      await frame
-        .evaluate(() => {
-          window.__gevLongTasks = { n: 0, ms: 0, max: 0 };
-          new PerformanceObserver((list) => {
-            for (const e of list.getEntries()) {
-              window.__gevLongTasks.n += 1;
-              window.__gevLongTasks.ms += e.duration;
-              window.__gevLongTasks.max = Math.max(window.__gevLongTasks.max, e.duration);
-            }
-          }).observe({ entryTypes: ['longtask'] });
-        })
-        .catch(() => {});
+      await frame.evaluate(installMeter, true).catch(() => {});
     }
+    await page.evaluate(installMeter, false).catch(() => {});
+    const read = readMeter();
+
+    // Phase 1: leave the globe alone. A healthy app idles, so its main thread should be quiet.
     const watchStart = Date.now();
     await page.waitForTimeout(probeMs);
     const watched = Math.round((Date.now() - watchStart) / 1000);
     await Promise.allSettled(pending);
+    const idleFrame = frame ? await read(frame) : null;
+    const idlePage = await read(page);
 
     for (const line of summarize(records, hostOrigin, watched)) say(line);
-    const lt = frame ? await frame.evaluate(() => window.__gevLongTasks).catch(() => null) : null;
-    if (lt) say(`INFO  main thread in the globe frame: ${lt.n} long tasks, ${Math.round(lt.ms)} ms in total, longest ${Math.round(lt.max)} ms`);
+    say(describeMeter(`globe frame, idle ${watched}s`, idleFrame, watched, true));
+    say(describeMeter(`dashboard page, idle ${watched}s`, idlePage, watched, false));
+
+    // Phase 2: drag and hover over the globe, like a person exploring it.
+    const box = handle ? await handle.boundingBox() : null;
+    if (box && frame) {
+      const cx = box.x + box.width / 2;
+      const cy = box.y + box.height / 2;
+      const moveStart = Date.now();
+      await page.mouse.move(cx, cy);
+      await page.mouse.down();
+      for (let i = 0; i < 60; i += 1) {
+        await page.mouse.move(cx + 220 * Math.cos(i / 8), cy + 120 * Math.sin(i / 8), { steps: 2 });
+        await page.waitForTimeout(100);
+      }
+      await page.mouse.up();
+      for (let i = 0; i < 40; i += 1) {
+        await page.mouse.move(cx + 260 * Math.sin(i / 6), cy + 150 * Math.cos(i / 5), { steps: 2 });
+        await page.waitForTimeout(100);
+      }
+      const moved = Math.max(1, Math.round((Date.now() - moveStart) / 1000));
+      say(describeMeter(`globe frame, dragging and hovering ${moved}s`, await read(frame), moved, true));
+      say(describeMeter(`dashboard page, dragging and hovering ${moved}s`, await read(page), moved, false));
+    }
+    say('INFO  headless Chromium here renders in software, so compare idle with interaction, not with your own machine');
 
     // The gate must hold for static files too. Fetch assets with a fresh context that has no cookie.
     const assets = records
