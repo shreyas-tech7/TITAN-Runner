@@ -138,6 +138,10 @@ async function main() {
     check('the frame holds a canvas', false);
   }
 
+  // Workflow annotations make the outcome readable from the run's check page and API.
+  const globe = result.canvas ? 'canvas found' : result.bundle ? 'no canvas, app bundle asserted instead' : 'no canvas';
+  console.log(`::${failures > 0 || !result.canvas ? 'warning' : 'notice'} title=GEV browser test::status bar settled in ${result.seconds}s, ${globe}${usedSwiftshader ? ', SwiftShader flags used' : ''}`);
+
   if (failures > 0) {
     console.log(`\n${failures} browser check(s) failed.`);
     process.exit(1);
