@@ -1,8 +1,8 @@
 {
-  "note": "Public test fixture. Not a real secret. The wrapper tests and the TITAN Worker tests both check that their implementation reproduces this token.",
-  "secret": "test-vector-secret-not-a-real-secret-0123456789",
+  "note": "Public test fixture. It holds only a public key and a token signed once with a throwaway key that was then discarded. Not a real credential. The Worker tests and the TITAN-GEV tests both check that a gev2 verifier accepts this token.",
+  "publicKeyX": "h6PysQx5CqDWAKew54eW9MuBSFprA-NL7caloXP_Ong",
   "iat": 1790000000,
   "ttlSeconds": 300,
   "jti": "AAAAAAAAAAAAAAAA",
-  "token": "gev1.1790000000.1790000300.AAAAAAAAAAAAAAAA.07QHX4dt7w8RC9MnAyXnXvjqQmow1nbYGjwAc6uOVPE"
+  "token": "gev2.1790000000.1790000300.AAAAAAAAAAAAAAAA.F7g4UKH3uEPUBq4Y23vrGPswz9ihNPy8mIqzBLEPjpncEcGAhoKTFCAOrq0H4ZWP4Yi3X5hwVzW5x9o0ZVVICA"
 }
