@@ -1,0 +1,95 @@
+name: GEV live check
+
+# End to end check of the God's Eye View tab against the real hosts. Manual only.
+#
+#   1. Secretless checks: the host answers, the gate returns 401 without a token,
+#      only the dashboard origin may frame it, and the live Pages build carries
+#      one frame-src policy for the host.
+#   2. Mint a one-time access token from the Worker with TITAN_ADMIN_TOKEN, then
+#      run TITAN-GEV's verify script with it.
+#   3. Open the live tab in headless Chromium, log in, wait for a cold host, and
+#      check that the globe loads.
+#
+# The token and the admin token are masked. The scripts print PASS, FAIL, INFO,
+# and WARN lines only. Nothing here takes a screenshot, records a trace, or
+# uploads an artifact.
+on:
+  workflow_dispatch:
+    inputs:
+      gev_ref:
+        description: "TITAN-GEV ref that holds scripts/verify-live.mjs"
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gev-live-check
+  cancel-in-progress: false
+
+jobs:
+  live-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GEV_WORKER_URL: https://titan-runner-brain.titan-runner.workers.dev
+      GEV_HOST: ${{ vars.GEV_URL || 'https://titan-gev.onrender.com' }}
+      GEV_DASHBOARD_URL: https://shreyas-tech7.github.io/TITAN-Runner/ops/gods-eye/
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Secretless checks
+        run: |
+          set -o pipefail
+          node scripts/gev-secretless-check.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Mint a one-time access token
+        env:
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+        run: |
+          set +x
+          if [ -z "$TITAN_ADMIN_TOKEN" ]; then
+            echo "::error::The TITAN_ADMIN_TOKEN repo secret is not set."
+            exit 1
+          fi
+          status="$(curl -sS -o mint.json -w '%{http_code}' -H "X-Titan-Auth: $TITAN_ADMIN_TOKEN" "$GEV_WORKER_URL/gev/token" || true)"
+          if [ "$status" != "200" ]; then
+            rm -f mint.json
+            echo "::error::GET /gev/token returned $status."
+            exit 1
+          fi
+          token="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync("mint.json","utf8")).token)')"
+          rm -f mint.json
+          echo "::add-mask::$token"
+          echo "GEV_TOKEN=$token" >> "$GITHUB_ENV"
+          echo "Minted a token."
+
+      - name: Check out TITAN-GEV
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: shreyas-tech7/TITAN-GEV
+          ref: ${{ inputs.gev_ref }}
+          path: titan-gev
+          persist-credentials: false
+
+      - name: Verify the live host
+        run: |
+          set -o pipefail
+          node titan-gev/scripts/verify-live.mjs "$GEV_HOST" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser test of the live tab
+        env:
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/gev-live-browser.mjs | tee -a "$GITHUB_STEP_SUMMARY"

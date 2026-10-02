@@ -1,0 +1,153 @@
+name: Provision GEV signing key
+
+# Gives the titan-runner-brain Worker its Ed25519 signing key for the God's Eye
+# View tab, without a human ever seeing or pasting it.
+#
+# The key is born inside this runner. Node makes it, the runner masks it, and it
+# goes straight into the Worker secret GEV_SIGNING_KEY over stdin with
+# `wrangler secret put`. It is never echoed, never put in a command line, never
+# written to the job summary, and never stored anywhere but the Worker.
+#
+# The public half is not secret. It appears in the job summary as the value to
+# set as GEV_VERIFY_KEY on the TITAN-GEV host, and the Worker also serves it at
+# GET /gev/jwks.
+#
+# Runs once on its own file's first push to main, and on demand. If the key is
+# already there it does nothing. Dispatch it with rotate set to true to replace
+# the key. A rotation makes every token signed by the old key useless, and the
+# host needs the new public key (see docs/GODS-EYE-VIEW.md).
+#
+# Same "degrade honestly" pattern as worker-deploy.yml: without the Cloudflare
+# repo secrets it warns and stops instead of failing CI.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/gev-provision.yml"
+  workflow_dispatch:
+    inputs:
+      rotate:
+        description: "Replace the signing key even if one exists"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Shares worker-deploy's group so a deploy and a secret change never overlap.
+concurrency:
+  group: worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GEV_WORKER_URL: https://titan-runner-brain.titan-runner.workers.dev
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check whether Cloudflare credentials are configured
+        id: check
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CF_API_TOKEN" ] && [ -n "$CF_ACCOUNT_ID" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID repo secrets are not set, so no signing key was provisioned."
+          fi
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.check.outputs.configured == 'true'
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        if: steps.check.outputs.configured == 'true'
+        working-directory: worker
+        run: npm ci --no-audit --no-fund
+
+      - name: Create the signing key if it is missing
+        if: steps.check.outputs.configured == 'true'
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ROTATE: ${{ inputs.rotate }}
+        run: |
+          set +x
+          set -eu
+          umask 077
+
+          # Secret names only. wrangler never returns secret values.
+          names="$(npx wrangler secret list --format json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const l=JSON.parse(s);console.log(l.map(e=>e.name).join(" "))})')"
+          have=no
+          case " $names " in *" GEV_SIGNING_KEY "*) have=yes ;; esac
+
+          if [ "$have" = "yes" ] && [ "${ROTATE:-false}" != "true" ]; then
+            echo "GEV_SIGNING_KEY already exists. Nothing to do."
+            echo "### GEV signing key" >> "$GITHUB_STEP_SUMMARY"
+            echo "The Worker already has GEV_SIGNING_KEY. Nothing changed." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          keyfile="$(mktemp "${RUNNER_TEMP:-/tmp}/gevkey.XXXXXX")"
+          trap 'rm -f "$keyfile"' EXIT
+
+          # Make the key. The JWK goes to a private temp file, never to stdout.
+          node -e '
+            (async () => {
+              const pair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]);
+              const jwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
+              const clean = { kty: "OKP", crv: "Ed25519", d: jwk.d, x: jwk.x };
+              require("node:fs").writeFileSync(process.argv[1], JSON.stringify(clean), { mode: 0o600 });
+            })();
+          ' "$keyfile"
+
+          # Mask the whole JWK text and the private value before anything else runs.
+          echo "::add-mask::$(cat "$keyfile")"
+          echo "::add-mask::$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).d)' "$keyfile")"
+
+          # Into the Worker over stdin. No echo, no argument, no trace.
+          npx wrangler secret put GEV_SIGNING_KEY < "$keyfile"
+
+          x="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).x)' "$keyfile")"
+          {
+            echo "### GEV signing key"
+            if [ "$have" = "yes" ]; then echo "Rotated. The old key no longer signs anything."; else echo "Created."; fi
+            echo ""
+            echo "Public key for the TITAN-GEV host (set as GEV_VERIFY_KEY, this value is not secret):"
+            echo ""
+            echo "\`$x\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "GEV_SIGNING_KEY provisioned."
+
+      - name: Confirm the Worker publishes a public key
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          set +x
+          status=000
+          for attempt in 1 2 3 4 5 6 7 8; do
+            status="$(curl -sS -o jwks.json -w '%{http_code}' "$GEV_WORKER_URL/gev/jwks" || true)"
+            [ "$status" = "200" ] && break
+            sleep 15
+          done
+          if [ "$status" != "200" ]; then
+            echo "::warning::GET /gev/jwks returned $status. The Worker code may still be deploying. Rerun this workflow after worker-deploy finishes."
+            exit 0
+          fi
+          node -e '
+            const j = JSON.parse(require("node:fs").readFileSync("jwks.json", "utf8"));
+            if ("d" in j) { console.error("The JWKS response contains a private d value."); process.exit(1); }
+            if (j.kty !== "OKP" || j.crv !== "Ed25519" || !/^[A-Za-z0-9_-]{43}$/.test(j.x || "")) { console.error("The JWKS response has an unexpected shape."); process.exit(1); }
+            console.log("PASS  /gev/jwks returns 200 with an Ed25519 x value and no d");
+          '
+          rm -f jwks.json
+
+      - name: Not configured yet
+        if: steps.check.outputs.configured != 'true'
+        run: echo "Skipped. Add the Cloudflare repo secrets, then dispatch this workflow."
