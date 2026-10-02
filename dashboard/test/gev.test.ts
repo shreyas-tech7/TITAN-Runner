@@ -413,7 +413,7 @@ test("a 401 inside the frame reloads twice, then stops and explains", async () =
   h.controller.reportMessage("unauthorized");
   await settle();
   assert.equal(h.controller.getState().phase, "error");
-  assert.match(h.controller.getState().message ?? "", /GEV_SHARED_SECRET/);
+  assert.match(h.controller.getState().message ?? "", /GEV_VERIFY_KEY/);
   assert.equal(h.calls.mint, 3, "the third report did not mint again");
 });
 

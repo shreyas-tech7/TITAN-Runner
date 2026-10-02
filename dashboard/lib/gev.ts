@@ -293,7 +293,7 @@ export class GevController {
         ...this.state,
         phase: "error",
         src: null,
-        message: "The globe keeps rejecting its access link. Check that GEV_SHARED_SECRET matches on the Worker and the host.",
+        message: "The globe keeps rejecting its access link. Check that GEV_VERIFY_KEY on the host matches the public key the Worker serves at /gev/jwks.",
       });
       return;
     }

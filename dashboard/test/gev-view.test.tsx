@@ -87,7 +87,8 @@ test("ready state: a blocked cookie shows the banner that points to Open full sc
 
 test("setup state: says which half is missing", () => {
   const secret = render({ phase: "unconfigured", missing: "secret" });
-  assert.match(secret, /GEV_SHARED_SECRET/);
+  assert.match(secret, /GEV_SIGNING_KEY/);
+  assert.match(secret, /GEV_VERIFY_KEY/);
   assert.match(secret, /Gate not configured/);
   const worker = render({ phase: "unconfigured", missing: "worker" });
   assert.match(worker, /NEXT_PUBLIC_TITAN_WORKER_URL/);
