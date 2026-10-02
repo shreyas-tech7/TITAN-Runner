@@ -145,7 +145,7 @@ test("checkGevHealth asks for /healthz without credentials and gives up on a hun
     new Promise((_resolve, reject) => {
       init.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
     })) as unknown as typeof fetch;
-  assert.equal(await checkGevHealth(ORIGIN, { fetchImpl: hung, timeoutMs: 20 }), "down");
+  assert.equal(await checkGevHealth(ORIGIN, { fetchImpl: hung, timeoutMs: 20 }), "timeout");
 });
 
 // ---------------------------------------------------------------------
@@ -294,6 +294,33 @@ test("a sleeping host shows the waking state and the controller retries on its o
   assert.equal(state.reachable, true);
   assert.equal(h.calls.mint, 1);
   assert.deepEqual(h.phases().filter((phase, i, all) => phase !== all[i - 1]), ["checking", "waking", "minting", "ready"]);
+});
+
+test("a probe that times out retries at once, a fast failure still backs off", async () => {
+  // Render holds the request while a free instance wakes, so each timed out probe
+  // already spent the full timeout. The retry must not add the backoff on top.
+  let answers: HealthResult[] = ["timeout", "timeout", "down", "timeout", "ready"];
+  const h = harness({ target: ORIGIN, health: () => answers.shift() ?? "ready" });
+  h.controller.start();
+  await settle();
+  assert.equal(h.controller.getState().phase, "waking");
+  assert.deepEqual(h.timers.pendingDelays(), [500]);
+
+  await h.timers.advance(500);
+  assert.equal(h.controller.getState().attempts, 2);
+  assert.deepEqual(h.timers.pendingDelays(), [500]);
+
+  await h.timers.advance(500);
+  assert.equal(h.controller.getState().attempts, 3);
+  assert.deepEqual(h.timers.pendingDelays(), [8000], "a fast failure takes the backoff step for its attempt");
+
+  await h.timers.advance(8000);
+  assert.equal(h.controller.getState().attempts, 4);
+  assert.deepEqual(h.timers.pendingDelays(), [500]);
+
+  await h.timers.advance(500);
+  assert.equal(h.controller.getState().phase, "ready");
+  assert.equal(h.calls.mint, 1);
 });
 
 test("an awake host goes straight from checking to ready", async () => {

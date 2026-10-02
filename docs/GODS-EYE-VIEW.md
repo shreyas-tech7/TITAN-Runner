@@ -62,7 +62,7 @@ Nothing here needs a credit card. Do the steps in this order.
 | State | What the tab shows |
 | --- | --- |
 | No `GEV_URL` | "God's Eye View is not connected" with the variable name |
-| Host asleep | "Waking up, this can take a minute" and automatic retries every 3 to 15 seconds |
+| Host asleep | "Waking up, this can take a minute" and automatic retries. A probe that times out after 8 seconds retries at once, because Render holds the request while it wakes. A fast failure backs off from 3 to 15 seconds |
 | Worker has no `GEV_SIGNING_KEY` | "The access gate is not set up" |
 | Worker URL missing | The same setup message, naming `NEXT_PUBLIC_TITAN_WORKER_URL` |
 | Browser blocked the session cookie | A banner that points to **Open full screen** |

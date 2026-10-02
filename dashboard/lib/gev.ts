@@ -78,12 +78,14 @@ export function parseGevMessage(event: { origin: string; data: unknown }, origin
 // Health and retry
 // ---------------------------------------------------------------------
 
-export type HealthResult = "ready" | "starting" | "down";
+export type HealthResult = "ready" | "starting" | "down" | "timeout";
 
 /**
  * Ask the host whether it is awake. A sleeping host answers with the platform's
  * own wake-up page, which carries no CORS headers, so the fetch fails and the
- * result is "down". An awake gateway answers with its own JSON.
+ * result is "down". An awake gateway answers with its own JSON. Render instead
+ * holds the request while a free instance wakes, so a request that outlives the
+ * timeout is its own result, "timeout".
  */
 export async function checkGevHealth(
   origin: string,
@@ -108,13 +110,17 @@ export async function checkGevHealth(
     if (res.ok && ours && body?.ok === true) return "ready";
     return ours ? "starting" : "down";
   } catch {
-    return "down";
+    return abort.signal.aborted ? "timeout" : "down";
   } finally {
     clearTimeout(timer);
   }
 }
 
 const RETRY_STEPS_MS = [3000, 5000, 8000, 12000, 15000];
+
+// A timed out probe already waited the full timeout, and the host is most likely
+// mid-wake. Probe again at once so the next request is in flight when it answers.
+const TIMEOUT_RETRY_MS = 500;
 
 /** Back off from 3 seconds to a 15 second ceiling. Retries never stop on their own. */
 export function retryDelayMs(attempt: number): number {
@@ -318,7 +324,7 @@ export class GevController {
     this.set({ ...this.state, phase: "waking", reachable: false, attempts, message: null, src: null });
     this.timer = this.deps.setTimer(() => {
       void this.probe(gen, origin);
-    }, retryDelayMs(attempts));
+    }, health === "timeout" ? TIMEOUT_RETRY_MS : retryDelayMs(attempts));
   }
 
   private async mintAndShow(gen: number, origin: string): Promise<void> {
