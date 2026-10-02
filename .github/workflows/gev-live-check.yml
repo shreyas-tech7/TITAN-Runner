@@ -43,6 +43,28 @@ jobs:
         with:
           node-version: "22"
 
+      # Read the Worker's public key. It is public, so it is safe to print. This is the
+      # value to set on the host as GEV_VERIFY_KEY. The step fails if the response
+      # holds a private field.
+      - name: Worker public key
+        run: |
+          set -euo pipefail
+          body="$(curl -sS --max-time 30 -w '\n%{http_code}' "$GEV_WORKER_URL/gev/jwks")"
+          status="${body##*$'\n'}"
+          json="${body%$'\n'*}"
+          if [ "$status" != "200" ]; then
+            echo "::error::GET /gev/jwks returned $status"
+            exit 1
+          fi
+          printf '%s' "$json" | node -e '
+            const j = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            const keys = Object.keys(j).sort().join(",");
+            if (keys !== "crv,kty,x" || "d" in j) { console.log("::error::unexpected jwks shape: " + keys); process.exit(1); }
+            if (j.kty !== "OKP" || j.crv !== "Ed25519" || !/^[A-Za-z0-9_-]{43}$/.test(j.x)) { console.log("::error::jwks is not an Ed25519 public key"); process.exit(1); }
+            console.log("::notice title=GEV_VERIFY_KEY::" + j.x);
+            console.log("PASS /gev/jwks returns a public Ed25519 key and no d field");
+          ' | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Secretless checks
         run: |
           set -o pipefail
