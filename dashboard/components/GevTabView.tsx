@@ -87,8 +87,8 @@ function Body({
               </>
             ) : (
               <>
-                The Worker has no <span className="mono">GEV_SHARED_SECRET</span>. Set the same secret on the Worker and
-                on the host, then reload.
+                The Worker has no <span className="mono">GEV_SIGNING_KEY</span>. Run the Provision GEV signing key
+                workflow, set its public key on the host as <span className="mono">GEV_VERIFY_KEY</span>, then reload.
               </>
             )}
           </p>
