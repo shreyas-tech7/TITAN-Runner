@@ -186,9 +186,9 @@ export interface GevTokenResponse {
 }
 
 /** A short lived (about five minute) access link credential for the God's Eye
- * View tab (GET /gev/token). The TITAN-GEV Space trades it for a session
+ * View tab (GET /gev/token). The TITAN-GEV host trades it for a session
  * cookie. A 503 with `gev_not_configured` means the Worker has no
- * GEV_SHARED_SECRET yet. */
+ * GEV_SIGNING_KEY yet. */
 export async function fetchGevToken(token: string): Promise<GevTokenResponse> {
   const res = await callWorker("/gev/token", token, { method: "GET" });
   if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);

@@ -1,4 +1,4 @@
-// Covers lib/gev.ts: the Space URL rules, the CSP, token minting through the
+// Covers lib/gev.ts: the host URL rules, the CSP, token minting through the
 // Worker client, the health check, the full screen opener, and the controller
 // that drives the empty, waking, and ready states. The controller runs against
 // a fake scheduler, so the automatic retry is tested without waiting.
@@ -19,10 +19,10 @@ import {
   type MintResult,
 } from "../lib/gev";
 
-const ORIGIN = "https://cozmik7-titan-gev.hf.space";
+const ORIGIN = "https://titan-gev.onrender.com";
 
 // ---------------------------------------------------------------------
-// The Space URL and the CSP
+// The host URL and the CSP
 // ---------------------------------------------------------------------
 
 test("parseGevUrl accepts an https origin and drops everything after it", () => {
@@ -40,7 +40,7 @@ test("parseGevUrl reports unset and invalid separately and refuses unsafe URLs",
   }
 });
 
-test("the CSP allows framing the Space origin only and sets no other directive", () => {
+test("the CSP allows framing the host origin only and sets no other directive", () => {
   assert.equal(gevFrameSrcPolicy(parseGevUrl(ORIGIN)), `frame-src ${ORIGIN}`);
   assert.equal(gevFrameSrcPolicy(parseGevUrl("")), null);
   const policy = gevFrameSrcPolicy(parseGevUrl(ORIGIN)) ?? "";
@@ -54,7 +54,7 @@ test("buildGevSrc puts the token in the query and encodes it", () => {
   assert.equal(buildGevSrc(ORIGIN, "a b&c"), `${ORIGIN}/?gev_token=a%20b%26c`);
 });
 
-test("parseGevMessage trusts only the Space origin and known message types", () => {
+test("parseGevMessage trusts only the host origin and known message types", () => {
   assert.equal(parseGevMessage({ origin: ORIGIN, data: { type: "gev-session-blocked" } }, ORIGIN), "session-blocked");
   assert.equal(parseGevMessage({ origin: ORIGIN, data: { type: "gev-unauthorized" } }, ORIGIN), "unauthorized");
   assert.equal(parseGevMessage({ origin: "https://evil.example", data: { type: "gev-unauthorized" } }, ORIGIN), null);
@@ -125,7 +125,7 @@ test("checkGevHealth reads the gateway answer and treats everything else as down
   const fetchImpl = (response: () => Promise<Response>) => (async () => response()) as unknown as typeof fetch;
   assert.equal(await checkGevHealth(ORIGIN, { fetchImpl: fetchImpl(async () => jsonResponse({ ok: true, service: "titan-gev", status: "ready" })) }), "ready");
   assert.equal(await checkGevHealth(ORIGIN, { fetchImpl: fetchImpl(async () => jsonResponse({ ok: false, service: "titan-gev", status: "starting" }, 503)) }), "starting");
-  assert.equal(await checkGevHealth(ORIGIN, { fetchImpl: fetchImpl(async () => new Response("<html>Space is sleeping</html>", { status: 200 })) }), "down");
+  assert.equal(await checkGevHealth(ORIGIN, { fetchImpl: fetchImpl(async () => new Response("<html>Service is waking up</html>", { status: 200 })) }), "down");
   assert.equal(await checkGevHealth(ORIGIN, { fetchImpl: fetchImpl(async () => jsonResponse({ ok: true, service: "someone-else" })) }), "down");
   assert.equal(await checkGevHealth(ORIGIN, { fetchImpl: fetchImpl(async () => { throw new TypeError("Failed to fetch"); }) }), "down");
 });
@@ -145,7 +145,7 @@ test("checkGevHealth asks for /healthz without credentials and gives up on a hun
     new Promise((_resolve, reject) => {
       init.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
     })) as unknown as typeof fetch;
-  assert.equal(await checkGevHealth(ORIGIN, { fetchImpl: hung, timeoutMs: 20 }), "down");
+  assert.equal(await checkGevHealth(ORIGIN, { fetchImpl: hung, timeoutMs: 20 }), "timeout");
 });
 
 // ---------------------------------------------------------------------
@@ -255,7 +255,7 @@ function harness(opts: { target?: string | undefined; health?: () => HealthResul
   return { controller, timers, history, calls, unauthorized: () => unauthorized, phases: () => history.map((s) => s.phase) };
 }
 
-test("with no Space URL the controller shows the empty state and makes no network calls", async () => {
+test("with no host URL the controller shows the empty state and makes no network calls", async () => {
   const unset = harness({ target: undefined });
   unset.controller.start();
   await settle();
@@ -269,14 +269,14 @@ test("with no Space URL the controller shows the empty state and makes no networ
   assert.equal(invalid.controller.getState().emptyReason, "invalid");
 });
 
-test("a sleeping Space shows the waking state and the controller retries on its own until it answers", async () => {
+test("a sleeping host shows the waking state and the controller retries on its own until it answers", async () => {
   let answers: HealthResult[] = ["down", "down", "starting", "ready"];
   const h = harness({ target: ORIGIN, health: () => answers.shift() ?? "ready" });
   h.controller.start();
   await settle();
   assert.equal(h.controller.getState().phase, "waking");
   assert.equal(h.controller.getState().attempts, 1);
-  assert.equal(h.calls.mint, 0, "no token is minted while the Space sleeps");
+  assert.equal(h.calls.mint, 0, "no token is minted while the host sleeps");
   assert.deepEqual(h.timers.pendingDelays(), [3000]);
 
   await h.timers.advance(3000);
@@ -296,7 +296,34 @@ test("a sleeping Space shows the waking state and the controller retries on its 
   assert.deepEqual(h.phases().filter((phase, i, all) => phase !== all[i - 1]), ["checking", "waking", "minting", "ready"]);
 });
 
-test("an awake Space goes straight from checking to ready", async () => {
+test("a probe that times out retries at once, a fast failure still backs off", async () => {
+  // Render holds the request while a free instance wakes, so each timed out probe
+  // already spent the full timeout. The retry must not add the backoff on top.
+  let answers: HealthResult[] = ["timeout", "timeout", "down", "timeout", "ready"];
+  const h = harness({ target: ORIGIN, health: () => answers.shift() ?? "ready" });
+  h.controller.start();
+  await settle();
+  assert.equal(h.controller.getState().phase, "waking");
+  assert.deepEqual(h.timers.pendingDelays(), [500]);
+
+  await h.timers.advance(500);
+  assert.equal(h.controller.getState().attempts, 2);
+  assert.deepEqual(h.timers.pendingDelays(), [500]);
+
+  await h.timers.advance(500);
+  assert.equal(h.controller.getState().attempts, 3);
+  assert.deepEqual(h.timers.pendingDelays(), [8000], "a fast failure takes the backoff step for its attempt");
+
+  await h.timers.advance(8000);
+  assert.equal(h.controller.getState().attempts, 4);
+  assert.deepEqual(h.timers.pendingDelays(), [500]);
+
+  await h.timers.advance(500);
+  assert.equal(h.controller.getState().phase, "ready");
+  assert.equal(h.calls.mint, 1);
+});
+
+test("an awake host goes straight from checking to ready", async () => {
   const h = harness({ target: ORIGIN });
   h.controller.start();
   await settle();
@@ -342,7 +369,7 @@ test("a failed mint shows the error and retries after 15 seconds", async () => {
   assert.match(h.controller.getState().src ?? "", /gev_token=second$/);
 });
 
-test("while ready the monitor needs two missed checks to report the Space unreachable", async () => {
+test("while ready the monitor needs two missed checks to report the host unreachable", async () => {
   let answer: HealthResult = "ready";
   const h = harness({ target: ORIGIN, health: () => answer });
   h.controller.start();
@@ -386,11 +413,11 @@ test("a 401 inside the frame reloads twice, then stops and explains", async () =
   h.controller.reportMessage("unauthorized");
   await settle();
   assert.equal(h.controller.getState().phase, "error");
-  assert.match(h.controller.getState().message ?? "", /GEV_SHARED_SECRET/);
+  assert.match(h.controller.getState().message ?? "", /GEV_VERIFY_KEY/);
   assert.equal(h.calls.mint, 3, "the third report did not mint again");
 });
 
-test("the session refreshes before the Space ends it", async () => {
+test("the session refreshes before the host ends it", async () => {
   const h = harness({ target: ORIGIN });
   h.controller.start();
   await settle();

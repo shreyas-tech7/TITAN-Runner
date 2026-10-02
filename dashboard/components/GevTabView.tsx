@@ -2,7 +2,7 @@
  * The God's Eye View tab, as a pure view. It takes the controller state and
  * renders the status bar, the body for the current phase, and the attribution
  * footer. No hooks and no router, so it renders on its own in the tests.
- * `GodsEyeTab` connects it to the Worker and the Space.
+ * `GodsEyeTab` connects it to the Worker and the host.
  */
 import type { RefObject } from "react";
 import type { GevState } from "@/lib/gev";
@@ -50,7 +50,7 @@ function Body({
               </>
             ) : (
               <>
-                Set <span className="mono">NEXT_PUBLIC_GEV_URL</span> to the TITAN-GEV Space URL.
+                Set <span className="mono">NEXT_PUBLIC_GEV_URL</span> to the TITAN-GEV host URL.
               </>
             )}{" "}
             Add it as the repository variable <span className="mono">GEV_URL</span> and redeploy the dashboard.
@@ -62,7 +62,7 @@ function Body({
     case "minting":
       return (
         <div className="gev-state" data-gev-state={state.phase}>
-          <h2>{state.phase === "checking" ? "Checking the Space" : "Signing in"}</h2>
+          <h2>{state.phase === "checking" ? "Checking the host" : "Signing in"}</h2>
         </div>
       );
     case "waking":
@@ -70,7 +70,7 @@ function Body({
         <div className="gev-state" data-gev-state="waking">
           <h2>Waking up, this can take a minute</h2>
           <p className="text-muted">
-            Free Spaces sleep when idle. Retrying automatically
+            Free hosts sleep when idle. Retrying automatically
             {state.attempts > 1 ? ` (check ${state.attempts})` : ""}.
           </p>
         </div>
@@ -87,8 +87,8 @@ function Body({
               </>
             ) : (
               <>
-                The Worker has no <span className="mono">GEV_SHARED_SECRET</span>. Set the same secret on the Worker and
-                on the Space, then reload.
+                The Worker has no <span className="mono">GEV_SIGNING_KEY</span>. Run the Provision GEV signing key
+                workflow, set its public key on the host as <span className="mono">GEV_VERIFY_KEY</span>, then reload.
               </>
             )}
           </p>
@@ -154,7 +154,7 @@ export default function GevTabView({
           {status.label}
         </span>
         <span className="gev-bar-host" title={origin ?? undefined}>
-          {origin ? origin.replace(/^https?:\/\//, "") : "no Space URL set"}
+          {origin ? origin.replace(/^https?:\/\//, "") : "no host URL set"}
         </span>
         <span className="gev-bar-actions">
           <button className="btn btn-quiet" onClick={onReload} disabled={!connected}>

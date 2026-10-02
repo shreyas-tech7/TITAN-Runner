@@ -65,9 +65,9 @@ jobs:
           # honestly with a "not configured yet" panel until then, same as
           # every other optional-integration pattern in this repo.
           NEXT_PUBLIC_TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
-          # The TITAN-GEV Hugging Face Space URL for the God's Eye View tab, for
-          # example https://cozmik7-titan-gev.hf.space. Not sensitive, so it is a
-          # repo VARIABLE named GEV_URL. Empty until the Space exists. The tab
+          # The TITAN-GEV host URL for the God's Eye View tab, for
+          # example https://titan-gev.onrender.com. Not sensitive, so it is a
+          # repo VARIABLE named GEV_URL. Empty until the host exists. The tab
           # shows a clear "not connected" state until then. See
           # docs/GODS-EYE-VIEW.md.
           NEXT_PUBLIC_GEV_URL: ${{ vars.GEV_URL }}
