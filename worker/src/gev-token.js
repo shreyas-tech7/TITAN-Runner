@@ -2,8 +2,8 @@
  * @file Signed access tokens for the God's Eye View tab.
  *
  * The TITAN-GEV gateway (github.com/shreyas-tech7/TITAN-GEV) hosts the globe on a
- * public URL and refuses every request that lacks a session. This module mints
- * the one-time credential that starts a session:
+ * public host URL (a free Render web service) and refuses every request that lacks a
+ * session. This module mints the one-time credential that starts a session:
  *
  *   gev2.<iat>.<exp>.<jti>.<sig>
  *   sig = base64url(Ed25519 signature over "gev2.<iat>.<exp>.<jti>")

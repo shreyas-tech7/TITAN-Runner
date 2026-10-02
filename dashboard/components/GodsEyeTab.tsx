@@ -2,7 +2,7 @@
 
 /**
  * The God's Eye View tab: the real open source 3D globe (TITAN-GEV, hosted on
- * a free Hugging Face Space), embedded as a full height iframe. The admin
+ * a free host (Render)), embedded as a full height iframe. The admin
  * token is already unlocked when this renders (AdminGate wraps the page), so
  * it asks the Worker for a short lived access link instead of storing one.
  * Lifecycle and retry live in `GevController`. This file only connects it to

@@ -1,5 +1,5 @@
 // Covers what the God's Eye View tab renders in each state: the empty state when
-// no Space URL is set, the waking state with its automatic retry note, the ready
+// no host URL is set, the waking state with its automatic retry note, the ready
 // state with the iframe, the error and setup states, and the attribution footer
 // that every state must keep. Server rendering is enough, because the view has
 // no hooks. The controller tests in gev.test.ts cover the behavior over time.
@@ -10,7 +10,7 @@ import GevTabView from "../components/GevTabView";
 import TopTabs from "../components/TopTabs";
 import { INITIAL_GEV_STATE, buildGevSrc, type GevState } from "../lib/gev";
 
-const ORIGIN = "https://cozmik7-titan-gev.hf.space";
+const ORIGIN = "https://titan-gev.onrender.com";
 
 function render(overrides: Partial<GevState>, origin: string | null = ORIGIN): string {
   return renderToStaticMarkup(
@@ -26,7 +26,7 @@ test("empty state: names the env var, explains the fix, and disables the buttons
   assert.match(html, /GEV_URL/);
   assert.match(html, /docs\/GODS-EYE-VIEW\.md/);
   assert.match(html, /Not configured/);
-  assert.match(html, /no Space URL set/);
+  assert.match(html, /no host URL set/);
   assert.equal(html.includes("<iframe"), false);
   assert.equal((html.match(/disabled=""/g) ?? []).length, 2, "Reload session and Open full screen are disabled");
 });
@@ -51,13 +51,13 @@ test("waking state: says it can take a minute and that it retries by itself", ()
 });
 
 test("checking and signing in are brief states with no frame", () => {
-  assert.match(render({ phase: "checking" }), /Checking the Space/);
+  assert.match(render({ phase: "checking" }), /Checking the host/);
   const signing = render({ phase: "minting", reachable: true });
   assert.match(signing, /Signing in/);
   assert.equal(signing.includes("<iframe"), false);
 });
 
-test("ready state: a full height iframe at the Space URL with the access link, and a Reachable status", () => {
+test("ready state: a full height iframe at the host URL with the access link, and a Reachable status", () => {
   const src = buildGevSrc(ORIGIN, "gev1.1.2.abcdefgh.sig");
   const html = render({ phase: "ready", src, reachable: true, frameKey: 1 });
   assert.match(html, /<iframe[^>]*class="gev-frame"/);
@@ -72,7 +72,7 @@ test("ready state: a full height iframe at the Space URL with the access link, a
   assert.equal(html.includes('role="alert"'), false);
 });
 
-test("ready state: shows Unreachable when the monitor loses the Space, and keeps the frame", () => {
+test("ready state: shows Unreachable when the monitor loses the host, and keeps the frame", () => {
   const html = render({ phase: "ready", src: buildGevSrc(ORIGIN, "t"), reachable: false });
   assert.match(html, /Unreachable, retrying/);
   assert.match(html, /<iframe/);
