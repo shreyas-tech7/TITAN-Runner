@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-02T00:05:31.216Z",
-  "lastAttemptAt": "2026-10-02T00:05:31.216Z",
-  "lastStatus": "skipped",
-  "lastReason": "provider_down",
+  "updatedAt": "2026-10-02T05:43:43.022Z",
+  "lastAttemptAt": "2026-10-02T05:43:43.022Z",
+  "lastStatus": "written",
+  "lastReason": null,
   "digest": {
-    "date": "2026-10-01",
-    "file": "state/digests/2026-10-01-research.md",
-    "provider": "gemini",
-    "model": "gemini-2.5-flash",
+    "date": "2026-10-02",
+    "file": "state/digests/2026-10-02-research.md",
+    "provider": "openrouter",
+    "model": "stealth/space-bunny-alpha",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "Date: 2026-10-01\n\n*Please note: As an AI, I do not have real-time access to current events, specific provider updates, or future changes beyond my training data cutoff. The information below is based on general trends and best practices observed in my training data, framed for the requested date. I cannot confirm specific changes for 2026-10-01.*\n\n## free-tier-llm-landscape\n*   **What matters:** Reports indicate ongoing adjustments to free-tier access, model availability, and usage terms across providers like Groq, Together, OpenRouter, Google Gemini, and Hugging Face. This includes potential changes to rate limits, available models, or even the discontinuation of certain free services.\n*   **Why it matters to this system:** Our system's exclusive reliance on free-tier AI providers means any alteration to these services could directly disrupt operations, cause unexpected errors, or necessitate immediate architectural changes to maintain functionality.\n*   **One thing worth verifying:** Actively monitor API responses from all integrated free-tier providers for new error codes related to rate limits, authentication, or model unavailability.\n\n## agent-safety-practice\n*   **What matter"
+    "preview": "# Daily research digest — 2026-10-02\n\n*No web access; current provider limits and policy changes could not be verified.*\n\n## free-tier-llm-landscape\n\n- **What matters:** Groq, Together, OpenRouter, Gemini, and Hugging Face may change free quotas, model availability, rate limits, or data-use terms. OpenRouter’s free-model set and Hugging Face’s free compute are especially variable.\n- **Why it matters:** Removed models, stricter throttling, or changed retention terms can break routing, retries, long-context jobs, and provider fallbacks.\n- **Verify:** Build a current provider matrix from each dashboard or official documentation, recording quota, model ID, context limit, and commercial-use terms.\n\n## agent-safety-practice\n\n- **What matters:** Use graduated approvals, disposable sandboxes, least-privilege credentials, default-denied networking, prompt-injection filtering, and tamper-resistant audit logs. Treat repository text and tool output as untrusted data.\n- **Why it matters:** A coding agent could modify unrelated files, exfiltrate secrets, install malicious dependencies, or persist through CI configuration.\n- **Verify:** Run an adversarial prompt-injection exercise in a disposable"
   }
 }
