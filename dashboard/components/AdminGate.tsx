@@ -5,7 +5,7 @@
  * section 5: "This is a public URL and status briefs may reference things
  * Shreyas doesn't want publicly readable, so private-by-default is the
  * right call here"). Purely a client-side check against a token in
- * localStorage — this is still a static export with no backend of its own,
+ * this tab's session storage (or local storage when asked to remember) — this is still a static export with no backend of its own,
  * so this cannot stop someone from reading the page's own HTML/JS source;
  * what it protects is the *data* (state/*.json content already renders
  * inside these components), which only ever loads once a token is entered.
@@ -31,6 +31,7 @@ export default function AdminGate({
   const [token, setTokenState] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [draft, setDraft] = useState("");
+  const [remember, setRemember] = useState(false);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +63,7 @@ export default function AdminGate({
       setChecking(false);
     }
 
-    setAdminToken(trimmed);
+    setAdminToken(trimmed, remember);
     setTokenState(trimmed);
     setDraft("");
   }
@@ -76,7 +77,7 @@ export default function AdminGate({
 
   if (!token) {
     return (
-      <div className="admin-gate">
+      <main className="admin-gate">
         <div className="admin-gate-box">
           <h1 className="brand">TITAN-Runner</h1>
           <div className="brand-sub" style={{ marginBottom: 20 }}>
@@ -96,26 +97,33 @@ export default function AdminGate({
               onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
             />
           </div>
+          <label className="check-row" htmlFor="admin-remember">
+            <input id="admin-remember" type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+            Remember on this device
+          </label>
           {error && <div className="field-error">{error}</div>}
           <button className="btn btn-primary" onClick={handleUnlock} disabled={!draft.trim() || checking}>
             {checking ? "Checking…" : "Unlock"}
           </button>
           <p className="field-hint" style={{ marginTop: 16 }}>
-            Stored only in this browser&apos;s localStorage, sent only as a header to the titan-runner-brain Worker
-            — never logged, never committed. Ask Shreyas for the token if you don&apos;t have it; it isn&apos;t
-            written anywhere in this repo.
+            The token is kept for this tab only and forgotten when you close it, unless you tick Remember. Remembering
+            keeps it on this device, where any page on this site can read it. It is sent only as a header to the
+            titan-runner-brain Worker, never logged, never committed. This lock hides the dashboard in your browser. The
+            data it shows is also public in the repository, so do not treat it as privacy for what you file.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
     <div className="admin-unlocked">
       {children(token, handleLock)}
-      <button className="btn btn-quiet admin-lock-btn" onClick={handleLock} title="Forget the admin token and lock this dashboard again">
-        Lock dashboard
-      </button>
+      <aside className="admin-lock-row" aria-label="Dashboard lock">
+        <button className="btn btn-quiet admin-lock-btn" onClick={handleLock} title="Forget the admin token and lock this dashboard again">
+          Lock dashboard
+        </button>
+      </aside>
     </div>
   );
 }

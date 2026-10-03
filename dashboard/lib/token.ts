@@ -1,8 +1,12 @@
 "use client";
 
+import { browserStores, clearSecret, readSecret, whereStored, writeSecret } from "./secretStore";
+import type { Where } from "./secretStore";
+
 /**
  * The fine-grained PAT the user pastes once (task instructions, section 1).
- * Stored in `localStorage` under a namespaced key, never sent anywhere but
+ * Stored in this tab's `sessionStorage` by default, or in `localStorage` only when the person opts in
+ * to remembering it, under a namespaced key, never sent anywhere but
  * `api.github.com`, never logged, never committed, never written into any
  * `state/*.json` this dashboard reads (it lives entirely client-side — this
  * is a static export with no backend to send it to even by accident).
@@ -16,31 +20,20 @@
 const STORAGE_KEY = "titan-runner:github-pat:v1";
 
 export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return window.localStorage.getItem(STORAGE_KEY);
-  } catch {
-    // Private browsing / storage disabled — treat exactly like "no token set".
-    return null;
-  }
+  return readSecret(STORAGE_KEY, browserStores());
 }
 
-export function setToken(token: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, token.trim());
-  } catch {
-    // Best-effort — a page reload will just show the token field empty again.
-  }
+/** Saves for this tab only, or for this device when `remember` is true. See lib/secretStore.ts for why the default is the tab. */
+export function setToken(token: string, remember = false): void {
+  writeSecret(STORAGE_KEY, token, remember, browserStores());
+}
+
+export function tokenLocation(): Where {
+  return whereStored(STORAGE_KEY, browserStores());
 }
 
 export function clearToken(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // no-op
-  }
+  clearSecret(STORAGE_KEY, browserStores());
 }
 
 /** e.g. "github_pat_11AB••••••••••••3xZ9" — enough to recognize which token this is, never enough to reuse. */
