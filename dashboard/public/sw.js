@@ -5,9 +5,12 @@
 // raw.githubusercontent.com/api.github.com calls here would work directly
 // against that, so this SW only ever touches its own same-origin static
 // shell (HTML/JS/CSS/icons) and always tries the network first.
-const CACHE = "titan-runner-shell-v1";
+const CACHE = "titan-runner-shell-v2";
 
 self.addEventListener("install", (event) => {
+  // Keep the app shell so a visit with no network still opens the dashboard. Its numbers come from
+  // `state/*.json`, which is never cached here, so an offline visit shows the offline notice and not old data.
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.add(self.registration.scope)).catch(() => {}));
   self.skipWaiting();
 });
 
@@ -28,10 +31,12 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((cache) => cache.put(request, copy));
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy));
+        }
         return res;
       })
-      .catch(() => caches.match(request)),
+      .catch(() => caches.match(request).then((hit) => hit || (request.mode === "navigate" ? caches.match(self.registration.scope) : undefined)).then((hit) => hit || Response.error())),
   );
 });

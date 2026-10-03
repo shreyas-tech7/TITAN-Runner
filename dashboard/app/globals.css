@@ -25,29 +25,31 @@
  * the same call.
  */
 :root {
-  --bg-0: #121316; /* page canvas */
-  --bg-1: #1b1e23; /* section fill (drawer, modal, palette — not every block) */
-  --bg-2: #22262c; /* raised/hover surface */
-  --bg-3: #292e35; /* glass panel fill */
-  --line: #2b2f36; /* hairline divider */
-  --line-strong: #3a3f47;
+  /* Wave 11: every old name below is now an alias of an Eclipse token (app/tokens.css), so all four
+     themes reach every existing component without touching it. New code uses the Eclipse names. */
+  --bg-0: var(--bg-base); /* page canvas */
+  --bg-1: var(--surface-1); /* section fill (drawer, modal, palette) */
+  --bg-2: var(--surface-2); /* raised/hover surface */
+  --bg-3: var(--surface-3); /* glass panel fill */
+  --line: var(--line-subtle); /* hairline divider */
+  /* --line-strong is an Eclipse token under the same name */
 
-  --text-0: #ece9e4; /* bone white — primary */
-  --text-1: #a2a7ad; /* secondary prose/labels */
-  --text-2: #6d7278; /* quiet — provider rows, footnotes */
+  --text-0: var(--text-hi); /* primary */
+  --text-1: var(--text-body); /* secondary prose/labels */
+  --text-2: var(--text-dim); /* quiet: provider rows, footnotes */
 
-  --signal: #5fb894; /* live state ONLY — a muted jade, never decorative */
-  --signal-dim: #3d7a63;
-  --warning: #d9a441; /* warnings ONLY */
-  --warning-dim: #8a6a2c;
-  --failure: #b5563c; /* failure ONLY */
-  --failure-dim: #7a3a28;
+  --signal: var(--ok); /* live state ONLY */
+  --signal-dim: color-mix(in srgb, var(--ok) 62%, var(--bg-base));
+  --warning: var(--warn); /* warnings ONLY */
+  --warning-dim: color-mix(in srgb, var(--warn) 62%, var(--bg-base));
+  --failure: var(--danger); /* failure ONLY */
+  --failure-dim: color-mix(in srgb, var(--danger) 62%, var(--bg-base));
 
-  --accent: #5aa9e6; /* featured/live-centerpiece ONLY — God's Eye, clock, hero glows */
-  --accent-dim: #3a6d94;
-  --accent-soft: rgba(90, 169, 230, 0.14);
+  --accent: var(--ion); /* featured/live-centerpiece ONLY */
+  --accent-dim: color-mix(in srgb, var(--ion) 62%, var(--bg-base));
+  --accent-soft: color-mix(in srgb, var(--ion) 14%, transparent);
 
-  --focus-ring: #d9a441;
+  --focus-ring: var(--ion);
 
   --font-sans: var(--font-body-loaded), "Inter Tight", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-data-loaded), "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
@@ -263,8 +265,16 @@ button {
   .vitals-grid,
   .hero-grid,
   .bento-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* A grid cell never grows past its column because of long content inside it. */
+.vitals-grid > *,
+.hero-grid > *,
+.bento-grid > *,
+.panel {
+  min-width: 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -604,7 +614,7 @@ button {
   font-weight: 600;
 }
 .btn-primary:hover {
-  background: #d5d2cc;
+  background: color-mix(in srgb, var(--text-0) 82%, var(--bg-0));
 }
 .btn-quiet {
   background: none;
@@ -920,12 +930,14 @@ button {
   position: relative;
 }
 
+/* The lock control sits at the end of the page, in the flow. A fixed button covered content on a phone. */
+.admin-lock-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-4) var(--space-5);
+}
 .admin-lock-btn {
-  position: fixed;
-  bottom: var(--space-3);
-  right: var(--space-3);
-  z-index: 30;
-  opacity: 0.7;
+  opacity: 0.85;
 }
 .admin-lock-btn:hover {
   opacity: 1;
@@ -1064,7 +1076,7 @@ button {
   position: absolute;
   pointer-events: none;
   z-index: 5;
-  background: rgba(19, 21, 25, 0.92);
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
   border: 1px solid var(--line-strong);
   border-radius: 6px;
   padding: 7px 10px;
@@ -1193,7 +1205,7 @@ button {
 }
 .agent-card:hover {
   border-color: var(--line-strong);
-  background: #262b32;
+  background: var(--surface-3);
   transform: translateY(-1px);
 }
 .agent-card:focus-visible {
@@ -1366,3 +1378,213 @@ button {
     min-height: 360px;
   }
 }
+
+/* ---- Wave 11: theme switch, remember checkbox, screen-reader text ---- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.theme-switch select {
+  height: 32px;
+  padding: 0 8px;
+  background: var(--bg-2);
+  color: var(--text-0);
+  border: 1px solid var(--line-control);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 12px;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  font-size: 13px;
+  color: var(--text-1);
+}
+.check-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ion);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Eclipse kit (Wave 11): Panel, Badge, StatusDot, Meter, Sparkline.       */
+/* Mobile first: one column, 16px gutters, nothing wider than the screen.  */
+/* ---------------------------------------------------------------------- */
+.e-panel {
+  position: relative;
+  min-width: 0;
+  background: var(--surface-1);
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  padding: 14px;
+}
+.e-panel-ion { box-shadow: var(--shadow-1), inset 0 2px 0 var(--ion); }
+.e-panel-plasma { box-shadow: var(--shadow-1), inset 0 2px 0 var(--plasma); }
+.e-panel-corona { box-shadow: var(--shadow-1), inset 0 2px 0 var(--corona); }
+.e-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.e-panel-titles { min-width: 0; flex: 1 1 140px; }
+.e-eyebrow {
+  margin: 0 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.e-panel-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-hi);
+}
+.e-panel-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.e-panel-body { min-width: 0; }
+.e-dim { color: var(--text-dim); font-size: 12px; }
+.e-note { margin: 10px 0 0; font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+.e-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.e-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: var(--border-width) solid var(--line-strong);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--text-body);
+  background: var(--surface-2);
+}
+.e-badge-ion { color: var(--ion); border-color: color-mix(in srgb, var(--ion) 45%, transparent); background: color-mix(in srgb, var(--ion) var(--soft-alpha), var(--surface-1)); }
+.e-badge-plasma { color: var(--plasma); border-color: color-mix(in srgb, var(--plasma) 45%, transparent); background: color-mix(in srgb, var(--plasma) var(--soft-alpha), var(--surface-1)); }
+.e-badge-corona { color: var(--corona); border-color: color-mix(in srgb, var(--corona) 45%, transparent); background: color-mix(in srgb, var(--corona) var(--soft-alpha), var(--surface-1)); }
+.e-badge-ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); background: color-mix(in srgb, var(--ok) var(--soft-alpha), var(--surface-1)); }
+.e-badge-warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); background: color-mix(in srgb, var(--warn) var(--soft-alpha), var(--surface-1)); }
+.e-badge-danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); background: color-mix(in srgb, var(--danger) var(--soft-alpha), var(--surface-1)); }
+
+.e-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--text-dim); flex: none; }
+.e-dot-ion { background: var(--ion); }
+.e-dot-plasma { background: var(--plasma); }
+.e-dot-corona { background: var(--corona); }
+.e-dot-ok { background: var(--ok); }
+.e-dot-warn { background: var(--warn); }
+.e-dot-danger { background: var(--danger); }
+@media (prefers-reduced-motion: no-preference) {
+  .e-dot-pulse { animation: e-pulse 1.8s ease-in-out infinite; }
+}
+@keyframes e-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 0%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ion) 25%, transparent); }
+}
+
+.e-meter { width: 100%; }
+.e-meter-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  border: var(--border-width) solid var(--line-subtle);
+  overflow: hidden;
+}
+.e-meter-fill { height: 100%; border-radius: 999px; background: var(--ok); }
+.e-fill-ion { background: var(--ion); }
+.e-fill-plasma { background: var(--plasma); }
+.e-fill-corona { background: var(--corona); }
+.e-fill-ok { background: var(--ok); }
+.e-fill-warn { background: var(--warn); }
+.e-fill-danger { background: var(--danger); }
+.e-fill-neutral { background: var(--text-dim); }
+.e-meter-marker { position: absolute; top: -1px; bottom: -1px; width: 2px; background: var(--text-hi); opacity: 0.8; }
+
+.e-spark { display: block; max-width: 100%; height: auto; overflow: visible; }
+.e-stroke-ion { stroke: var(--ion); }
+.e-stroke-plasma { stroke: var(--plasma); }
+.e-stroke-corona { stroke: var(--corona); }
+.e-stroke-ok { stroke: var(--ok); }
+.e-stroke-warn { stroke: var(--warn); }
+.e-stroke-danger { stroke: var(--danger); }
+
+/* Quota rows and the last pulse list */
+.e-rows { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.e-row { display: grid; gap: 6px; min-width: 0; }
+.e-row-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 10px; }
+.e-row-name { font-weight: 600; color: var(--text-hi); font-size: 13px; text-transform: capitalize; }
+.e-row-figure { font-size: 12px; color: var(--text-body); }
+.e-row-sub { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--text-dim); }
+.e-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin: 0 0 12px; }
+.e-fact dt { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.e-fact dd { margin: 2px 0 0; font-size: 14px; color: var(--text-hi); overflow-wrap: anywhere; }
+.e-row-block { display: grid; gap: 4px; margin-top: 10px; }
+.e-pair { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 20px; align-items: start; }
+@media (min-width: 900px) {
+  .e-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .e-panel { padding: 16px; }
+}
+
+/* Windows narrower than 400px: stack the fact grid so values never clip */
+@media (max-width: 400px) {
+  .e-facts { grid-template-columns: 1fr; }
+}
+
+/* Agent status board */
+.e-agents { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+.e-agent {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+  padding: 10px;
+  text-align: left;
+  color: var(--text-body);
+  background: var(--surface-2);
+  border: var(--border-width) solid var(--line-strong);
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+}
+.e-agent:hover { border-color: var(--line-control); }
+.e-agent:focus-visible { outline: var(--focus-width) solid var(--ion); outline-offset: var(--focus-offset); }
+.e-agent-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.e-agent-name { font-family: var(--font-mono); font-weight: 600; color: var(--text-hi); font-size: 13px; }
+.e-agent-purpose { font-size: 12px; color: var(--text-dim); line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.e-agent-quota { display: grid; gap: 3px; }
+.e-agent-detail { display: grid; gap: 3px; font-size: 12px; color: var(--text-body); padding-top: 6px; border-top: var(--border-width) solid var(--line-subtle); }
+
+/* Lists inside the sub-agent cluster and the VM fleet */
+.e-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.e-item { display: grid; gap: 6px; padding: 10px; background: var(--surface-2); border: var(--border-width) solid var(--line-subtle); border-radius: 10px; min-width: 0; }
+.e-item-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.e-item-title { flex: 1 1 110px; min-width: 0; color: var(--text-hi); font-size: 13px; overflow-wrap: anywhere; }
+.e-item-links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; }
+.e-item-links a { color: var(--ion); }
+.e-item-links a.e-link-warn { color: var(--warn); }
+.e-learn { margin: 0; padding: 6px 0 0 10px; border-left: 2px solid var(--corona); font-size: 12px; color: var(--text-body); }
+.e-learn ul { margin: 4px 0 0 16px; padding: 0; }
+.e-form { display: grid; gap: 6px; margin-bottom: 14px; }
+.e-form label { font-size: 12px; color: var(--text-dim); }
+.e-form-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.e-form-row textarea { flex: 1 1 200px; min-width: 0; min-height: 40px; }
+.e-error { font-size: 12px; color: var(--danger); }
+.e-hint { font-size: 12px; color: var(--text-dim); }
+
+/* Kit panels that sit straight in the page column take the same gap the older sections use. */
+.shell > .e-panel,
+.shell > main > .e-panel { margin-bottom: var(--space-4); }
