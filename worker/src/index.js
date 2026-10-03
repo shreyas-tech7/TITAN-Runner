@@ -139,6 +139,9 @@ function ghHeaders(env, extra = {}) {
   };
 }
 
+/** Headers that can carry a credential. They are never written to a log line, even from a response. */
+const REDACTED_LOG_HEADERS = new Set(['authorization', 'proxy-authorization', 'cookie', 'set-cookie']);
+
 /** Turns a failed GitHub API response into a safe-to-return, actionable
  * error message, and logs the full status/headers/body server-side (visible
  * via `wrangler tail`) for debugging. A bare `${res.status}` (the previous
@@ -148,7 +151,7 @@ function ghHeaders(env, extra = {}) {
  * Authorization header (ghHeaders() is never passed in). */
 export async function describeGithubFailure(label, res) {
   const headers = {};
-  for (const [key, value] of res.headers.entries()) headers[key] = value;
+  for (const [key, value] of res.headers.entries()) headers[key] = REDACTED_LOG_HEADERS.has(key.toLowerCase()) ? '[redacted]' : value;
   const body = await res.text().catch(() => '');
   console.error(`${label}: GitHub API ${res.status} ${res.url}`, { headers, body: body.slice(0, 500) });
 
@@ -280,7 +283,32 @@ export async function handleGevJwks(env) {
   return res;
 }
 
-async function handleCreateTask(request, env) {
+/** Task types the dashboard route may never create. `osint` is made only by /osint/investigate and `meta-lesson`
+ * only by the meta-agent, so a task filed through POST /tasks cannot pose as either. */
+const RESERVED_TASK_TYPES = Object.freeze(['osint', 'meta-lesson']);
+
+/** A task type is a short routing word: `auto`, a provider name, or similar. It becomes a workflow input, so
+ * it is checked rather than passed through. Returns the cleaned value or an error message. */
+export function parseTaskType(raw) {
+  if (raw === undefined || raw === null || (typeof raw === 'string' && !raw.trim())) return { value: 'auto' };
+  if (typeof raw !== 'string') return { error: 'task_type must be a string' };
+  const value = raw.trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9_-]{0,39}$/.test(value)) return { error: 'task_type must be 1 to 40 characters: letters, digits, "-" or "_"' };
+  if (RESERVED_TASK_TYPES.includes(value)) return { error: `task_type "${value}" is reserved` };
+  return { value };
+}
+
+/** A provider key is one printable-ASCII token with no spaces. The cap is far above any real provider key
+ * and stops a huge or odd body from being sealed and sent on to GitHub. Nothing here echoes the value. */
+export const MAX_PROVIDER_KEY_LENGTH = 1024;
+export function checkProviderKeyValue(value) {
+  if (!value) return 'value is required';
+  if (value.length > MAX_PROVIDER_KEY_LENGTH) return `value is too long (the limit is ${MAX_PROVIDER_KEY_LENGTH} characters)`;
+  if (!/^[\x21-\x7e]+$/.test(value)) return 'value must be a single token of printable characters with no spaces';
+  return null;
+}
+
+export async function handleCreateTask(request, env) {
   let body;
   try {
     body = await request.json();
@@ -289,7 +317,9 @@ async function handleCreateTask(request, env) {
   }
   const brief = typeof body?.brief === 'string' ? body.brief.trim() : '';
   if (!brief) return json({ error: 'brief is required' }, 400);
-  const taskType = typeof body?.task_type === 'string' && body.task_type.trim() ? body.task_type.trim() : 'auto';
+  const parsedType = parseTaskType(body?.task_type);
+  if ('error' in parsedType) return json({ error: parsedType.error }, 400);
+  const taskType = parsedType.value;
 
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -301,7 +331,7 @@ async function handleCreateTask(request, env) {
   return json({ ok: true, id });
 }
 
-async function handleAdminKeys(request, env) {
+export async function handleAdminKeys(request, env) {
   let body;
   try {
     body = await request.json();
@@ -313,7 +343,8 @@ async function handleAdminKeys(request, env) {
   if (!KNOWN_PROVIDERS.includes(provider)) {
     return json({ error: `unknown provider "${provider}" — this cluster only reuses this repo's existing adapters: ${KNOWN_PROVIDERS.join(', ')}` }, 400);
   }
-  if (!value) return json({ error: 'value is required' }, 400);
+  const bad = checkProviderKeyValue(value);
+  if (bad) return json({ error: bad }, 400);
   if (!env.GITHUB_PAT) {
     return json({ error: 'GITHUB_PAT is not configured on this Worker yet — cannot manage repository secrets. See docs/RUNTIME.md.' }, 503);
   }

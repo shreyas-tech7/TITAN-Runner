@@ -59,3 +59,14 @@ test('never includes an Authorization header value, even if present on the respo
   const message = await describeGithubFailure('GitHub public-key fetch', res);
   assert.ok(!message.includes('ghp_should_never_appear'));
 });
+
+test('the server-side log redacts credential-carrying headers too', async (t) => {
+  const logged = [];
+  t.mock.method(console, 'error', (...args) => logged.push(JSON.stringify(args)));
+  const res = fakeGithubResponse(403, { message: 'nope' }, { authorization: ['Bearer', 'ghp_should_never_appear'].join(' '), 'set-cookie': 'session=abc123' });
+  await describeGithubFailure('GitHub public-key fetch', res);
+  const line = logged.join('');
+  assert.ok(!line.includes('ghp_should_never_appear'));
+  assert.ok(!line.includes('abc123'));
+  assert.match(line, /\[redacted\]/);
+});
