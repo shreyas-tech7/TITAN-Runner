@@ -42,7 +42,7 @@ function ResearchCard({ view, missing }: { view: ResearchView | null; missing: b
               </>
             )}
           </div>
-          <pre className="mono" style={{ whiteSpace: "pre-wrap", margin: 0, maxHeight: 260, overflow: "auto", fontSize: 12 }}>{digest.preview ?? ""}</pre>
+          <pre className="mono" tabIndex={0} role="region" aria-label="Digest preview, scrollable" style={{ whiteSpace: "pre-wrap", margin: 0, maxHeight: 260, overflow: "auto", fontSize: 12 }}>{digest.preview ?? ""}</pre>
           <div className="text-quiet" style={{ fontSize: 11, marginTop: 8 }}>
             Written by a free-tier model from its own training knowledge — no web access, no live sources. Treat it as leads to verify.
           </div>

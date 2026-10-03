@@ -5,6 +5,7 @@ import { getToken } from "@/lib/token";
 import { createIssue, GitHubApiError, OWNER, REPO } from "@/lib/githubApi";
 import { buildIssueBody, TITAN_TASK_LABEL, type Priority, type RoutingHint } from "@/lib/taskYaml";
 import { addOptimisticTask } from "@/lib/optimisticTasks";
+import { useModal } from "@/components/useModal";
 
 const PRIORITIES: Priority[] = ["low", "normal", "high", "urgent"];
 const ROUTING_HINTS: RoutingHint[] = ["fast", "cheap", "careful", "any"];
@@ -28,6 +29,7 @@ export default function NewTaskModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState("Copy issue body");
   const [filedUrl, setFiledUrl] = useState<string | null>(null);
+  const dialogRef = useModal(onClose);
 
   const titleValid = title.trim().length > 0;
   const descriptionValid = description.trim().length > 0;
@@ -90,10 +92,10 @@ export default function NewTaskModal({
   if (phase === "success") {
     return (
       <div className="overlay-scrim" onClick={onClose}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="task-modal-title" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
           <div className="modal-body">
             <div className="modal-head">
-              <h2 className="modal-title">Task filed</h2>
+              <h2 className="modal-title" id="task-modal-title">Task filed</h2>
               <button className="btn btn-quiet" onClick={onClose} aria-label="Close">
                 Close
               </button>
@@ -115,10 +117,10 @@ export default function NewTaskModal({
 
   return (
     <div className="overlay-scrim" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="task-modal-title" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <div className="modal-body">
           <div className="modal-head">
-            <h2 className="modal-title">New task</h2>
+            <h2 className="modal-title" id="task-modal-title">New task</h2>
             <button className="btn btn-quiet" onClick={onClose} aria-label="Close">
               Close
             </button>

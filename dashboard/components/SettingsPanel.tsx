@@ -1,18 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { getToken, setToken, clearToken, maskToken } from "@/lib/token";
+import { getToken, setToken, clearToken, maskToken, tokenLocation } from "@/lib/token";
 import { newTokenSettingsUrl, OWNER, REPO } from "@/lib/githubApi";
+import { useModal } from "@/components/useModal";
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [stored, setStored] = useState<string | null>(() => getToken());
   const [draft, setDraft] = useState("");
   const [saved, setSaved] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [where, setWhere] = useState(() => tokenLocation());
+  const dialogRef = useModal(onClose);
 
   function handleSave() {
     const trimmed = draft.trim();
     if (!trimmed) return;
-    setToken(trimmed);
+    setToken(trimmed, remember);
+    setWhere(tokenLocation());
     setStored(trimmed);
     setDraft("");
     setSaved(true);
@@ -26,10 +31,10 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="overlay-scrim" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="settings-title" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <div className="modal-body">
           <div className="modal-head">
-            <h2 className="modal-title">Settings</h2>
+            <h2 className="modal-title" id="settings-title">Settings</h2>
             <button className="btn btn-quiet" onClick={onClose} aria-label="Close settings">
               Close
             </button>
@@ -47,7 +52,9 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                   Forget token
                 </button>
               </div>
-              <div className="field-hint">Stored only in this browser&apos;s localStorage. Forgetting it removes it immediately — nothing to undo.</div>
+              <div className="field-hint">
+                {where === "local" ? "Remembered on this device (local storage), where any page on this site can read it." : "Kept for this tab only, and forgotten when you close it."} Forgetting it removes it immediately, with nothing to undo.
+              </div>
             </div>
           ) : (
             <div className="field">
@@ -61,8 +68,12 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
               />
+              <label className="check-row" htmlFor="pat-remember">
+                <input id="pat-remember" type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                Remember on this device
+              </label>
               <div className="field-hint">
-                Never sent anywhere but api.github.com, never logged, never written into state/, never committed.
+                Kept for this tab only unless you tick Remember. Never sent anywhere but api.github.com, never logged, never written into state/, never committed.
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                 <button className="btn btn-primary" onClick={handleSave} disabled={draft.trim().length === 0}>
