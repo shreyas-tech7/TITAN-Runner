@@ -8,13 +8,20 @@ const dir = (csp: string, name: string) => csp.split("; ").find((d) => d.startsW
 
 test("the policy names the hosts the dashboard talks to and nothing broader", () => {
   const csp = buildRunnerCsp({ worker: "https://brain.example.workers.dev/path?x=1", gevOrigin: "https://gev.example.com" });
-  assert.equal(dir(csp, "connect-src"), "connect-src 'self' https://raw.githubusercontent.com https://api.github.com https://api.open-meteo.com https://brain.example.workers.dev");
+  assert.equal(dir(csp, "connect-src"), "connect-src 'self' https://raw.githubusercontent.com https://api.github.com https://api.open-meteo.com https://brain.example.workers.dev https://gev.example.com");
   assert.equal(dir(csp, "frame-src"), "frame-src https://gev.example.com");
   assert.match(csp, /object-src 'none'/);
   assert.match(csp, /base-uri 'self'/);
   assert.match(csp, /form-action 'none'/);
   assert.doesNotMatch(csp, /\*/);
   assert.doesNotMatch(csp, /script-src[^;]*(?:https?:|unsafe-eval)/);
+});
+
+test("the God's Eye host can be framed and asked for its health check", () => {
+  // checkGevHealth fetches `${origin}/healthz` from the browser. Without the origin in connect-src the check would always read "down".
+  const csp = buildRunnerCsp({ worker: "", gevOrigin: "https://gev.example.com" });
+  assert.match(dir(csp, "connect-src"), /https:\/\/gev\.example\.com$/);
+  assert.equal(dir(csp, "frame-src"), "frame-src https://gev.example.com");
 });
 
 test("with no Worker and no God's Eye host the policy shrinks, and frames are blocked", () => {
