@@ -106,18 +106,20 @@ export default function GeospatialPage() {
     <AdminGate>
       {(token) => (
         <div className="shell">
-          <div className="topbar">
+          <header className="topbar">
             <div>
               <h1 className="brand">God&apos;s Eye View</h1>
-              <div className="brand-sub">Owner-gated OSINT geospatial tracking — see the OSINT panel on the main dashboard</div>
+              <div className="brand-sub">Owner-gated OSINT geospatial tracking. See the OSINT panel on the main dashboard.</div>
             </div>
             <div className="topbar-actions">
-              <Link className="btn btn-quiet" href="./">
+              <Link className="btn btn-quiet" href="/">
                 ← Dashboard
               </Link>
             </div>
-          </div>
-          <GeospatialContent token={token} />
+          </header>
+          <main id="main">
+            <GeospatialContent token={token} />
+          </main>
         </div>
       )}
     </AdminGate>

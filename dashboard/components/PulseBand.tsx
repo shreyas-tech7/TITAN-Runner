@@ -34,10 +34,13 @@ export default function PulseBand({
   heartbeat,
   pulses,
   loading,
+  error = null,
 }: {
   heartbeat: HeartbeatState | null;
   pulses: PulseHistoryEntry[];
   loading: boolean;
+  /** Set when the heartbeat could not be loaded at all, so the band does not claim no pulse has run. */
+  error?: string | null;
 }) {
   const [now, setNow] = useState(() => Date.now());
 
@@ -50,6 +53,13 @@ export default function PulseBand({
     return (
       <div className="pulse-band">
         <div className="empty">Loading pulse status…</div>
+      </div>
+    );
+  }
+  if (!heartbeat && error) {
+    return (
+      <div className="pulse-band">
+        <div className="empty" role="alert">Could not load the pulse status ({error}). This says nothing about whether pulses are running.</div>
       </div>
     );
   }

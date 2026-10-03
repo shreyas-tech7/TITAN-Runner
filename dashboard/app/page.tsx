@@ -27,6 +27,22 @@ import GodsEyeSection from "@/components/GodsEyeSection";
 import TopTabs from "@/components/TopTabs";
 import RunningTasksPanel from "@/components/RunningTasksPanel";
 import AgentsPanel from "@/components/AgentsPanel";
+import ThemeSwitch from "@/components/ThemeSwitch";
+import OfflineNotice from "@/components/OfflineNotice";
+import QuotaPanel from "@/components/QuotaPanel";
+import LastPulsePanel from "@/components/LastPulsePanel";
+import { THEMES, THEME_LABEL, applyTheme } from "@/lib/theme";
+import { quotaRows, type QuotaRow, type QuotaState } from "@/lib/quota";
+
+/** The current time, refreshed every 30 seconds. The quota windows are one UTC day and one minute wide. */
+function useMinuteClock(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+  return now;
+}
 
 function readUrlParam(name: string): string {
   if (typeof window === "undefined") return "";
@@ -59,12 +75,14 @@ function WorkerScopedPanels({
   tasks,
   providers,
   agents,
+  quota,
 }: {
   token: string;
   onUnauthorized: () => void;
   tasks: TaskRecord[];
   providers: Record<string, ProviderHealthRecord> | undefined;
   agents: AgentsState | undefined;
+  quota: QuotaRow[];
 }) {
   const workerStatus = useWorkerStatus(token);
   const subagents = workerStatus.data?.subagents ?? [];
@@ -75,7 +93,7 @@ function WorkerScopedPanels({
 
       <div className="bento-grid">
         <RunningTasksPanel tasks={tasks} subagents={subagents} workerConfigured={isWorkerConfigured()} />
-        <AgentsPanel providers={providers} agents={agents} subagents={subagents} />
+        <AgentsPanel providers={providers} agents={agents} subagents={subagents} quota={quota} />
       </div>
 
       <ClusterPanels token={token} status={workerStatus} onUnauthorized={onUnauthorized} />
@@ -89,6 +107,7 @@ export default function DashboardPage() {
   const providers = usePolledJson<ProvidersState>("state/providers.json", 60_000);
   const pulseHistory = usePolledJson<PulseHistoryState>("state/pulse-history.json", 30_000);
   const agents = usePolledJson<AgentsState>("state/agents.json", 60_000);
+  const quota = usePolledJson<QuotaState>("state/quota.json", 60_000);
 
   const [query, setQuery] = useState(() => readUrlParam("q"));
   const [selectedTaskId, setSelectedTaskId] = useState(() => readUrlParam("task"));
@@ -132,6 +151,9 @@ export default function DashboardPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  const quotaNow = useMinuteClock();
+  const quotaByProvider = useMemo(() => quotaRows(quota.data, quotaNow), [quota.data, quotaNow]);
+
   const allTasks = tasks.data?.tasks ?? [];
   const filteredTasks = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -157,6 +179,7 @@ export default function DashboardPage() {
       },
       { id: "open-repo", label: "Open repo", run: () => window.open(`https://github.com/${OWNER}/${REPO}`, "_blank") },
       { id: "toggle-settings", label: "Settings", run: () => setSettingsOpen(true) },
+      ...THEMES.map((t) => ({ id: `theme-${t}`, label: `Theme: ${THEME_LABEL[t]}`, run: () => applyTheme(t) })),
     ];
     const taskCommands: Command[] = allTasks.slice(-30).map((t) => ({
       id: `task-${t.id}`,
@@ -172,13 +195,14 @@ export default function DashboardPage() {
     tasks.refresh();
     providers.refresh();
     pulseHistory.refresh();
+    quota.refresh();
   };
 
   return (
     <AdminGate>
       {(adminToken, lockDashboard) => (
     <div className="shell">
-      <div className="topbar">
+      <header className="topbar">
         <div>
           <h1 className="brand">TITAN-Runner</h1>
           <div className="brand-sub">
@@ -190,6 +214,7 @@ export default function DashboardPage() {
           <button className="btn btn-quiet" onClick={() => setPaletteOpen(true)}>
             <span className="kbd">⌘K</span>
           </button>
+          <ThemeSwitch />
           <button className="btn btn-quiet" onClick={() => setSettingsOpen(true)}>
             Settings
           </button>
@@ -197,9 +222,12 @@ export default function DashboardPage() {
             + New task
           </button>
         </div>
-      </div>
+      </header>
 
       <TopTabs active="dashboard" />
+
+      <main id="main">
+      <OfflineNotice />
 
       <StalenessBanner lastPulseAt={heartbeat.data?.lastPulseAt ?? null} />
 
@@ -208,9 +236,14 @@ export default function DashboardPage() {
         <WeatherPanel />
       </div>
 
-      <PulseBand heartbeat={heartbeat.data} pulses={pulseHistory.data?.pulses ?? []} loading={heartbeat.loading} />
+      <PulseBand heartbeat={heartbeat.data} pulses={pulseHistory.data?.pulses ?? []} loading={heartbeat.loading} error={heartbeat.error} />
 
-      <WorkerScopedPanels token={adminToken} onUnauthorized={lockDashboard} tasks={allTasks} providers={providers.data?.providers} agents={agents.data ?? undefined} />
+      <div className="e-pair">
+        <LastPulsePanel heartbeat={heartbeat} history={pulseHistory} />
+        <QuotaPanel quota={quota} />
+      </div>
+
+      <WorkerScopedPanels token={ adminToken } onUnauthorized={lockDashboard} tasks={allTasks} providers={providers.data?.providers} agents={agents.data ?? undefined} quota={quotaByProvider} />
 
       <div className="field" style={{ maxWidth: 320, marginBottom: 8 }}>
         <input
@@ -237,6 +270,9 @@ export default function DashboardPage() {
 
       <PrPanel />
 
+      </main>
+
+      <footer>
       <p className="footer-note">
         Static export polling <code>state/*.json</code> — first from <code>raw.githubusercontent.com</code>{" "}
         (cache-busted on every request) for freshness, falling back to the copy baked in at the last dashboard
@@ -245,6 +281,7 @@ export default function DashboardPage() {
         — see the repo README before filing a task with anything sensitive in it. Press <span className="kbd">⌘K</span> for
         the command palette, <span className="kbd">n</span> for a new task, <span className="kbd">/</span> to filter.
       </p>
+      </footer>
 
       {selectedTask && <TaskDetailDrawer task={selectedTask} onClose={() => setSelectedTaskId("")} />}
       {newTaskOpen && (

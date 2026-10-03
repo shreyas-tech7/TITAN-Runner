@@ -16,14 +16,16 @@ export default function GodsEyePage() {
     <AdminGate>
       {(token, lock) => (
         <div className="shell">
-          <div className="topbar">
+          <header className="topbar">
             <div>
               <h1 className="brand">God&apos;s Eye View</h1>
               <div className="brand-sub">The live 3D Earth, hosted through TITAN-GEV</div>
             </div>
-          </div>
+          </header>
           <TopTabs active="gods-eye" />
-          <GodsEyeTab token={token} onUnauthorized={lock} />
+          <main id="main">
+            <GodsEyeTab token={token} onUnauthorized={lock} />
+          </main>
         </div>
       )}
     </AdminGate>

@@ -13,15 +13,16 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { relative } from "@/lib/time";
+import { Badge, Panel, StatusDot, type Tone } from "@/components/kit";
 import { fetchVms, provisionVm, WorkerApiError, type VmRow, type VmStatus } from "@/lib/workerApi";
 
-const STATUS_META: Record<VmStatus, { label: string; dot: string; text: string }> = {
-  requested: { label: "Requested", dot: "dot-idle", text: "text-muted" },
-  provisioning: { label: "Provisioning", dot: "dot-warn dot-pulsing", text: "text-warning" },
-  live: { label: "Live", dot: "dot-live dot-pulsing", text: "text-signal" },
-  claimed: { label: "Claimed", dot: "dot-live", text: "text-signal" },
-  expired: { label: "Expired", dot: "dot-idle", text: "text-quiet" },
-  failed: { label: "Failed", dot: "dot-fail", text: "text-failure" },
+const STATUS_META: Record<VmStatus, { label: string; tone: Tone; pulse: boolean }> = {
+  requested: { label: "Requested", tone: "neutral", pulse: false },
+  provisioning: { label: "Provisioning", tone: "warn", pulse: true },
+  live: { label: "Live", tone: "ok", pulse: true },
+  claimed: { label: "Claimed", tone: "ion", pulse: false },
+  expired: { label: "Expired", tone: "neutral", pulse: false },
+  failed: { label: "Failed", tone: "danger", pulse: false },
 };
 
 /** A coarse remaining-time display for a deadline, or "expired". */
@@ -45,38 +46,48 @@ function VmCard({ vm, now }: { vm: VmRow; now: number }) {
   const name = vm.preview_url ? vm.preview_url.replace(/^https?:\/\//, "").replace(/\.up\.railway\.app.*/, "") : vm.id.slice(0, 8);
 
   return (
-    <div className="row" style={{ flexWrap: "wrap" }}>
-      <span className={`dot ${meta.dot}`} aria-hidden />
-      <span className="row-title mono" style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {name}
-      </span>
-      <span className="chip mono">{(vm.vcpu ?? 2)}vCPU · {((vm.ram_mb ?? 2048) / 1024)}GB</span>
-      <span className="chip">{vm.provider}</span>
-      {buildLeft && <span className="chip mono" title="Time left in the 60-minute build window">build {buildLeft}</span>}
-      {claimLeft && <span className="chip mono" title="Time left to claim this box and keep it">claim {claimLeft}</span>}
-      <span className="row-quiet mono">{relative(vm.updated_at ?? vm.created_at)}</span>
-      <span className={`badge ${meta.text}`}>{meta.label}</span>
-      {vm.preview_url && vm.status !== "expired" && (
-        <a className="mono text-signal" href={vm.preview_url} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>
-          open preview →
-        </a>
-      )}
-      {vm.claim_url && (vm.status === "live" || vm.status === "provisioning") && (
-        <a className="mono text-warning" href={vm.claim_url} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>
-          claim to keep →
-        </a>
-      )}
-      {vm.run_url && (
-        <a className="mono text-quiet" href={vm.run_url} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>
-          run →
-        </a>
-      )}
-      {(vm.brief || vm.result_summary) && (
-        <div className="field-hint" style={{ width: "100%", marginTop: 2 }}>
-          {vm.result_summary || vm.brief}
-        </div>
-      )}
-    </div>
+    <li className="e-item">
+      <div className="e-item-head">
+        <StatusDot tone={meta.tone} pulse={meta.pulse} label={meta.label} />
+        <span className="e-item-title e-num">{name}</span>
+        <Badge tone={meta.tone}>{meta.label}</Badge>
+      </div>
+      <div className="e-item-head">
+        <Badge tone="ion">
+          {vm.vcpu ?? 2} vCPU, {(vm.ram_mb ?? 2048) / 1024} GB
+        </Badge>
+        <Badge>{vm.provider}</Badge>
+        {buildLeft && (
+          <Badge tone="warn" title="Time left in the 60-minute build window">
+            build {buildLeft}
+          </Badge>
+        )}
+        {claimLeft && (
+          <Badge tone="corona" title="Time left to claim this box and keep it">
+            claim {claimLeft}
+          </Badge>
+        )}
+        <span className="e-dim e-num">{relative(vm.updated_at ?? vm.created_at)}</span>
+      </div>
+      <div className="e-item-links">
+        {vm.preview_url && vm.status !== "expired" && (
+          <a href={vm.preview_url} target="_blank" rel="noreferrer">
+            Open preview
+          </a>
+        )}
+        {vm.claim_url && (vm.status === "live" || vm.status === "provisioning") && (
+          <a className="e-link-warn" href={vm.claim_url} target="_blank" rel="noreferrer">
+            Claim to keep
+          </a>
+        )}
+        {vm.run_url && (
+          <a href={vm.run_url} target="_blank" rel="noreferrer">
+            View run
+          </a>
+        )}
+      </div>
+      {(vm.brief || vm.result_summary) && <div className="e-hint">{vm.result_summary || vm.brief}</div>}
+    </li>
   );
 }
 
@@ -131,53 +142,40 @@ export default function VmFleetPanel({ token }: { token: string }) {
   const liveCount = vms?.filter((v) => v.status === "live" || v.status === "claimed").length ?? 0;
 
   return (
-    <section className="section">
-      <div className="section-head">
-        <span className="label">
-          VM fleet — Railway free VMs{vms ? ` (${liveCount} live / ${vms.length} recent)` : ""}
-        </span>
-        <span className="text-quiet" style={{ fontSize: 11 }}>
-          ssh railway.new · 2 vCPU / 2 GB · no account, no card · 60m build, 24h to claim
-        </span>
-      </div>
-
-      <div className="field" style={{ marginBottom: 16 }}>
+    <Panel
+      title="VM fleet"
+      eyebrow="Railway free VMs"
+      tone="ion"
+      actions={vms ? <Badge tone={liveCount > 0 ? "ok" : "neutral"}>{liveCount} live of {vms.length} recent</Badge> : null}
+    >
+      <p className="e-hint" style={{ marginTop: 0 }}>
+        ssh railway.new gives a 2 vCPU, 2 GB box with no account and no card. 60 minutes to build, 24 hours to claim.
+      </p>
+      <div className="e-form">
         <label htmlFor="vm-brief">Provision a VM</label>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
-          <textarea
-            id="vm-brief"
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
-            placeholder="What should the box build? (optional — leave blank for a bare VM)"
-            style={{ flex: 1, minWidth: 200, minHeight: 38 }}
-          />
+        <div className="e-form-row">
+          <textarea id="vm-brief" value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="What should the box build? Leave blank for a bare VM." />
           <button className="btn btn-primary" onClick={handleProvision} disabled={submitting}>
             {submitting ? "Requesting…" : "Provision"}
           </button>
         </div>
-        {error && <div className="field-error">{error}</div>}
+        {error && <div className="e-error" role="alert">{error}</div>}
         {justRequestedId && !error && (
-          <div className="field-hint">
-            Requested as <span className="mono">{justRequestedId}</span> — the next 1-minute Worker tick fires the
-            vm-agent workflow, then the live preview URL appears here.
+          <div className="e-hint">
+            Requested as <span className="e-num">{justRequestedId}</span>. The next 1-minute Worker tick fires the vm-agent workflow, then the live preview URL appears here.
           </div>
         )}
       </div>
 
-      {error && vms === null && <div className="empty">{error}</div>}
-      {!error && vms === null && <div className="empty">Loading…</div>}
-      {vms?.length === 0 && (
-        <div className="empty">
-          No VMs provisioned yet — provision one above, or run the vm-agent workflow from the Actions tab.
-        </div>
-      )}
+      {!error && vms === null && <p className="e-dim">Loading…</p>}
+      {vms?.length === 0 && <p className="e-dim">No VMs provisioned yet. Provision one above, or run the vm-agent workflow from the Actions tab.</p>}
       {vms && vms.length > 0 && (
-        <div>
+        <ul className="e-list" aria-label="Recent VMs">
           {vms.map((vm) => (
             <VmCard key={vm.id} vm={vm} now={now} />
           ))}
-        </div>
+        </ul>
       )}
-    </section>
+    </Panel>
   );
 }

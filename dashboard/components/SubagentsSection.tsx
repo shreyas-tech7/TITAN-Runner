@@ -8,14 +8,15 @@
  */
 import { useState } from "react";
 import { relative } from "@/lib/time";
+import { Badge, Panel, StatusDot, type Tone } from "@/components/kit";
 import { queueTask, KNOWN_PROVIDERS, WorkerApiError, type SubagentRow, type SubagentStatus, type LearningPathRow } from "@/lib/workerApi";
 
-const STATUS_META: Record<SubagentStatus, { label: string; dot: string; text: string }> = {
-  queued: { label: "Queued", dot: "dot-idle", text: "text-muted" },
-  dispatched: { label: "Dispatched", dot: "dot-warn dot-pulsing", text: "text-warning" },
-  running: { label: "Running", dot: "dot-live dot-pulsing", text: "text-signal" },
-  done: { label: "Done", dot: "dot-live", text: "text-signal" },
-  failed: { label: "Failed", dot: "dot-fail", text: "text-failure" },
+const STATUS_META: Record<SubagentStatus, { label: string; tone: Tone; pulse: boolean }> = {
+  queued: { label: "Queued", tone: "neutral", pulse: false },
+  dispatched: { label: "Dispatched", tone: "warn", pulse: true },
+  running: { label: "Running", tone: "plasma", pulse: true },
+  done: { label: "Done", tone: "ok", pulse: false },
+  failed: { label: "Failed", tone: "danger", pulse: false },
 };
 
 /**
@@ -34,13 +35,13 @@ function LearningPathView({ path }: { path: LearningPathRow }) {
     tree = null;
   }
   return (
-    <div className="field-hint" style={{ width: "100%", marginTop: 4, paddingLeft: 12, borderLeft: "2px solid var(--warning-dim)" }}>
+    <div className="e-learn">
       <strong>Learning gap: {path.topic}</strong>
       {tree?.prerequisites && tree.prerequisites.length > 0 && (
-        <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+        <ul>
           {tree.prerequisites.map((p, i) => (
             <li key={i}>
-              {p.topic} — {p.reason}
+              {p.topic}: {p.reason}
             </li>
           ))}
         </ul>
@@ -54,28 +55,30 @@ function LearningPathView({ path }: { path: LearningPathRow }) {
 function SubagentRowView({ row, learningPath }: { row: SubagentRow; learningPath: LearningPathRow | undefined }) {
   const meta = STATUS_META[row.status] ?? STATUS_META.queued;
   return (
-    <div className="row" style={{ flexWrap: "wrap" }}>
-      <span className={`dot ${meta.dot}`} aria-hidden />
-      <span className="row-title" title={row.brief} style={{ maxWidth: 360, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {row.brief}
-      </span>
-      <span className="chip mono">{row.task_type}</span>
-      <span className="chip">{row.source}</span>
-      {row.provider && <span className="chip mono">{row.provider}</span>}
-      <span className="row-quiet mono">{relative(row.finished_at ?? row.started_at ?? row.queued_at)}</span>
-      <span className={`badge ${meta.text}`}>{meta.label}</span>
-      {row.run_url && (
-        <a className="mono text-quiet" href={row.run_url} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>
-          run →
-        </a>
-      )}
-      {row.result_summary && (
-        <div className="field-hint" style={{ width: "100%", marginTop: 2 }}>
-          {row.result_summary}
-        </div>
-      )}
+    <li className="e-item">
+      <div className="e-item-head">
+        <StatusDot tone={meta.tone} pulse={meta.pulse} label={meta.label} />
+        <span className="e-item-title" title={row.brief}>
+          {row.brief}
+        </span>
+        <Badge tone={meta.tone}>{meta.label}</Badge>
+      </div>
+      <div className="e-item-head">
+        <Badge tone="plasma">{row.task_type}</Badge>
+        <Badge>{row.source}</Badge>
+        {row.provider && <Badge tone="ion">{row.provider}</Badge>}
+        <span className="e-dim e-num">{relative(row.finished_at ?? row.started_at ?? row.queued_at)}</span>
+        {row.run_url && (
+          <span className="e-item-links">
+            <a href={row.run_url} target="_blank" rel="noreferrer">
+              View run
+            </a>
+          </span>
+        )}
+      </div>
+      {row.result_summary && <div className="e-hint">{row.result_summary}</div>}
       {learningPath && <LearningPathView path={learningPath} />}
-    </div>
+    </li>
   );
 }
 
@@ -114,20 +117,11 @@ export default function SubagentsSection({
   }
 
   return (
-    <section className="section">
-      <div className="section-head">
-        <span className="label">Sub-agent cluster ({subagents.length} recent)</span>
-      </div>
-
-      <div className="field" style={{ marginBottom: 16 }}>
+    <Panel title="Sub-agent cluster" eyebrow="Agents" tone="plasma" actions={<Badge tone="neutral">{subagents.length} recent</Badge>}>
+      <div className="e-form">
         <label htmlFor="subagent-brief">Queue a task</label>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
-          <select
-            aria-label="Task type / provider routing"
-            value={taskType}
-            onChange={(e) => setTaskType(e.target.value)}
-            style={{ maxWidth: 140 }}
-          >
+        <div className="e-form-row">
+          <select aria-label="Task type / provider routing" value={taskType} onChange={(e) => setTaskType(e.target.value)} style={{ maxWidth: 140 }}>
             <option value="auto">auto</option>
             {KNOWN_PROVIDERS.map((p) => (
               <option key={p} value={p}>
@@ -135,34 +129,28 @@ export default function SubagentsSection({
               </option>
             ))}
           </select>
-          <textarea
-            id="subagent-brief"
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
-            placeholder="Brief for the sub-agent cluster…"
-            style={{ flex: 1, minWidth: 200, minHeight: 38 }}
-          />
+          <textarea id="subagent-brief" value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="Brief for the sub-agent cluster…" />
           <button className="btn btn-primary" onClick={handleSubmit} disabled={!brief.trim() || submitting}>
             {submitting ? "Queuing…" : "Queue"}
           </button>
         </div>
-        {error && <div className="field-error">{error}</div>}
+        {error && <div className="e-error" role="alert">{error}</div>}
         {justQueuedId && !error && (
-          <div className="field-hint">
-            Queued as <span className="mono">{justQueuedId}</span> — picked up by the next 1-minute Worker tick.
+          <div className="e-hint">
+            Queued as <span className="e-num">{justQueuedId}</span>. The next 1-minute Worker tick picks it up.
           </div>
         )}
       </div>
 
       {subagents.length === 0 ? (
-        <div className="empty">No sub-agent rows yet — queue one above, or file a titan-task-labeled issue.</div>
+        <p className="e-dim">No sub-agent rows yet. Queue one above, or file a titan-task-labeled issue.</p>
       ) : (
-        <div>
+        <ul className="e-list" aria-label="Recent sub-agent tasks">
           {subagents.map((row) => (
             <SubagentRowView key={row.id} row={row} learningPath={learningPaths.find((p) => p.subagent_id === row.id)} />
           ))}
-        </div>
+        </ul>
       )}
-    </section>
+    </Panel>
   );
 }

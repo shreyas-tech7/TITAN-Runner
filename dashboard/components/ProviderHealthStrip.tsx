@@ -2,17 +2,18 @@
 
 import type { ProviderHealthRecord, ProviderStatus } from "@/lib/types";
 import { relative, formatDuration } from "@/lib/time";
+import { Badge, Panel, StatusDot, type Tone } from "@/components/kit";
 
-const STATUS_META: Record<ProviderStatus, { label: string; dot: string; text: string }> = {
-  ok: { label: "OK", dot: "dot-live", text: "text-signal" },
-  not_configured: { label: "Not configured", dot: "dot-idle", text: "text-quiet" },
-  no_public_api: { label: "No public API", dot: "dot-idle", text: "text-quiet" },
-  misconfigured: { label: "Misconfigured", dot: "dot-fail", text: "text-failure" },
-  error: { label: "Error", dot: "dot-fail", text: "text-failure" },
-  rate_limited: { label: "Rate limited", dot: "dot-warn", text: "text-warning" },
-  exhausted: { label: "Exhausted", dot: "dot-warn", text: "text-warning" },
-  model_invalid: { label: "Rediscovering model", dot: "dot-warn", text: "text-warning" },
-  unknown: { label: "Never checked", dot: "dot-idle", text: "text-quiet" },
+const STATUS_META: Record<ProviderStatus, { label: string; tone: Tone }> = {
+  ok: { label: "OK", tone: "ok" },
+  not_configured: { label: "Not configured", tone: "neutral" },
+  no_public_api: { label: "No public API", tone: "neutral" },
+  misconfigured: { label: "Misconfigured", tone: "danger" },
+  error: { label: "Error", tone: "danger" },
+  rate_limited: { label: "Rate limited", tone: "warn" },
+  exhausted: { label: "Exhausted", tone: "warn" },
+  model_invalid: { label: "Rediscovering model", tone: "warn" },
+  unknown: { label: "Never checked", tone: "neutral" },
 };
 
 /** Every provider the pulse knows about, shown even if `state/providers.json`
@@ -45,38 +46,36 @@ export default function ProviderHealthStrip({ providers }: { providers: Record<s
   const inCooldown = (r: ProviderHealthRecord) => r.cooldownUntil && Date.parse(r.cooldownUntil) > Date.now();
 
   return (
-    <section className="section">
-      <div className="section-head">
-        <span className="label">Providers</span>
-        <span className="text-quiet" style={{ fontSize: 11 }}>
-          from the weekly self-test — see docs/RUNTIME.md
-        </span>
-      </div>
-      <div>
+    <Panel title="Provider health" eyebrow="Providers" tone="plasma" actions={<span className="e-dim">from the weekly self-test, see docs/RUNTIME.md</span>}>
+      <ul className="e-list" aria-label="Provider health">
         {rows.map((r) => {
           const meta = STATUS_META[r.status] ?? STATUS_META.unknown;
+          const detail =
+            r.status === "ok" || r.status === "error" || r.status === "rate_limited"
+              ? `last ok ${relative(r.lastSuccessAt)} · p50 ${formatDuration(r.p50LatencyMs)} · err ${(r.errorRate * 100).toFixed(0)}%`
+              : r.model
+                ? r.model
+                : "";
           return (
-            <div className="row" key={r.id}>
-              <span className={`dot ${meta.dot}`} aria-hidden />
-              <span className="row-title mono" style={{ flex: "0 0 110px" }}>
-                {r.id}
-              </span>
-              <span className={`badge ${meta.text}`} style={{ flex: "0 0 140px" }}>
-                {meta.label}
-                {inCooldown(r) ? " (cooldown)" : ""}
-              </span>
-              <span className="row-quiet mono" style={{ flex: 1 }}>
-                {r.status === "ok" || r.status === "error" || r.status === "rate_limited"
-                  ? `last ok ${relative(r.lastSuccessAt)} · p50 ${formatDuration(r.p50LatencyMs)} · err ${(r.errorRate * 100).toFixed(0)}%`
-                  : r.model
-                    ? r.model
-                    : ""}
-              </span>
-              {r.model && r.status === "ok" && <span className="row-quiet mono">{r.model}</span>}
-            </div>
+            <li className="e-item" key={r.id}>
+              <div className="e-item-head">
+                <StatusDot tone={meta.tone} label={meta.label} />
+                <span className="e-item-title e-num">{r.id}</span>
+                <Badge tone={meta.tone}>
+                  {meta.label}
+                  {inCooldown(r) ? " (cooldown)" : ""}
+                </Badge>
+              </div>
+              {detail || (r.model && r.status === "ok") ? (
+                <div className="e-row-sub e-num">
+                  {detail ? <span>{detail}</span> : null}
+                  {r.model && r.status === "ok" ? <span>{r.model}</span> : null}
+                </div>
+              ) : null}
+            </li>
           );
         })}
-      </div>
-    </section>
+      </ul>
+    </Panel>
   );
 }
