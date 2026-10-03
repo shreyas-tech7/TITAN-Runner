@@ -31,7 +31,8 @@ function origin(raw: string): string | null {
 }
 
 export function buildRunnerCsp({ worker, gevOrigin }: CspInput): string {
-  const connect = ["'self'", "https://raw.githubusercontent.com", "https://api.github.com", "https://api.open-meteo.com", origin(worker)].filter((x): x is string => Boolean(x));
+  // The God's Eye View tab asks the host for /healthz from the browser, so its origin belongs in connect-src as well as frame-src.
+  const connect = ["'self'", "https://raw.githubusercontent.com", "https://api.github.com", "https://api.open-meteo.com", origin(worker), gevOrigin].filter((x): x is string => Boolean(x));
   return [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
