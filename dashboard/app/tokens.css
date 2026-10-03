@@ -1,0 +1,262 @@
+/* ==========================================================================
+   Eclipse design tokens. Raw colors live here and in globals.css's legacy
+   aliases only. New components use `var(--token)`.
+
+   Three colors of light, one for each actor in TITAN:
+     ion     (cyan)   the system: interactive elements, focus, links, live data
+     plasma  (violet) the agents: model activity, runs, AI output
+     corona  (gold)   Shreyas: approvals, decisions, anything waiting on him
+
+   Four themes, picked with `data-theme` on <html>:
+     eclipse   (default, dark)
+     light
+     oled      (true black, glass off by default)
+     contrast  (high contrast, 2px borders, no glass or glow)
+
+   Ported from the TITAN dashboard (Wave 11). `npm run check:contrast` is the
+   authority on every text, accent, and control pairing below. A pair that
+   fails gets its lightness adjusted with the hue kept.
+   ========================================================================== */
+
+:root,
+:root[data-theme="eclipse"] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg-void: #05070b; /* app canvas */
+  --bg-base: #0a0e15; /* page */
+  --surface-1: #111824; /* cards */
+  --surface-2: #182131; /* raised, hover, inputs */
+  --surface-3: #202b3d; /* menus, popovers */
+
+  /* Lines. subtle and strong are decoration. control carries the 3:1 rule. */
+  --line-subtle: #223047;
+  --line-strong: #31425d;
+  --line-control: #5f7090;
+
+  /* Text */
+  --text-hi: #eef2f8; /* headings, key numbers */
+  --text-body: #c3ccda;
+  --text-dim: #8d9ab0; /* secondary text */
+  --text-faint: #64718a; /* disabled and decoration only, never meaningful text */
+
+  /* The three lights, plus status */
+  --ion: #3dd9f5;
+  --plasma: #9b87ff;
+  --corona: #f6b94c;
+  --ok: #3cd69a;
+  --warn: #ff8a4c;
+  --danger: #ff5d73;
+
+  /* Text on a solid accent button */
+  --on-accent: var(--bg-void);
+
+  /* Charts, in order. Never rely on color alone, pair each with a label. */
+  --chart-1: #3dd9f5;
+  --chart-2: #f6b94c;
+  --chart-3: #9b87ff;
+  --chart-4: #3cd69a;
+  --chart-5: #ff7ab6;
+  --chart-6: #ff8a4c;
+  --chart-7: #6fa8ff;
+  --chart-8: #b8e36a;
+
+  /* Glass: surface.1 at about 72 percent, 16px blur, 1px top highlight */
+  --glass-alpha: 72%;
+  --glass-blur: 16px;
+  --glass-highlight: rgb(255 255 255 / 6%);
+
+  /* Soft (about 14 percent, for tinted backgrounds) and glow (focus, live) */
+  --soft-alpha: 14%;
+  --glow-alpha: 45%;
+
+  /* Shadows are tinted with bg.void, never plain gray */
+  --shadow-1: 0 1px 2px color-mix(in srgb, var(--bg-void) 60%, transparent);
+  --shadow-2: 0 6px 16px color-mix(in srgb, var(--bg-void) 62%, transparent);
+  --shadow-3: 0 18px 44px color-mix(in srgb, var(--bg-void) 72%, transparent);
+
+  /* Focus ring */
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  /* Border width for cards and controls (high contrast raises it) */
+  --border-width: 1px;
+
+  /* The eclipse glow behind the header. daypart.js sets data-daypart. */
+  --glow-a: color-mix(in srgb, var(--corona) 9%, transparent);
+  --glow-b: color-mix(in srgb, var(--ion) 6%, transparent);
+  --glow-rim: color-mix(in srgb, var(--ion) 35%, transparent);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-void: #f5f7fb;
+  --bg-base: #f5f7fb;
+  --surface-1: #ffffff;
+  --surface-2: #eef2f8;
+  --surface-3: #e4e9f2;
+
+  --line-subtle: #d8dfea;
+  --line-strong: #b9c3d3;
+  --line-control: #7a889d;
+
+  --text-hi: #0b1220;
+  --text-body: #1f2a3c;
+  --text-dim: #4a5568;
+  --text-faint: #8a94a6;
+
+  --ion: #086984;
+  --plasma: #5b45e0;
+  --corona: #8a5505;
+  --ok: #076f48;
+  --warn: #a0450a;
+  --danger: #b72236;
+
+  --on-accent: #ffffff;
+
+  --chart-1: #086984;
+  --chart-2: #8a5505;
+  --chart-3: #5b45e0;
+  --chart-4: #076f48;
+  --chart-5: #b3306f;
+  --chart-6: #a0450a;
+  --chart-7: #2e63b8;
+  --chart-8: #5f7d12;
+
+  --glass-highlight: rgb(255 255 255 / 70%);
+  --shadow-1: 0 1px 2px color-mix(in srgb, #0b1220 12%, transparent);
+  --shadow-2: 0 6px 16px color-mix(in srgb, #0b1220 14%, transparent);
+  --shadow-3: 0 18px 44px color-mix(in srgb, #0b1220 18%, transparent);
+  --glow-a: color-mix(in srgb, var(--corona) 7%, transparent);
+  --glow-b: color-mix(in srgb, var(--ion) 5%, transparent);
+}
+
+:root[data-theme="oled"] {
+  color-scheme: dark;
+
+  --bg-void: #000000;
+  --bg-base: #000000;
+  --surface-1: #0a0d12;
+  --surface-2: #12161e;
+  --surface-3: #1a2029;
+
+  --glass-alpha: 100%; /* glass is off by default on OLED Black */
+  --glass-blur: 0px;
+  --on-accent: #000000;
+}
+
+:root[data-theme="contrast"] {
+  color-scheme: dark;
+
+  --bg-void: #000000;
+  --bg-base: #000000;
+  --surface-1: #000000;
+  --surface-2: #14181f;
+  --surface-3: #1c212a;
+
+  --line-subtle: #8d9ab0;
+  --line-strong: #8d9ab0;
+  --line-control: #8d9ab0;
+
+  --text-hi: #ffffff;
+  --text-body: #ffffff;
+  --text-dim: #d3dae6;
+  --text-faint: #a3adbf;
+
+  --ion: #6be7ff;
+  --plasma: #b9a9ff;
+  --corona: #ffd27a;
+  --ok: #5cf0b4;
+  --warn: #ffa66e;
+  --danger: #ff8095;
+
+  --on-accent: #000000;
+
+  --glass-alpha: 100%;
+  --glass-blur: 0px;
+  --glass-highlight: transparent;
+  --focus-width: 3px;
+  --focus-offset: 2px;
+  --border-width: 2px;
+  --soft-alpha: 20%;
+  --glow-alpha: 0%;
+  --glow-a: transparent;
+  --glow-b: transparent;
+  --glow-rim: transparent;
+  --shadow-1: none;
+  --shadow-2: none;
+  --shadow-3: none;
+}
+
+/* "Solid surfaces" setting turns glass off in any theme. */
+:root[data-solid="true"] {
+  --glass-alpha: 100%;
+  --glass-blur: 0px;
+  --glass-highlight: transparent;
+}
+
+/* ==========================================================================
+   Non-color tokens. Same in every theme.
+   ========================================================================== */
+
+:root {
+  /* Type scale: 12, 13, 14, 16, 20, 24, 32, 44. Tracking tightens at 24 and up. */
+  --fs-12: 0.75rem;
+  --fs-13: 0.8125rem;
+  --fs-14: 0.875rem;
+  --fs-16: 1rem;
+  --fs-20: 1.25rem;
+  --fs-24: 1.5rem;
+  --fs-32: 2rem;
+  --fs-44: 2.75rem;
+  --tracking-tight: -0.02em;
+  --tracking-tighter: -0.035em;
+
+  /* Shape. 8 inputs and chips, 12 cards, 16 panels and sheets, 24 hero. */
+  --r-control: 8px;
+  --r-card: 12px;
+  --r-panel: 16px;
+  --r-hero: 24px;
+
+  /* Motion. 120 micro feedback, 200 standard, 320 panels and sheets,
+     500 only for the first load of the day. Ease out for things that
+     enter, ease in out for things that move. Never ease in an appearance. */
+  --dur-micro: 120ms;
+  --dur-std: 200ms;
+  --dur-panel: 320ms;
+  --dur-first: 500ms;
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-move: cubic-bezier(0.65, 0, 0.35, 1);
+  /* 1 normally, 0 under reduced motion: keyframes multiply their distance by it. */
+  --move: 1;
+
+  /* Density: comfortable is the default. */
+  --row-h: 40px;
+  --pad-card: 20px;
+  --gap: 16px;
+  --pad-control-x: 12px;
+  --control-h: 36px;
+}
+
+:root[data-density="compact"] {
+  --row-h: 32px;
+  --pad-card: 14px;
+  --gap: 10px;
+  --pad-control-x: 10px;
+  --control-h: 30px;
+}
+
+/* Reduced motion: fades only. No movement, no loops. Set by the OS preference
+   or by the Settings toggle (data-motion="reduce"). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --move: 0;
+  }
+}
+:root[data-motion="reduce"] {
+  --move: 0;
+}
+:root[data-motion="full"] {
+  --move: 1;
+}
