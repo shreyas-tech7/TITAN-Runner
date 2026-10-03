@@ -21,6 +21,7 @@ import OmniRouteStatusPanel from "./OmniRouteStatusPanel";
 import OsintPanel from "./OsintPanel";
 import SystemMemoryPanel from "./SystemMemoryPanel";
 import VmFleetPanel from "./VmFleetPanel";
+import { Panel } from "./kit";
 
 export default function ClusterPanels({
   token,
@@ -37,37 +38,27 @@ export default function ClusterPanels({
 
   if (!isWorkerConfigured()) {
     return (
-      <section className="section">
-        <div className="section-head">
-          <span className="label">Sub-agent cluster</span>
-        </div>
-        <div className="empty">
-          The titan-runner-brain Worker isn&apos;t deployed/configured on this build yet
-          (<span className="mono">NEXT_PUBLIC_TITAN_WORKER_URL</span> is empty) — see docs/RUNTIME.md.
-        </div>
-      </section>
+      <Panel title="Sub-agent cluster" eyebrow="Agents" tone="plasma">
+        <p className="e-dim">
+          The titan-runner-brain Worker isn&apos;t deployed or configured on this build yet (<span className="e-num">NEXT_PUBLIC_TITAN_WORKER_URL</span> is empty). See docs/RUNTIME.md.
+        </p>
+      </Panel>
     );
   }
 
   if (status.loading && !status.data) {
     return (
-      <section className="section">
-        <div className="section-head">
-          <span className="label">Sub-agent cluster</span>
-        </div>
-        <div className="empty">Loading…</div>
-      </section>
+      <Panel title="Sub-agent cluster" eyebrow="Agents" tone="plasma">
+        <p className="e-dim">Loading…</p>
+      </Panel>
     );
   }
 
   if (status.error && !status.data) {
     return (
-      <section className="section">
-        <div className="section-head">
-          <span className="label">Sub-agent cluster</span>
-        </div>
-        <div className="empty">{status.error}</div>
-      </section>
+      <Panel title="Sub-agent cluster" eyebrow="Agents" tone="plasma">
+        <p className="e-dim" role="alert">{status.error}</p>
+      </Panel>
     );
   }
 
