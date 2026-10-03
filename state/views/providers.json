@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-02T11:23:09.406Z",
+  "updatedAt": "2026-10-03T00:33:48.632Z",
   "providers": {
     "groq": {
       "breaker": "disabled",
@@ -33,30 +33,30 @@
       }
     },
     "openrouter": {
-      "breaker": "closed",
-      "until": null,
-      "reason": "healthy",
-      "explain": "openrouter: breaker closed (healthy); p50 25350 ms; error rate 67%; model stealth/space-bunny-alpha",
-      "status": "ok",
-      "consecutiveFailures": 0,
-      "lastFailureClass": null,
-      "quota": {
-        "usedMinute": 0,
-        "usedDay": 1,
-        "dayLeft": 179,
-        "perDay": 180
-      }
-    },
-    "gemini": {
-      "breaker": "half-open",
-      "until": null,
-      "reason": "cooldown over after 1 failure(s); next call is a probe",
-      "explain": "gemini: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 5804 ms; error rate 37%; model gemini-2.5-flash",
+      "breaker": "open",
+      "until": "2026-10-03T00:38:42.368Z",
+      "reason": "error — cooling down after 1 consecutive failure(s)",
+      "explain": "openrouter: breaker open (error — cooling down after 1 consecutive failure(s)); p50 25350 ms; error rate 77%; model stealth/space-bunny-alpha",
       "status": "error",
       "consecutiveFailures": 1,
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
+        "usedDay": 0,
+        "dayLeft": 180,
+        "perDay": 180
+      }
+    },
+    "gemini": {
+      "breaker": "closed",
+      "until": null,
+      "reason": "healthy",
+      "explain": "gemini: breaker closed (healthy); p50 6030 ms; error rate 26%; model gemini-2.5-flash",
+      "status": "ok",
+      "consecutiveFailures": 0,
+      "lastFailureClass": null,
+      "quota": {
+        "usedMinute": 1,
         "usedDay": 1,
         "dayLeft": 1199,
         "perDay": 1200

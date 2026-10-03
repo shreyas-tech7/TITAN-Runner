@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-10-02T05:43:43.022Z",
+  "lastAttemptAt": "2026-10-03T00:33:12.362Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-10-02",
-  "lastDigestFile": "state/digests/2026-10-02-research.md",
-  "provider": "openrouter",
-  "model": "stealth/space-bunny-alpha",
+  "lastDigestDate": "2026-10-03",
+  "lastDigestFile": "state/digests/2026-10-03-research.md",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "# Daily research digest — 2026-10-02\n\n*No web access; current provider limits and policy changes could not be verified.*\n\n## free-tier-llm-landscape\n\n- **What matters:** Groq, Together, OpenRouter, Gemini, and Hugging Face may change free quotas, model availability, rate limits, or data-use terms. OpenRouter’s free-model set and Hugging Face’s free compute are especially variable.\n- **Why it matters:** Removed models, stricter throttling, or changed retention terms can break routing, retries, long-context jobs, and provider fallbacks.\n- **Verify:** Build a current provider matrix from each dashboard or official documentation, recording quota, model ID, context limit, and commercial-use terms.\n\n## agent-safety-practice\n\n- **What matters:** Use graduated approvals, disposable sandboxes, least-privilege credentials, default-denied networking, prompt-injection filtering, and tamper-resistant audit logs. Treat repository text and tool output as untrusted data.\n- **Why it matters:** A coding agent could modify unrelated files, exfiltrate secrets, install malicious dependencies, or persist through CI configuration.\n- **Verify:** Run an adversarial prompt-injection exercise in a disposable",
+  "preview": "Date: 2026-10-03\n\n*Disclaimer: As an AI, my training data has a knowledge cut-off, and I cannot access real-time information or current web content. The information below is based on general trends and practices up to my last update and should be verified against current sources.*\n\n## free-tier-llm-landscape\n*   **What matters:** Free-tier providers like Groq, Together, OpenRouter, Google Gemini, and Hugging Face frequently adjust rate limits, available models, and terms of service. These changes can be sudden and unannounced.\n*   **Why it matters to this system:** Our agent system relies exclusively on these free tiers. Any reduction in limits, deprecation of models, or changes in acceptable use policies could immediately halt or degrade our operations.\n*   **One thing worth verifying:** Check community forums or official API status pages (if accessible) for any recent announcements regarding Groq or Together AI free-tier rate limit adjustments.\n\n## agent-safety-practice\n*   **What matters:** Current good practices for autonomous coding agents include implementing approval tiers for sensitive actions, robust sandboxing for code execution, defenses against prompt injection, and com",
   "lastDetail": null
 }
