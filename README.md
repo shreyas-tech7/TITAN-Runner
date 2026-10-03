@@ -86,6 +86,12 @@ re-discovers each provider's live model catalog.
   own scratch workspace, and fetch only https hosts on the operator's
   `TITAN_EGRESS_ALLOWLIST` (empty by default = nothing), resolved to public
   addresses only, with no redirects. It cannot run a shell.
+- **Tokens pasted into the dashboard stay in the tab.** The admin token and
+  the GitHub token go to `sessionStorage` unless you tick "Remember on this
+  device", and a provider key goes straight to the Worker, which seals it
+  into a GitHub secret and never sends it back. The page carries a Content
+  Security Policy that limits where it can send data. See
+  `docs/SECURITY-WAVE11.md` for the review, the fixes, and what stays open.
 
 ## Give it a task
 
