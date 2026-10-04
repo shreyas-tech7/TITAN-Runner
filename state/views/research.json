@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-03T00:33:12.362Z",
-  "lastAttemptAt": "2026-10-03T00:33:12.362Z",
+  "updatedAt": "2026-10-04T00:27:10.471Z",
+  "lastAttemptAt": "2026-10-04T00:27:10.471Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-03",
-    "file": "state/digests/2026-10-03-research.md",
-    "provider": "gemini",
-    "model": "gemini-2.5-flash",
+    "date": "2026-10-04",
+    "file": "state/digests/2026-10-04-research.md",
+    "provider": "openrouter",
+    "model": "stealth/space-bunny-alpha",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "Date: 2026-10-03\n\n*Disclaimer: As an AI, my training data has a knowledge cut-off, and I cannot access real-time information or current web content. The information below is based on general trends and practices up to my last update and should be verified against current sources.*\n\n## free-tier-llm-landscape\n*   **What matters:** Free-tier providers like Groq, Together, OpenRouter, Google Gemini, and Hugging Face frequently adjust rate limits, available models, and terms of service. These changes can be sudden and unannounced.\n*   **Why it matters to this system:** Our agent system relies exclusively on these free tiers. Any reduction in limits, deprecation of models, or changes in acceptable use policies could immediately halt or degrade our operations.\n*   **One thing worth verifying:** Check community forums or official API status pages (if accessible) for any recent announcements regarding Groq or Together AI free-tier rate limit adjustments.\n\n## agent-safety-practice\n*   **What matters:** Current good practices for autonomous coding agents include implementing approval tiers for sensitive actions, robust sandboxing for code execution, defenses against prompt injection, and com"
+    "preview": "## free-tier-llm-landscape\n\n- **What matters:** I cannot verify changes through 2026-10-04; free quotas, supported model IDs, and terms can change without notice.\n- **Why it matters:** Rate limits, regional restrictions, queueing, and data-use rules can break agent loops or invalidate privacy assumptions across Groq, Together, OpenRouter, Gemini, and Hugging Face.\n- **Verify:** Check each provider’s current quotas, reset windows, model availability, rate-limit headers, and data-retention terms; configure fail-closed behavior and spending caps.\n\n## agent-safety-practice\n\n- **What matters:** Allow read-only operations automatically; permit sandboxed writes; require approval for secrets, network access, publishing, deployment, and destructive actions.\n- **Why it matters:** Repository content is untrusted and may contain prompt injection, so least privilege, ephemeral isolation, restricted egress, and scoped credentials limit blast radius.\n- **Verify:** Test injected instructions and confirm audit logs capture prompts, tool arguments, approvals, outputs, diffs, tests, and commit identifiers without leaking secrets.\n\n## actions-automation\n\n- **What matters:** Scheduled workflows can be "
   }
 }

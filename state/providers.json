@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-03T21:52:25.831Z",
+  "updatedAt": "2026-10-04T00:27:30.318Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -43,16 +43,16 @@
     "openrouter": {
       "id": "openrouter",
       "configured": true,
-      "status": "error",
-      "lastCheckedAt": "2026-10-03T00:33:42.368Z",
-      "lastSuccessAt": "2026-10-02T05:44:08.375Z",
-      "latencyMs": 25350,
-      "p50LatencyMs": 25350,
-      "samples": 11,
-      "errorRate": 0.77,
-      "consecutiveFailures": 1,
-      "cooldownUntil": "2026-10-03T00:38:42.368Z",
-      "lastError": "deadline of 30000ms exceeded",
+      "status": "ok",
+      "lastCheckedAt": "2026-10-04T00:27:30.314Z",
+      "lastSuccessAt": "2026-10-04T00:27:30.314Z",
+      "latencyMs": 19835,
+      "p50LatencyMs": 22593,
+      "samples": 12,
+      "errorRate": 0.539,
+      "consecutiveFailures": 0,
+      "cooldownUntil": null,
+      "lastError": null,
       "model": "stealth/space-bunny-alpha",
       "discoveredModels": [
         "stealth/space-bunny-alpha",

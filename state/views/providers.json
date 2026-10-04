@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-03T05:48:21.885Z",
+  "updatedAt": "2026-10-04T00:27:30.323Z",
   "providers": {
     "groq": {
       "breaker": "disabled",
@@ -33,17 +33,17 @@
       }
     },
     "openrouter": {
-      "breaker": "half-open",
+      "breaker": "closed",
       "until": null,
-      "reason": "cooldown over after 1 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 25350 ms; error rate 77%; model stealth/space-bunny-alpha",
-      "status": "error",
-      "consecutiveFailures": 1,
+      "reason": "healthy",
+      "explain": "openrouter: breaker closed (healthy); p50 22593 ms; error rate 54%; model stealth/space-bunny-alpha",
+      "status": "ok",
+      "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
-        "usedDay": 0,
-        "dayLeft": 180,
+        "usedMinute": 1,
+        "usedDay": 1,
+        "dayLeft": 179,
         "perDay": 180
       }
     },
@@ -57,8 +57,8 @@
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
-        "usedDay": 1,
-        "dayLeft": 1199,
+        "usedDay": 0,
+        "dayLeft": 1200,
         "perDay": 1200
       }
     },
