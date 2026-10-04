@@ -4,7 +4,7 @@
  * Wires the two new sub-agent-cluster panels to a single `GET /status`
  * poll (build brief, section 5) and re-locks the dashboard immediately if
  * the Worker ever rejects the token mid-session (rotated/revoked by
- * Shreyas) rather than spinning on 401s forever.
+ * the operator) rather than spinning on 401s forever.
  *
  * The poll itself now lives one level up, in `app/page.tsx` — the
  * command-center redesign's Running Tasks and Agents panels need the same

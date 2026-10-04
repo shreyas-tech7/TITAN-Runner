@@ -5,7 +5,7 @@
    Three colors of light, one for each actor in TITAN:
      ion     (cyan)   the system: interactive elements, focus, links, live data
      plasma  (violet) the agents: model activity, runs, AI output
-     corona  (gold)   Shreyas: approvals, decisions, anything waiting on him
+     corona  (gold)   the operator: approvals, decisions, anything waiting on them
 
    Four themes, picked with `data-theme` on <html>:
      eclipse   (default, dark)

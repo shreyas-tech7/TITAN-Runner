@@ -3,9 +3,9 @@
 /**
  * Gates the entire dashboard, not just the new panels (build brief,
  * section 5: "This is a public URL and status briefs may reference things
- * Shreyas doesn't want publicly readable, so private-by-default is the
+ * the operator does not want publicly readable, so private-by-default is the
  * right call here"). Purely a client-side check against a token in
- * this tab's session storage (or local storage when asked to remember) — this is still a static export with no backend of its own,
+ * this tab's session storage (or local storage when asked to remember). This is still a static export with no backend of its own,
  * so this cannot stop someone from reading the page's own HTML/JS source;
  * what it protects is the *data* (state/*.json content already renders
  * inside these components), which only ever loads once a token is entered.

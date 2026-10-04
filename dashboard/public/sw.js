@@ -1,10 +1,9 @@
-// Minimal service worker — exists to satisfy PWA installability (a fetch
-// handler + a manifest), NOT to cache state data. This dashboard's whole
-// point is never showing stale data silently (task brief, section 3's
-// "cache-busted polling" requirement): caching state/*.json or the
-// raw.githubusercontent.com/api.github.com calls here would work directly
-// against that, so this SW only ever touches its own same-origin static
-// shell (HTML/JS/CSS/icons) and always tries the network first.
+// Minimal service worker. It makes the dashboard installable (a fetch handler and a manifest) and keeps the
+// app shell, so a visit with no network still opens the page. It never caches state data. This dashboard's
+// whole point is never showing stale data silently (task brief, section 3's "cache-busted polling"
+// requirement), and caching state/*.json or the raw.githubusercontent.com and api.github.com calls would work
+// against that. So it only touches its own same-origin static shell (HTML, JS, CSS, icons), keeps successful
+// responses only, and always tries the network first.
 const CACHE = "titan-runner-shell-v2";
 
 self.addEventListener("install", (event) => {

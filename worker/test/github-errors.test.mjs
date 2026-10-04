@@ -10,6 +10,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { describeGithubFailure } from '../src/index.js';
 
+// A made-up token shape, built from parts so no key-shaped literal sits in the source.
+const FAKE_PAT = ['ghp', 'should_never_appear'].join('_');
+
 function fakeGithubResponse(status, body, headers = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -55,18 +58,18 @@ test('never includes an Authorization header value, even if present on the respo
   // back, but if a future change ever passed request headers in here by
   // mistake, this test would catch a leaked PAT before it reached a log
   // line or an API response.
-  const res = fakeGithubResponse(403, { message: 'nope' }, { authorization: 'Bearer ghp_should_never_appear' });
+  const res = fakeGithubResponse(403, { message: 'nope' }, { authorization: `Bearer ${FAKE_PAT}` });
   const message = await describeGithubFailure('GitHub public-key fetch', res);
-  assert.ok(!message.includes('ghp_should_never_appear'));
+  assert.ok(!message.includes(FAKE_PAT));
 });
 
 test('the server-side log redacts credential-carrying headers too', async (t) => {
   const logged = [];
   t.mock.method(console, 'error', (...args) => logged.push(JSON.stringify(args)));
-  const res = fakeGithubResponse(403, { message: 'nope' }, { authorization: ['Bearer', 'ghp_should_never_appear'].join(' '), 'set-cookie': 'session=abc123' });
+  const res = fakeGithubResponse(403, { message: 'nope' }, { authorization: `Bearer ${FAKE_PAT}`, 'set-cookie': 'session=abc123' });
   await describeGithubFailure('GitHub public-key fetch', res);
   const line = logged.join('');
-  assert.ok(!line.includes('ghp_should_never_appear'));
+  assert.ok(!line.includes(FAKE_PAT));
   assert.ok(!line.includes('abc123'));
   assert.match(line, /\[redacted\]/);
 });
