@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-05T09:32:32.674Z",
+  "updatedAt": "2026-10-05T15:27:30.852Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -43,21 +43,22 @@
     "openrouter": {
       "id": "openrouter",
       "configured": true,
-      "status": "error",
-      "lastCheckedAt": "2026-10-05T02:19:25.961Z",
+      "status": "rate_limited",
+      "lastCheckedAt": "2026-10-05T15:27:30.328Z",
       "lastSuccessAt": "2026-10-04T00:27:30.314Z",
       "latencyMs": 19835,
       "p50LatencyMs": 22593,
-      "samples": 13,
-      "errorRate": 0.677,
-      "consecutiveFailures": 1,
-      "cooldownUntil": "2026-10-05T02:24:25.961Z",
-      "lastError": "deadline of 30000ms exceeded",
-      "model": "stealth/space-bunny-alpha",
+      "samples": 14,
+      "errorRate": 0.774,
+      "consecutiveFailures": 2,
+      "cooldownUntil": "2026-10-05T15:37:30.328Z",
+      "lastError": "OpenRouter rate limited (429): Provider returned error",
+      "model": "inclusionai/ling-3.1-flash",
       "discoveredModels": [
+        "inclusionai/ling-3.1-flash",
+        "apodex/apodex-1.1-mini:free",
         "stealth/space-bunny-alpha",
         "inclusionai/ling-3.0-flash-sante:free",
-        "inclusionai/ling-3.0-flash-fin:free",
         "qwen/qwen3.8-27b:free",
         "dots-studio/dots-3-note-preview:free",
         "liquid/lfm-2.5-2.6b:free",
@@ -77,7 +78,7 @@
         "nvidia/nemotron-3-super-120b-a12b:free",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-09-28T14:48:54.007Z",
+      "modelsDiscoveredAt": "2026-10-05T15:27:30.165Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -85,12 +86,12 @@
       "id": "gemini",
       "configured": true,
       "status": "ok",
-      "lastCheckedAt": "2026-10-05T02:19:35.735Z",
-      "lastSuccessAt": "2026-10-05T02:19:35.735Z",
-      "latencyMs": 9773,
-      "p50LatencyMs": 7902,
-      "samples": 11,
-      "errorRate": 0.182,
+      "lastCheckedAt": "2026-10-05T15:27:30.852Z",
+      "lastSuccessAt": "2026-10-05T15:27:30.852Z",
+      "latencyMs": 403,
+      "p50LatencyMs": 4153,
+      "samples": 12,
+      "errorRate": 0.127,
       "consecutiveFailures": 0,
       "cooldownUntil": null,
       "lastError": null,
@@ -130,7 +131,7 @@
         "lyria-3-pro-preview",
         "deep-research-pro-preview-12-2025"
       ],
-      "modelsDiscoveredAt": "2026-09-28T14:48:56.466Z",
+      "modelsDiscoveredAt": "2026-10-05T15:27:30.448Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -169,7 +170,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration — see src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
