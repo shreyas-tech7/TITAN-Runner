@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-05T09:32:32.677Z",
+  "updatedAt": "2026-10-05T18:51:32.093Z",
   "providers": {
     "groq": {
       "breaker": "disabled",
@@ -35,10 +35,10 @@
     "openrouter": {
       "breaker": "half-open",
       "until": null,
-      "reason": "cooldown over after 1 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 22593 ms; error rate 68%; model stealth/space-bunny-alpha",
-      "status": "error",
-      "consecutiveFailures": 1,
+      "reason": "cooldown over after 2 failure(s); next call is a probe",
+      "explain": "openrouter: breaker half-open (cooldown over after 2 failure(s); next call is a probe); p50 22593 ms; error rate 77%; model inclusionai/ling-3.1-flash",
+      "status": "rate_limited",
+      "consecutiveFailures": 2,
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
@@ -51,7 +51,7 @@
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "gemini: breaker closed (healthy); p50 7902 ms; error rate 18%; model gemini-2.5-flash",
+      "explain": "gemini: breaker closed (healthy); p50 4153 ms; error rate 13%; model gemini-2.5-flash",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
