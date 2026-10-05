@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-10-04T00:27:10.471Z",
+  "lastAttemptAt": "2026-10-05T02:18:55.955Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-10-04",
-  "lastDigestFile": "state/digests/2026-10-04-research.md",
-  "provider": "openrouter",
-  "model": "stealth/space-bunny-alpha",
+  "lastDigestDate": "2026-10-05",
+  "lastDigestFile": "state/digests/2026-10-05-research.md",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n\n- **What matters:** I cannot verify changes through 2026-10-04; free quotas, supported model IDs, and terms can change without notice.\n- **Why it matters:** Rate limits, regional restrictions, queueing, and data-use rules can break agent loops or invalidate privacy assumptions across Groq, Together, OpenRouter, Gemini, and Hugging Face.\n- **Verify:** Check each provider’s current quotas, reset windows, model availability, rate-limit headers, and data-retention terms; configure fail-closed behavior and spending caps.\n\n## agent-safety-practice\n\n- **What matters:** Allow read-only operations automatically; permit sandboxed writes; require approval for secrets, network access, publishing, deployment, and destructive actions.\n- **Why it matters:** Repository content is untrusted and may contain prompt injection, so least privilege, ephemeral isolation, restricted egress, and scoped credentials limit blast radius.\n- **Verify:** Test injected instructions and confirm audit logs capture prompts, tool arguments, approvals, outputs, diffs, tests, and commit identifiers without leaking secrets.\n\n## actions-automation\n\n- **What matters:** Scheduled workflows can be ",
+  "preview": "Date: 2026-10-05\n\nPlease note: As an AI, my training data has a knowledge cutoff and I cannot access real-time information as of 2026-10-05. The following insights are based on general trends and potential scenarios, not specific recent events.\n\n## free-tier-llm-landscape\n*   **What matters:** Free-tier offerings from major LLM providers are dynamic, with frequent adjustments to model access, usage limits, and terms of service.\n*   **Why it matters to this system:** Our agent system relies exclusively on these free tiers; any reduction in limits or changes to model availability could immediately disrupt our operations and require significant refactoring.\n*   **One thing worth verifying:** Regularly check the official developer documentation or public announcements from Groq, Together, OpenRouter, Google Gemini, and Hugging Face for current free-tier policies.\n\n## agent-safety-practice\n*   **What matters:** Robust safety practices, including approval tiers, sandboxing, prompt injection defenses, and audit logs, are critical for managing autonomous agent risks.\n*   **Why it matters to this system:** Our autonomous coding agent, even on free tiers, needs strong safeguards to prevent u",
   "lastDetail": null
 }

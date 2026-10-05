@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-04T06:15:08.889Z",
+  "updatedAt": "2026-10-05T02:19:35.743Z",
   "providers": {
     "groq": {
       "breaker": "disabled",
@@ -33,17 +33,17 @@
       }
     },
     "openrouter": {
-      "breaker": "closed",
-      "until": null,
-      "reason": "healthy",
-      "explain": "openrouter: breaker closed (healthy); p50 22593 ms; error rate 54%; model stealth/space-bunny-alpha",
-      "status": "ok",
-      "consecutiveFailures": 0,
+      "breaker": "open",
+      "until": "2026-10-05T02:24:25.961Z",
+      "reason": "error — cooling down after 1 consecutive failure(s)",
+      "explain": "openrouter: breaker open (error — cooling down after 1 consecutive failure(s)); p50 22593 ms; error rate 68%; model stealth/space-bunny-alpha",
+      "status": "error",
+      "consecutiveFailures": 1,
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
-        "usedDay": 1,
-        "dayLeft": 179,
+        "usedDay": 0,
+        "dayLeft": 180,
         "perDay": 180
       }
     },
@@ -51,14 +51,14 @@
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "gemini: breaker closed (healthy); p50 6030 ms; error rate 26%; model gemini-2.5-flash",
+      "explain": "gemini: breaker closed (healthy); p50 7902 ms; error rate 18%; model gemini-2.5-flash",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
-        "usedDay": 0,
-        "dayLeft": 1200,
+        "usedMinute": 1,
+        "usedDay": 1,
+        "dayLeft": 1199,
         "perDay": 1200
       }
     },

@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-21",
+  "events": 19,
+  "byType": {
+    "pulse.started": 6,
+    "pulse.finished": 6,
+    "checkpoint.written": 6,
+    "control.action": 1
+  },
+  "byOutcome": {
+    "ok": 6,
+    "pushed": 6,
+    "autonomy-propose": 1
+  },
+  "byFailureClass": {},
+  "calls": 0,
+  "tokens": 0
+}
