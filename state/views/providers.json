@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-06T06:54:29.741Z",
+  "updatedAt": "2026-10-07T02:39:24.840Z",
   "providers": {
     "groq": {
       "breaker": "disabled",
@@ -33,15 +33,15 @@
       }
     },
     "openrouter": {
-      "breaker": "half-open",
-      "until": null,
-      "reason": "cooldown over after 3 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 22593 ms; error rate 84%; model inclusionai/ling-3.1-flash",
+      "breaker": "open",
+      "until": "2026-10-07T03:19:17.304Z",
+      "reason": "rate_limited — cooling down after 4 consecutive failure(s)",
+      "explain": "openrouter: breaker open (rate_limited — cooling down after 4 consecutive failure(s)); p50 22593 ms; error rate 89%; model inclusionai/ling-3.1-flash",
       "status": "rate_limited",
-      "consecutiveFailures": 3,
+      "consecutiveFailures": 4,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
+        "usedMinute": 1,
         "usedDay": 1,
         "dayLeft": 179,
         "perDay": 180
@@ -51,12 +51,12 @@
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "gemini: breaker closed (healthy); p50 7084 ms; error rate 9%; model gemini-2.5-flash",
+      "explain": "gemini: breaker closed (healthy); p50 7306 ms; error rate 6%; model gemini-2.5-flash",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
+        "usedMinute": 1,
         "usedDay": 1,
         "dayLeft": 1199,
         "perDay": 1200
