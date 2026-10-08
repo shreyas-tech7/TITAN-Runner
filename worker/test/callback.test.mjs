@@ -128,6 +128,8 @@ test('K8: the round trip test records the time and the kind of token', async (t)
   assert.equal(typeof state.lastPing.seconds, 'number');
   assert.equal(state.legacyMode, false);
   assert.equal((await worker.fetch(post('/internal/ping', { id: 'ping_unknown' }, withCallback(cb)), env)).status, 404);
+  // A manual run of the workflow makes its own id, and the Worker takes it.
+  assert.equal((await worker.fetch(post('/internal/ping', { id: 'manual_12345' }, withCallback(cb)), env)).status, 200);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -152,6 +152,8 @@ export async function handleInternalPing(c) {
   const body = await c.request.json().catch(() => ({}));
   const id = typeof body?.id === 'string' ? body.id.slice(0, 40) : '';
   if (!id) return jsonError(400, 'id_required', 'The ping id is required.');
+  // A manual run of the callback-ping workflow makes its own id. The Worker records it so the run does not fail.
+  if (id.startsWith('manual_')) await c.env.DB.prepare('INSERT OR IGNORE INTO callback_pings (id, requested_at) VALUES (?, ?)').bind(id, nowIso()).run();
   const res = await c.env.DB.prepare('UPDATE callback_pings SET received_at = ?, auth_kind = ? WHERE id = ? AND received_at IS NULL').bind(nowIso(), c.auth?.kind ?? 'callback', id).run();
   if ((res.meta?.changes ?? 0) === 0) return jsonError(404, 'unknown_ping', 'No open ping has this id.');
   return json({ ok: true, authKind: c.auth?.kind ?? 'callback' });

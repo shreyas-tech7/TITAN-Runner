@@ -94,3 +94,19 @@ test('when OpenRouter fails for more than half of its recent calls, Gemini goes 
   const chosen = await reg.chat(say, { service: 'auto', maxProviders: 8 });
   assert.equal(chosen.service, 'gemini');
 });
+
+test('a model that returns no text rotates too, because a reasoning model can spend a small budget on thinking', async () => {
+  resetModelCooldowns();
+  const clock = { t: 20_000_000 };
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    const model = JSON.parse(init.body).model;
+    calls.push(model);
+    if (model === 'think:free') return json({ model, choices: [{ message: { content: null, reasoning: 'hmm' } }] });
+    return ok(model);
+  };
+  const provider = new OpenRouterProvider({ apiKey: 'k-test', model: 'think:free', models: ['think:free', 'plain:free'], fetchImpl, nowMs: () => clock.t, health: NO_HEALTH });
+  const out = await provider.chat(say, { maxTokens: 5 });
+  assert.equal(out.text, 'from plain:free');
+  assert.deepEqual(calls, ['think:free', 'plain:free']);
+});
