@@ -1,0 +1,61 @@
+{
+  "name": "read the headers of one message",
+  "target": "action:get_headers",
+  "connection": {
+    "config": {
+      "client_id": "@@FAKE:google_client_id@@"
+    },
+    "secrets": {
+      "client_secret": "@@FAKE:google_client_secret@@",
+      "access_token": "TEST_ACCESS_TOKEN_NOT_REAL"
+    }
+  },
+  "input": {
+    "message_id": "m1abcdefgh"
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/m1abcdefgh?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date",
+      "headers": {
+        "Authorization": "Bearer TEST_ACCESS_TOKEN_NOT_REAL"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "id": "m1abcdefgh",
+      "snippet": "Hello there",
+      "labelIds": [
+        "INBOX"
+      ],
+      "payload": {
+        "headers": [
+          {
+            "name": "Subject",
+            "value": "Hi"
+          }
+        ],
+        "body": {
+          "size": 0
+        }
+      }
+    }
+  },
+  "output": {
+    "id": "m1abcdefgh",
+    "snippet": "Hello there",
+    "payload": {
+      "headers": [
+        {
+          "name": "Subject",
+          "value": "Hi"
+        }
+      ]
+    }
+  }
+}

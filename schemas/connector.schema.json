@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shreyas-tech7/TITAN-Runner/schemas/connector.schema.json",
+  "title": "TITAN connector manifest",
+  "description": "One file, connectors/<id>/connector.json, describes a connector: how to connect, how to test, and which actions it offers. See docs/CONNECTORS.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "version", "category", "description", "docsUrl", "auth", "egress", "test", "actions"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,31}$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "icon": { "type": "string", "maxLength": 4 },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "category": { "enum": ["notify", "productivity", "dev", "data", "ai", "automation", "custom"] },
+    "description": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "docsUrl": { "type": "string", "pattern": "^https://" },
+    "getKeyUrl": { "type": "string" },
+    "apiVersion": { "type": "string", "maxLength": 80 },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "fields"],
+      "properties": {
+        "kind": { "enum": ["none", "api_key_header", "api_key_query", "bearer", "basic", "secret_url", "oauth2_pkce", "mcp_remote", "telegram_bot"] },
+        "header": { "type": "string", "maxLength": 60 },
+        "prefix": { "type": "string", "maxLength": 20 },
+        "queryParam": { "type": "string", "maxLength": 40 },
+        "baseUrlField": { "type": "string", "maxLength": 40 },
+        "hostAllowlist": { "type": "array", "items": { "type": "string" } },
+        "oauth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["authUrl", "tokenUrl", "scopes"],
+          "properties": {
+            "authUrl": { "type": "string", "pattern": "^https://" },
+            "tokenUrl": { "type": "string", "pattern": "^https://" },
+            "scopes": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "extraAuthParams": { "type": "object", "additionalProperties": { "type": "string" } },
+            "forbiddenScopes": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "setupNote": { "type": "string", "maxLength": 600 },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "label", "secret"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+              "label": { "type": "string", "minLength": 1, "maxLength": 80 },
+              "secret": { "type": "boolean" },
+              "optional": { "type": "boolean" },
+              "pattern": { "type": "string", "maxLength": 200 },
+              "help": { "type": "string", "maxLength": 300 },
+              "placeholder": { "type": "string", "maxLength": 120 },
+              "default": { "type": "string", "maxLength": 300 }
+            }
+          }
+        }
+      }
+    },
+    "egress": { "type": "array", "items": { "type": "string", "pattern": "^\\.?[a-z0-9.-]+$" } },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["request", "onClick", "none"] },
+        "request": { "type": "object" },
+        "expect": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": { "type": "array", "items": { "type": "integer" } },
+            "pick": { "type": "array", "items": { "type": "string" } },
+            "noGraphqlErrors": { "type": "boolean" },
+            "okField": { "type": "string" }
+          }
+        },
+        "handler": { "type": "string" }
+      }
+    },
+    "triggers": { "type": "array", "items": { "enum": ["webhook", "poll"] } },
+    "actions": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "risk", "dataClass"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
+          "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "description": { "type": "string", "maxLength": 200 },
+          "risk": { "enum": ["read", "write", "destructive"] },
+          "dataClass": { "enum": ["public", "internal", "personal"] },
+          "input": { "type": "object" },
+          "request": { "type": "object" },
+          "handler": { "type": "string" },
+          "pick": { "type": "array", "items": { "type": "string" } },
+          "response": { "enum": ["json", "text", "status"] },
+          "okStatus": { "type": "array", "items": { "type": "integer" } },
+          "rateLimit": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["perMinute"],
+            "properties": { "perMinute": { "type": "integer", "minimum": 1, "maximum": 600 } }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "name": "list tasks",
+  "target": "action:list_tasks",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {
+    "project_id": "2200"
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.todoist.com/api/v1/tasks?project_id=2200&limit=20",
+      "headers": {
+        "Authorization": "Bearer TEST_VALUE_NOT_A_REAL_SECRET"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "results": [
+        {
+          "id": "t1",
+          "content": "Buy milk",
+          "priority": 1,
+          "due": {
+            "date": "2026-10-09",
+            "string": "tomorrow"
+          },
+          "labels": [
+            "home"
+          ],
+          "project_id": "2200",
+          "description": "x"
+        }
+      ],
+      "next_cursor": null
+    }
+  },
+  "output": {
+    "results": [
+      {
+        "id": "t1",
+        "content": "Buy milk",
+        "priority": 1,
+        "due": {
+          "date": "2026-10-09"
+        },
+        "labels": [
+          "home"
+        ],
+        "project_id": "2200"
+      }
+    ]
+  }
+}

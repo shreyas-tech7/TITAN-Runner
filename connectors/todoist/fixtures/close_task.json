@@ -1,0 +1,32 @@
+{
+  "name": "close a task",
+  "target": "action:close_task",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {
+    "task_id": "t2"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.todoist.com/api/v1/tasks/t2/close",
+      "headers": {
+        "Authorization": "Bearer TEST_VALUE_NOT_A_REAL_SECRET"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 204,
+    "contentType": "text/plain",
+    "body": ""
+  },
+  "output": {
+    "status": 204
+  }
+}

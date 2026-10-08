@@ -1,0 +1,67 @@
+{
+  "name": "list events",
+  "target": "action:list_events",
+  "connection": {
+    "config": {
+      "client_id": "@@FAKE:google_client_id@@"
+    },
+    "secrets": {
+      "client_secret": "@@FAKE:google_client_secret@@",
+      "access_token": "TEST_ACCESS_TOKEN_NOT_REAL"
+    }
+  },
+  "input": {
+    "time_min": "2026-10-08T00:00:00Z",
+    "limit": 3
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=2026-10-08T00%3A00%3A00Z&maxResults=3",
+      "headers": {
+        "Authorization": "Bearer TEST_ACCESS_TOKEN_NOT_REAL"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "items": [
+        {
+          "id": "e1",
+          "summary": "Dentist",
+          "start": {
+            "dateTime": "2026-10-09T10:00:00Z"
+          },
+          "end": {
+            "dateTime": "2026-10-09T11:00:00Z"
+          },
+          "htmlLink": "https://calendar.google.com/e1",
+          "attendees": [
+            {
+              "email": "x@example.com"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "output": {
+    "items": [
+      {
+        "id": "e1",
+        "summary": "Dentist",
+        "start": {
+          "dateTime": "2026-10-09T10:00:00Z"
+        },
+        "end": {
+          "dateTime": "2026-10-09T11:00:00Z"
+        },
+        "htmlLink": "https://calendar.google.com/e1"
+      }
+    ]
+  }
+}

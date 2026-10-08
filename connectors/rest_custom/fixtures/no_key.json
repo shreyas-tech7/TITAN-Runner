@@ -1,0 +1,36 @@
+{
+  "name": "no key means no auth header",
+  "target": "action:get",
+  "connection": {
+    "config": {
+      "base_url": "https://api.example.org"
+    },
+    "secrets": {}
+  },
+  "input": {
+    "path": "/health"
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.example.org/health",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "body": null
+    },
+    "hosts": [
+      "api.example.org"
+    ]
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "up": true
+    }
+  },
+  "output": {
+    "up": true
+  }
+}

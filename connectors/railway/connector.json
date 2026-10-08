@@ -1,0 +1,169 @@
+{
+  "id": "railway",
+  "name": "Railway",
+  "icon": "RW",
+  "version": "1.0.0",
+  "category": "dev",
+  "description": "List projects and deploys. Redeploy a service.",
+  "docsUrl": "https://docs.railway.com/reference/public-api",
+  "getKeyUrl": "https://railway.com/account/tokens",
+  "apiVersion": "GraphQL at https://backboard.railway.com/graphql/v2",
+  "auth": {
+    "kind": "bearer",
+    "setupNote": "Open Account Settings, then Tokens. Make an account token and paste it here. A project token will not work for the project list.",
+    "fields": [
+      {
+        "name": "token",
+        "label": "Account token",
+        "secret": true,
+        "pattern": "^[A-Za-z0-9-]{30,64}$",
+        "help": "Railway shows it once, when you make it."
+      }
+    ]
+  },
+  "egress": [
+    "backboard.railway.com"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "POST",
+      "url": "https://backboard.railway.com/graphql/v2",
+      "body": {
+        "query": "query { me { name } }"
+      }
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "noGraphqlErrors": true,
+      "pick": [
+        "data.me.name"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "list_projects",
+      "title": "List projects",
+      "risk": "read",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://backboard.railway.com/graphql/v2",
+        "graphql": true,
+        "body": {
+          "query": "query { projects { edges { node { id name updatedAt } } } }"
+        }
+      },
+      "pick": [
+        "data.projects.edges[].node.id",
+        "data.projects.edges[].node.name",
+        "data.projects.edges[].node.updatedAt"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "list_deploys",
+      "title": "List deploys",
+      "risk": "read",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 64
+          },
+          "service_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 64
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 5
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://backboard.railway.com/graphql/v2",
+        "graphql": true,
+        "body": {
+          "query": "query($projectId: String!, $serviceId: String, $first: Int!) { deployments(first: $first, input: { projectId: $projectId, serviceId: $serviceId }) { edges { node { id status createdAt } } } }",
+          "variables": {
+            "projectId": "{{input.project_id}}",
+            "serviceId": "{{input.service_id}}",
+            "first": "{{input.limit}}"
+          }
+        }
+      },
+      "pick": [
+        "data.deployments.edges[].node.id",
+        "data.deployments.edges[].node.status",
+        "data.deployments.edges[].node.createdAt"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "redeploy",
+      "title": "Redeploy a service",
+      "risk": "write",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "service_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 64
+          },
+          "environment_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "service_id",
+          "environment_id"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://backboard.railway.com/graphql/v2",
+        "graphql": true,
+        "body": {
+          "query": "mutation($serviceId: String!, $environmentId: String!) { serviceInstanceRedeploy(serviceId: $serviceId, environmentId: $environmentId) }",
+          "variables": {
+            "serviceId": "{{input.service_id}}",
+            "environmentId": "{{input.environment_id}}"
+          }
+        }
+      },
+      "pick": [
+        "data.serviceInstanceRedeploy"
+      ],
+      "rateLimit": {
+        "perMinute": 5
+      }
+    }
+  ]
+}

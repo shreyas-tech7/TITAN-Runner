@@ -1,0 +1,97 @@
+{
+  "id": "webhook_out",
+  "name": "Outbound webhook",
+  "icon": "WO",
+  "version": "1.0.0",
+  "category": "automation",
+  "description": "Post JSON to an address that you choose, such as an automation tool.",
+  "docsUrl": "https://github.com/shreyas-tech7/TITAN-Runner/blob/main/docs/CONNECTORS.md",
+  "getKeyUrl": "",
+  "apiVersion": "HTTPS POST with a JSON body",
+  "auth": {
+    "kind": "secret_url",
+    "setupNote": "Paste the https address of the receiver. The address is the secret, so TITAN keeps it in the vault. The broker checks the DNS answer of the host on each call and refuses a private address.",
+    "fields": [
+      {
+        "name": "url",
+        "label": "Receiver address",
+        "secret": true,
+        "pattern": "^https://[^\\s]+$",
+        "help": "It must start with https://."
+      }
+    ]
+  },
+  "egress": [],
+  "test": {
+    "mode": "onClick"
+  },
+  "actions": [
+    {
+      "id": "send_json",
+      "title": "Post JSON",
+      "risk": "write",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "body": "{{input.payload}}"
+      },
+      "response": "status",
+      "okStatus": [
+        200,
+        201,
+        202,
+        204
+      ],
+      "rateLimit": {
+        "perMinute": 20
+      }
+    },
+    {
+      "id": "send_text",
+      "title": "Post a message",
+      "risk": "write",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "body": {
+          "text": "{{input.text}}"
+        }
+      },
+      "response": "status",
+      "okStatus": [
+        200,
+        201,
+        202,
+        204
+      ],
+      "rateLimit": {
+        "perMinute": 20
+      }
+    }
+  ]
+}

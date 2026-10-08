@@ -1,0 +1,39 @@
+{
+  "name": "test: getMe",
+  "target": "test",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.telegram.org/bot123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/getMe",
+      "headers": {},
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "ok": true,
+      "result": {
+        "id": 1,
+        "is_bot": true,
+        "first_name": "TITAN",
+        "username": "titan_test_bot"
+      }
+    }
+  },
+  "output": {
+    "result": {
+      "username": "titan_test_bot",
+      "first_name": "TITAN"
+    }
+  }
+}

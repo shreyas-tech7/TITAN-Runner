@@ -1,0 +1,115 @@
+{
+  "id": "rest_custom",
+  "name": "Custom REST API",
+  "icon": "RE",
+  "version": "1.0.0",
+  "category": "custom",
+  "description": "Call any https JSON API with one key. You set the base address.",
+  "docsUrl": "https://github.com/shreyas-tech7/TITAN-Runner/blob/main/docs/CONNECTORS.md",
+  "getKeyUrl": "",
+  "apiVersion": "Any HTTPS JSON API",
+  "auth": {
+    "kind": "none",
+    "baseUrlField": "base_url",
+    "setupNote": "Paste the base address of the API. Paste the key if the API needs one. Choose the header name and the prefix that the API wants.",
+    "fields": [
+      {
+        "name": "base_url",
+        "label": "Base address",
+        "secret": false,
+        "pattern": "^https://[^\\s?#]+$",
+        "help": "It must start with https:// and hold no query.",
+        "placeholder": "https://api.example.com/v1"
+      },
+      {
+        "name": "api_key",
+        "label": "API key",
+        "secret": true,
+        "optional": true,
+        "pattern": "^[\\x21-\\x7e]{8,512}$",
+        "help": "Leave it empty if the API needs no key."
+      },
+      {
+        "name": "header_name",
+        "label": "Key header",
+        "secret": false,
+        "optional": true,
+        "pattern": "^[A-Za-z][A-Za-z0-9-]{0,39}$",
+        "help": "The header that carries the key.",
+        "default": "Authorization"
+      },
+      {
+        "name": "key_prefix",
+        "label": "Key prefix",
+        "secret": false,
+        "optional": true,
+        "pattern": "^[A-Za-z0-9 _.-]{0,20}$",
+        "help": "Text before the key. Leave it empty for Bearer with the header Authorization. Type none for no prefix."
+      }
+    ]
+  },
+  "egress": [],
+  "test": {
+    "mode": "onClick",
+    "handler": "rest_test"
+  },
+  "actions": [
+    {
+      "id": "get",
+      "title": "GET a path",
+      "risk": "read",
+      "dataClass": "personal",
+      "description": "A sub-agent cannot use this action, because TITAN cannot tell what data the API holds.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{0,300}$"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "handler": "rest_get",
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "post",
+      "title": "POST JSON to a path",
+      "risk": "write",
+      "dataClass": "personal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{0,300}$"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "handler": "rest_post",
+      "rateLimit": {
+        "perMinute": 10
+      }
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "id": "huggingface",
+  "name": "Hugging Face",
+  "icon": "HF",
+  "version": "1.0.0",
+  "category": "ai",
+  "description": "Check your account. Search public models and datasets.",
+  "docsUrl": "https://huggingface.co/docs/hub/api",
+  "getKeyUrl": "https://huggingface.co/settings/tokens",
+  "apiVersion": "Hub API (https://huggingface.co/api)",
+  "auth": {
+    "kind": "bearer",
+    "setupNote": "Make a fine-grained token with read access only. Paste it here.",
+    "fields": [
+      {
+        "name": "token",
+        "label": "Access token",
+        "secret": true,
+        "pattern": "^hf_[A-Za-z0-9]{20,}$",
+        "help": "It starts with hf_."
+      }
+    ]
+  },
+  "egress": [
+    "huggingface.co"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "GET",
+      "url": "https://huggingface.co/api/whoami-v2"
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "pick": [
+        "name",
+        "type"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "search_models",
+      "title": "Search models",
+      "risk": "read",
+      "dataClass": "public",
+      "input": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25,
+            "default": 10
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://huggingface.co/api/models",
+        "query": {
+          "search": "{{input.query}}",
+          "limit": "{{input.limit}}",
+          "sort": "downloads",
+          "direction": "-1"
+        }
+      },
+      "pick": [
+        "id",
+        "downloads",
+        "likes",
+        "pipeline_tag",
+        "lastModified"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "search_datasets",
+      "title": "Search datasets",
+      "risk": "read",
+      "dataClass": "public",
+      "input": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25,
+            "default": 10
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://huggingface.co/api/datasets",
+        "query": {
+          "search": "{{input.query}}",
+          "limit": "{{input.limit}}",
+          "sort": "downloads",
+          "direction": "-1"
+        }
+      },
+      "pick": [
+        "id",
+        "downloads",
+        "likes",
+        "lastModified"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    }
+  ]
+}

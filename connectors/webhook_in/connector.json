@@ -1,0 +1,41 @@
+{
+  "id": "webhook_in",
+  "name": "Inbound webhook",
+  "icon": "WI",
+  "version": "1.0.0",
+  "category": "automation",
+  "description": "Get a private address. Other tools post to it, and TITAN treats each post as an event.",
+  "docsUrl": "https://github.com/shreyas-tech7/TITAN-Runner/blob/main/docs/CONNECTORS.md",
+  "getKeyUrl": "",
+  "apiVersion": "TITAN hook v1",
+  "auth": {
+    "kind": "none",
+    "setupNote": "TITAN makes a long random path for you. Anyone who has the full address can post to it, so treat it like a password. If you want the sender to sign the body, choose a signing secret.",
+    "fields": [
+      {
+        "name": "label",
+        "label": "Name",
+        "secret": false,
+        "pattern": "^[A-Za-z0-9 _.-]{1,40}$",
+        "help": "A short name that shows in the event list.",
+        "placeholder": "Deploy alerts"
+      },
+      {
+        "name": "signing_secret",
+        "label": "Signing secret",
+        "secret": true,
+        "optional": true,
+        "pattern": "^[A-Za-z0-9_-]{16,128}$",
+        "help": "Optional. TITAN checks the header X-Hub-Signature-256, as GitHub sends it."
+      }
+    ]
+  },
+  "egress": [],
+  "test": {
+    "mode": "none"
+  },
+  "triggers": [
+    "webhook"
+  ],
+  "actions": []
+}

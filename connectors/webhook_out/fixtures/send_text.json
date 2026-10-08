@@ -1,0 +1,34 @@
+{
+  "name": "post a message",
+  "target": "action:send_text",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "url": "https://hooks.example.org/in/abc123"
+    }
+  },
+  "input": {
+    "text": "Hello"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://hooks.example.org/in/abc123",
+      "headers": {},
+      "body": {
+        "text": "Hello"
+      }
+    },
+    "hosts": [
+      "hooks.example.org"
+    ]
+  },
+  "response": {
+    "status": 200,
+    "contentType": "text/plain",
+    "body": "ok"
+  },
+  "output": {
+    "status": 200
+  }
+}

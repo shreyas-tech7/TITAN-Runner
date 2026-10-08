@@ -1,0 +1,36 @@
+{
+  "name": "test: current temperature",
+  "target": "test",
+  "connection": {
+    "config": {},
+    "secrets": {}
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.12&current=temperature_2m",
+      "headers": {},
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "timezone": "GMT",
+      "current": {
+        "temperature_2m": 12.3,
+        "time": "x"
+      },
+      "elevation": 20
+    }
+  },
+  "output": {
+    "timezone": "GMT",
+    "current": {
+      "temperature_2m": 12.3
+    }
+  }
+}

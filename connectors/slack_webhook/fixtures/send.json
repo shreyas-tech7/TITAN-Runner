@@ -1,0 +1,32 @@
+{
+  "name": "send a message",
+  "target": "action:send",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "url": "https://hooks.slack.com/services/T0AAAAAA/B0BBBBBB/TESTVALUENOTAREALSECRET00"
+    }
+  },
+  "input": {
+    "text": "Hello"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://hooks.slack.com/services/T0AAAAAA/B0BBBBBB/TESTVALUENOTAREALSECRET00",
+      "headers": {},
+      "body": {
+        "text": "Hello"
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "text/plain",
+    "body": "ok"
+  },
+  "output": {
+    "text": "ok"
+  }
+}

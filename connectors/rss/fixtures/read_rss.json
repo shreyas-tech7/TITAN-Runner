@@ -1,0 +1,48 @@
+{
+  "name": "read an RSS feed",
+  "target": "action:read_feed",
+  "connection": {
+    "config": {
+      "feed_url": "https://feeds.example.org/news.xml"
+    },
+    "secrets": {}
+  },
+  "input": {
+    "limit": 2
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://feeds.example.org/news.xml",
+      "headers": {
+        "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.5"
+      },
+      "body": null
+    },
+    "hosts": [
+      "feeds.example.org"
+    ]
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/rss+xml",
+    "body": "<?xml version=\"1.0\"?><rss version=\"2.0\"><channel><title>News</title><item><title>First &amp; best</title><link>https://feeds.example.org/1</link><pubDate>Wed, 07 Oct 2026 10:00:00 GMT</pubDate><description><![CDATA[<p>Hello <b>world</b></p>]]></description></item><item><title>Second</title><link>https://feeds.example.org/2</link></item><item><title>Third</title><link>https://feeds.example.org/3</link></item></channel></rss>"
+  },
+  "output": {
+    "title": "News",
+    "items": [
+      {
+        "title": "First & best",
+        "link": "https://feeds.example.org/1",
+        "date": "Wed, 07 Oct 2026 10:00:00 GMT",
+        "summary": "Hello world"
+      },
+      {
+        "title": "Second",
+        "link": "https://feeds.example.org/2",
+        "date": "",
+        "summary": ""
+      }
+    ]
+  }
+}

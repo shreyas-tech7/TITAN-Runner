@@ -1,0 +1,66 @@
+{
+  "name": "add an event",
+  "target": "action:create_event",
+  "connection": {
+    "config": {
+      "client_id": "@@FAKE:google_client_id@@"
+    },
+    "secrets": {
+      "client_secret": "@@FAKE:google_client_secret@@",
+      "access_token": "TEST_ACCESS_TOKEN_NOT_REAL"
+    }
+  },
+  "input": {
+    "summary": "Run",
+    "start": "2026-10-10T07:00:00Z",
+    "end": "2026-10-10T08:00:00Z"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+      "headers": {
+        "Authorization": "Bearer TEST_ACCESS_TOKEN_NOT_REAL"
+      },
+      "body": {
+        "summary": "Run",
+        "start": {
+          "dateTime": "2026-10-10T07:00:00Z"
+        },
+        "end": {
+          "dateTime": "2026-10-10T08:00:00Z"
+        }
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "id": "e2",
+      "htmlLink": "https://calendar.google.com/e2",
+      "summary": "Run",
+      "start": {
+        "dateTime": "2026-10-10T07:00:00Z"
+      },
+      "end": {
+        "dateTime": "2026-10-10T08:00:00Z"
+      },
+      "creator": {
+        "email": "me@example.com"
+      }
+    }
+  },
+  "output": {
+    "id": "e2",
+    "htmlLink": "https://calendar.google.com/e2",
+    "summary": "Run",
+    "start": {
+      "dateTime": "2026-10-10T07:00:00Z"
+    },
+    "end": {
+      "dateTime": "2026-10-10T08:00:00Z"
+    }
+  }
+}

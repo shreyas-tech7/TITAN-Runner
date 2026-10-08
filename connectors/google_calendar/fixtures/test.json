@@ -1,0 +1,38 @@
+{
+  "name": "test: read one event",
+  "target": "test",
+  "connection": {
+    "config": {
+      "client_id": "@@FAKE:google_client_id@@"
+    },
+    "secrets": {
+      "client_secret": "@@FAKE:google_client_secret@@",
+      "access_token": "TEST_ACCESS_TOKEN_NOT_REAL"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1",
+      "headers": {
+        "Authorization": "Bearer TEST_ACCESS_TOKEN_NOT_REAL"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "summary": "Home",
+      "timeZone": "Europe/London",
+      "items": []
+    }
+  },
+  "output": {
+    "summary": "Home",
+    "timeZone": "Europe/London"
+  }
+}

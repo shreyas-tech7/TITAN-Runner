@@ -1,0 +1,59 @@
+{
+  "name": "list projects",
+  "target": "action:list_projects",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:railway_token@@"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://backboard.railway.com/graphql/v2",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:railway_token@@"
+      },
+      "body": {
+        "query": "query { projects { edges { node { id name updatedAt } } } }"
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "data": {
+        "projects": {
+          "edges": [
+            {
+              "node": {
+                "id": "p-1234567",
+                "name": "titan",
+                "updatedAt": "2026-10-01T00:00:00Z",
+                "description": "x"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "output": {
+    "data": {
+      "projects": {
+        "edges": [
+          {
+            "node": {
+              "id": "p-1234567",
+              "name": "titan",
+              "updatedAt": "2026-10-01T00:00:00Z"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

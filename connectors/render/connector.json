@@ -1,0 +1,170 @@
+{
+  "id": "render",
+  "name": "Render",
+  "icon": "RN",
+  "version": "1.0.0",
+  "category": "dev",
+  "description": "List services and deploys. Start a deploy.",
+  "docsUrl": "https://render.com/docs/api",
+  "getKeyUrl": "https://dashboard.render.com/u/settings#api-keys",
+  "apiVersion": "REST API v1 (https://api.render.com/v1)",
+  "auth": {
+    "kind": "bearer",
+    "setupNote": "Open Account Settings, then API Keys. Make a key and paste it here. A Render key has the same power as your account, so keep it in the vault only.",
+    "fields": [
+      {
+        "name": "token",
+        "label": "API key",
+        "secret": true,
+        "pattern": "^rnd_[A-Za-z0-9]{20,}$",
+        "help": "It starts with rnd_."
+      }
+    ]
+  },
+  "egress": [
+    "api.render.com"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "GET",
+      "url": "https://api.render.com/v1/owners",
+      "query": {
+        "limit": "1"
+      }
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "pick": [
+        "owner.name",
+        "owner.type"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "list_services",
+      "title": "List services",
+      "risk": "read",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 20
+          }
+        },
+        "required": []
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://api.render.com/v1/services",
+        "query": {
+          "limit": "{{input.limit}}"
+        }
+      },
+      "pick": [
+        "service.id",
+        "service.name",
+        "service.type",
+        "service.suspended",
+        "service.dashboardUrl",
+        "service.updatedAt"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "list_deploys",
+      "title": "List deploys of a service",
+      "risk": "read",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "service_id": {
+            "type": "string",
+            "pattern": "^srv-[a-z0-9]{10,40}$"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 5
+          }
+        },
+        "required": [
+          "service_id"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://api.render.com/v1/services/{{input.service_id}}/deploys",
+        "query": {
+          "limit": "{{input.limit}}"
+        }
+      },
+      "pick": [
+        "deploy.id",
+        "deploy.status",
+        "deploy.createdAt",
+        "deploy.finishedAt",
+        "deploy.commit.message"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "trigger_deploy",
+      "title": "Start a deploy",
+      "risk": "write",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "service_id": {
+            "type": "string",
+            "pattern": "^srv-[a-z0-9]{10,40}$"
+          },
+          "clear_cache": {
+            "enum": [
+              "clear",
+              "do_not_clear"
+            ],
+            "default": "do_not_clear"
+          }
+        },
+        "required": [
+          "service_id"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://api.render.com/v1/services/{{input.service_id}}/deploys",
+        "body": {
+          "clearCache": "{{input.clear_cache}}"
+        }
+      },
+      "pick": [
+        "id",
+        "status",
+        "createdAt"
+      ],
+      "okStatus": [
+        200,
+        201,
+        202
+      ],
+      "rateLimit": {
+        "perMinute": 5
+      }
+    }
+  ]
+}

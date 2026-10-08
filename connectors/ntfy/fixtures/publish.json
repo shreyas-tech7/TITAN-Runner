@@ -1,0 +1,42 @@
+{
+  "name": "publish a notification",
+  "target": "action:publish",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "url": "https://ntfy.sh/titan-test-topic-0000"
+    }
+  },
+  "input": {
+    "message": "Build done",
+    "priority": "high"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://ntfy.sh/titan-test-topic-0000",
+      "headers": {
+        "Title": "TITAN",
+        "Priority": "high",
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "body": "Build done"
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "id": "abc",
+      "event": "message",
+      "topic": "titan-test-topic-0000",
+      "time": 1
+    }
+  },
+  "output": {
+    "id": "abc",
+    "event": "message",
+    "topic": "titan-test-topic-0000"
+  }
+}

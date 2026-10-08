@@ -1,0 +1,47 @@
+{
+  "name": "send a message",
+  "target": "action:send_message",
+  "connection": {
+    "config": {
+      "chat_id": "4242"
+    },
+    "secrets": {
+      "token": "123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    }
+  },
+  "input": {
+    "text": "Hello"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.telegram.org/bot123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/sendMessage",
+      "headers": {},
+      "body": {
+        "chat_id": "4242",
+        "text": "Hello",
+        "disable_web_page_preview": true
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "ok": true,
+      "result": {
+        "message_id": 9,
+        "chat": {
+          "id": 4242
+        }
+      }
+    }
+  },
+  "output": {
+    "ok": true,
+    "result": {
+      "message_id": 9
+    }
+  }
+}

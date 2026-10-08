@@ -1,0 +1,38 @@
+{
+  "name": "post JSON",
+  "target": "action:send_json",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "url": "https://hooks.example.org/in/abc123"
+    }
+  },
+  "input": {
+    "payload": {
+      "event": "done",
+      "n": 2
+    }
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://hooks.example.org/in/abc123",
+      "headers": {},
+      "body": {
+        "event": "done",
+        "n": 2
+      }
+    },
+    "hosts": [
+      "hooks.example.org"
+    ]
+  },
+  "response": {
+    "status": 204,
+    "contentType": "text/plain",
+    "body": ""
+  },
+  "output": {
+    "status": 204
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "test: the profile",
+  "target": "test",
+  "connection": {
+    "config": {
+      "client_id": "@@FAKE:google_client_id@@"
+    },
+    "secrets": {
+      "client_secret": "@@FAKE:google_client_secret@@",
+      "access_token": "TEST_ACCESS_TOKEN_NOT_REAL"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://gmail.googleapis.com/gmail/v1/users/me/profile",
+      "headers": {
+        "Authorization": "Bearer TEST_ACCESS_TOKEN_NOT_REAL"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "emailAddress": "me@example.com",
+      "messagesTotal": 120,
+      "threadsTotal": 80,
+      "historyId": "9"
+    }
+  },
+  "output": {
+    "emailAddress": "me@example.com",
+    "messagesTotal": 120
+  }
+}

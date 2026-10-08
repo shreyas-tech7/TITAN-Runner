@@ -1,0 +1,43 @@
+{
+  "name": "test: list one project",
+  "target": "test",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.todoist.com/api/v1/projects?limit=1",
+      "headers": {
+        "Authorization": "Bearer TEST_VALUE_NOT_A_REAL_SECRET"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "results": [
+        {
+          "id": "1",
+          "name": "Inbox",
+          "color": "grey"
+        }
+      ],
+      "next_cursor": null
+    }
+  },
+  "output": {
+    "results": [
+      {
+        "name": "Inbox"
+      }
+    ]
+  }
+}

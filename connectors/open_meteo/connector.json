@@ -1,0 +1,142 @@
+{
+  "id": "open_meteo",
+  "name": "Open-Meteo",
+  "icon": "OM",
+  "version": "1.0.0",
+  "category": "data",
+  "description": "Get the weather for a place. No key needed.",
+  "docsUrl": "https://open-meteo.com/en/docs",
+  "getKeyUrl": "",
+  "apiVersion": "Forecast API v1 and Geocoding API v1",
+  "auth": {
+    "kind": "none",
+    "setupNote": "Nothing to paste. Open-Meteo is free for personal use without a key.",
+    "fields": []
+  },
+  "egress": [
+    "api.open-meteo.com",
+    "geocoding-api.open-meteo.com"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "GET",
+      "url": "https://api.open-meteo.com/v1/forecast",
+      "query": {
+        "latitude": "51.5",
+        "longitude": "-0.12",
+        "current": "temperature_2m"
+      }
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "pick": [
+        "current.temperature_2m",
+        "timezone"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "forecast",
+      "title": "Get the weather",
+      "risk": "read",
+      "dataClass": "public",
+      "input": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7,
+            "default": 3
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "query": {
+          "latitude": "{{input.latitude}}",
+          "longitude": "{{input.longitude}}",
+          "current": "temperature_2m,precipitation,wind_speed_10m",
+          "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
+          "forecast_days": "{{input.days}}",
+          "timezone": "auto"
+        }
+      },
+      "pick": [
+        "timezone",
+        "current.temperature_2m",
+        "current.precipitation",
+        "current.wind_speed_10m",
+        "daily.time",
+        "daily.temperature_2m_max",
+        "daily.temperature_2m_min",
+        "daily.precipitation_sum"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "geocode",
+      "title": "Find a place",
+      "risk": "read",
+      "dataClass": "public",
+      "input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "default": 3
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://geocoding-api.open-meteo.com/v1/search",
+        "query": {
+          "name": "{{input.name}}",
+          "count": "{{input.limit}}"
+        }
+      },
+      "pick": [
+        "results[].name",
+        "results[].latitude",
+        "results[].longitude",
+        "results[].country",
+        "results[].admin1"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    }
+  ]
+}

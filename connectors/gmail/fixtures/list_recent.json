@@ -1,0 +1,50 @@
+{
+  "name": "list recent mail",
+  "target": "action:list_recent",
+  "connection": {
+    "config": {
+      "client_id": "@@FAKE:google_client_id@@"
+    },
+    "secrets": {
+      "client_secret": "@@FAKE:google_client_secret@@",
+      "access_token": "TEST_ACCESS_TOKEN_NOT_REAL"
+    }
+  },
+  "input": {
+    "query": "is:unread"
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is%3Aunread&maxResults=5",
+      "headers": {
+        "Authorization": "Bearer TEST_ACCESS_TOKEN_NOT_REAL"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "messages": [
+        {
+          "id": "m1abcdefgh",
+          "threadId": "t1"
+        }
+      ],
+      "resultSizeEstimate": 1,
+      "nextPageToken": "x"
+    }
+  },
+  "output": {
+    "messages": [
+      {
+        "id": "m1abcdefgh",
+        "threadId": "t1"
+      }
+    ],
+    "resultSizeEstimate": 1
+  }
+}

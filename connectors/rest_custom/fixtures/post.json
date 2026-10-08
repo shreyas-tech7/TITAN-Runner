@@ -1,0 +1,47 @@
+{
+  "name": "POST a JSON body",
+  "target": "action:post",
+  "connection": {
+    "config": {
+      "base_url": "https://api.example.org",
+      "header_name": "Authorization",
+      "key_prefix": "Bearer "
+    },
+    "secrets": {
+      "api_key": "TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {
+    "path": "/items",
+    "body": {
+      "name": "New"
+    }
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.example.org/items",
+      "headers": {
+        "Authorization": "Bearer TEST_VALUE_NOT_A_REAL_SECRET",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "name": "New"
+      }
+    },
+    "hosts": [
+      "api.example.org"
+    ]
+  },
+  "response": {
+    "status": 201,
+    "contentType": "application/json",
+    "body": {
+      "id": 43
+    }
+  },
+  "output": {
+    "id": 43
+  }
+}

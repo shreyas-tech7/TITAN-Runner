@@ -1,0 +1,56 @@
+{
+  "id": "rss",
+  "name": "RSS and Atom",
+  "icon": "RS",
+  "version": "1.0.0",
+  "category": "data",
+  "description": "Read items from a public feed. No key needed.",
+  "docsUrl": "https://www.rssboard.org/rss-specification",
+  "getKeyUrl": "",
+  "apiVersion": "RSS 2.0 and Atom 1.0",
+  "auth": {
+    "kind": "none",
+    "setupNote": "Paste the https address of a public feed. The feed host is checked on each call.",
+    "baseUrlField": "feed_url",
+    "fields": [
+      {
+        "name": "feed_url",
+        "label": "Feed address",
+        "secret": false,
+        "pattern": "^https://[^\\s]+$",
+        "help": "It must start with https://.",
+        "placeholder": "https://example.com/feed.xml"
+      }
+    ]
+  },
+  "egress": [],
+  "test": {
+    "mode": "onClick",
+    "handler": "rss_test"
+  },
+  "actions": [
+    {
+      "id": "read_feed",
+      "title": "Read the feed",
+      "risk": "read",
+      "dataClass": "public",
+      "description": "Returns the title, link, date, and a short summary of each item.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "default": 10
+          }
+        },
+        "required": []
+      },
+      "handler": "rss_read",
+      "rateLimit": {
+        "perMinute": 30
+      }
+    }
+  ]
+}

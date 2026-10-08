@@ -1,0 +1,45 @@
+{
+  "name": "test: the owner",
+  "target": "test",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:render_key@@"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.render.com/v1/owners?limit=1",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:render_key@@"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": [
+      {
+        "owner": {
+          "id": "usr-1",
+          "name": "Shreyas",
+          "email": "x@example.com",
+          "type": "user"
+        },
+        "cursor": "c"
+      }
+    ]
+  },
+  "output": [
+    {
+      "owner": {
+        "name": "Shreyas",
+        "type": "user"
+      }
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "name": "list issues",
+  "target": "action:list_issues",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "api_key": "@@FAKE:linear_key@@"
+    }
+  },
+  "input": {
+    "limit": 2
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.linear.app/graphql",
+      "headers": {
+        "Authorization": "@@FAKE:linear_key@@"
+      },
+      "body": {
+        "query": "query($first: Int!) { issues(first: $first, orderBy: updatedAt) { nodes { identifier title url updatedAt state { name } assignee { name } } } }",
+        "variables": {
+          "first": 2
+        }
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "data": {
+        "issues": {
+          "nodes": [
+            {
+              "identifier": "TIT-1",
+              "title": "Fix",
+              "url": "https://linear.app/x/issue/TIT-1",
+              "updatedAt": "2026-10-05T00:00:00Z",
+              "state": {
+                "name": "Todo"
+              },
+              "assignee": {
+                "name": "Shreyas"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "output": {
+    "data": {
+      "issues": {
+        "nodes": [
+          {
+            "identifier": "TIT-1",
+            "title": "Fix",
+            "url": "https://linear.app/x/issue/TIT-1",
+            "updatedAt": "2026-10-05T00:00:00Z",
+            "state": {
+              "name": "Todo"
+            },
+            "assignee": {
+              "name": "Shreyas"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

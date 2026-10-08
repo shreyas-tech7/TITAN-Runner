@@ -1,0 +1,84 @@
+{
+  "id": "mcp_remote",
+  "name": "Remote MCP server",
+  "icon": "MC",
+  "version": "1.0.0",
+  "category": "ai",
+  "description": "Connect to a remote MCP server. List its tools and call one.",
+  "docsUrl": "https://modelcontextprotocol.io/specification",
+  "getKeyUrl": "",
+  "apiVersion": "MCP over Streamable HTTP (versions 2025-03-26 to 2026-07-28)",
+  "auth": {
+    "kind": "mcp_remote",
+    "setupNote": "Paste the https address of the MCP endpoint. Paste a bearer token if the server needs one. TITAN checks the host on each call.",
+    "fields": [
+      {
+        "name": "url",
+        "label": "MCP endpoint",
+        "secret": false,
+        "pattern": "^https://[^\\s]+$",
+        "help": "It must start with https://.",
+        "placeholder": "https://mcp.example.com/mcp"
+      },
+      {
+        "name": "token",
+        "label": "Bearer token",
+        "secret": true,
+        "optional": true,
+        "pattern": "^[\\x21-\\x7e]{8,2048}$",
+        "help": "Leave it empty if the server needs no token."
+      }
+    ]
+  },
+  "egress": [],
+  "test": {
+    "mode": "onClick",
+    "handler": "mcp_test"
+  },
+  "actions": [
+    {
+      "id": "list_tools",
+      "title": "List the tools",
+      "risk": "read",
+      "dataClass": "internal",
+      "description": "Shows the name and the description of each tool.",
+      "input": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "handler": "mcp_list_tools",
+      "rateLimit": {
+        "perMinute": 20
+      }
+    },
+    {
+      "id": "call_tool",
+      "title": "Call a tool",
+      "risk": "write",
+      "dataClass": "personal",
+      "description": "The tool runs on the remote server. A sub-agent cannot use this action.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "arguments": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "handler": "mcp_call_tool",
+      "rateLimit": {
+        "perMinute": 10
+      }
+    }
+  ]
+}

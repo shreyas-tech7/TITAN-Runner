@@ -1,0 +1,185 @@
+{
+  "id": "gmail",
+  "name": "Gmail",
+  "icon": "GM",
+  "version": "1.0.0",
+  "category": "productivity",
+  "description": "Read the headers of recent mail. Make a draft. TITAN cannot send mail.",
+  "docsUrl": "https://developers.google.com/workspace/gmail/api/reference/rest",
+  "getKeyUrl": "https://console.cloud.google.com/apis/credentials",
+  "apiVersion": "Gmail API v1",
+  "auth": {
+    "kind": "oauth2_pkce",
+    "setupNote": "Make an OAuth client of type Web in your own Google Cloud project. TITAN asks for gmail.readonly and gmail.compose only. It never asks for the send scope or the full mail scope.",
+    "oauth": {
+      "authUrl": "https://accounts.google.com/o/oauth2/v2/auth",
+      "tokenUrl": "https://oauth2.googleapis.com/token",
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.compose"
+      ],
+      "extraAuthParams": {
+        "access_type": "offline",
+        "prompt": "consent"
+      },
+      "forbiddenScopes": [
+        "https://mail.google.com/",
+        "https://www.googleapis.com/auth/gmail.send",
+        "https://www.googleapis.com/auth/gmail.modify"
+      ]
+    },
+    "fields": [
+      {
+        "name": "client_id",
+        "label": "OAuth client id",
+        "secret": false,
+        "pattern": "^[0-9]+-[a-z0-9]+\\.apps\\.googleusercontent\\.com$",
+        "help": "It ends with .apps.googleusercontent.com."
+      },
+      {
+        "name": "client_secret",
+        "label": "OAuth client secret",
+        "secret": true,
+        "pattern": "^GOCSPX-[A-Za-z0-9_-]{20,}$",
+        "help": "It starts with GOCSPX-."
+      }
+    ]
+  },
+  "egress": [
+    "gmail.googleapis.com",
+    "oauth2.googleapis.com"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "GET",
+      "url": "https://gmail.googleapis.com/gmail/v1/users/me/profile"
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "pick": [
+        "emailAddress",
+        "messagesTotal"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "list_recent",
+      "title": "List recent mail",
+      "risk": "read",
+      "dataClass": "personal",
+      "description": "Returns ids only. Use get_headers for the subject and sender.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 5
+          }
+        },
+        "required": []
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages",
+        "query": {
+          "q": "{{input.query}}",
+          "maxResults": "{{input.limit}}"
+        }
+      },
+      "pick": [
+        "messages[].id",
+        "messages[].threadId",
+        "resultSizeEstimate"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "get_headers",
+      "title": "Read the headers of one message",
+      "risk": "read",
+      "dataClass": "personal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9]{8,32}$"
+          }
+        },
+        "required": [
+          "message_id"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/{{input.message_id}}",
+        "query": {
+          "format": "metadata",
+          "metadataHeaders": [
+            "From",
+            "Subject",
+            "Date"
+          ]
+        }
+      },
+      "pick": [
+        "id",
+        "snippet",
+        "payload.headers"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "create_draft",
+      "title": "Make a draft",
+      "risk": "write",
+      "dataClass": "personal",
+      "description": "A draft sits in your Drafts folder. You press Send yourself. TITAN has no send action.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "raw": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 20000,
+            "pattern": "^[A-Za-z0-9_-]+=*$",
+            "description": "The message in RFC 2822 form, encoded as base64url."
+          }
+        },
+        "required": [
+          "raw"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/drafts",
+        "body": {
+          "message": {
+            "raw": "{{input.raw}}"
+          }
+        }
+      },
+      "pick": [
+        "id",
+        "message.id"
+      ],
+      "rateLimit": {
+        "perMinute": 10
+      }
+    }
+  ]
+}

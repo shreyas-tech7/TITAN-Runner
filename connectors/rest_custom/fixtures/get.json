@@ -1,0 +1,47 @@
+{
+  "name": "GET a path with a query",
+  "target": "action:get",
+  "connection": {
+    "config": {
+      "base_url": "https://api.example.org/v2",
+      "header_name": "Authorization",
+      "key_prefix": "Bearer "
+    },
+    "secrets": {
+      "api_key": "TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {
+    "path": "/items/42",
+    "query": {
+      "q": "a b",
+      "n": 3
+    }
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.example.org/v2/items/42?q=a%20b&n=3",
+      "headers": {
+        "Authorization": "Bearer TEST_VALUE_NOT_A_REAL_SECRET",
+        "Accept": "application/json"
+      },
+      "body": null
+    },
+    "hosts": [
+      "api.example.org"
+    ]
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "id": 42,
+      "name": "Thing"
+    }
+  },
+  "output": {
+    "id": 42,
+    "name": "Thing"
+  }
+}

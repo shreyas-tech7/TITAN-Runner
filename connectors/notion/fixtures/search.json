@@ -1,0 +1,65 @@
+{
+  "name": "search",
+  "target": "action:search",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:notion_token@@"
+    }
+  },
+  "input": {
+    "query": "plan",
+    "limit": 5
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.notion.com/v1/search",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:notion_token@@",
+        "Notion-Version": "2022-06-28"
+      },
+      "body": {
+        "query": "plan",
+        "page_size": 5
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "results": [
+        {
+          "object": "database",
+          "id": "d1",
+          "url": "https://notion.so/d1",
+          "last_edited_time": "2026-10-01T00:00:00Z",
+          "title": [
+            {
+              "plain_text": "Plans",
+              "type": "text"
+            }
+          ],
+          "parent": {}
+        }
+      ]
+    }
+  },
+  "output": {
+    "results": [
+      {
+        "object": "database",
+        "id": "d1",
+        "url": "https://notion.so/d1",
+        "last_edited_time": "2026-10-01T00:00:00Z",
+        "title": [
+          {
+            "plain_text": "Plans"
+          }
+        ]
+      }
+    ]
+  }
+}
