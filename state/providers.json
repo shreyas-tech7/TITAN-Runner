@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-08T22:59:18.572Z",
+  "updatedAt": "2026-10-08T23:15:18.826Z",
   "providers": {
     "groq": {
       "id": "groq",
-      "configured": false,
-      "status": "not_configured",
+      "configured": true,
+      "status": "unknown",
       "lastCheckedAt": null,
       "lastSuccessAt": null,
       "latencyMs": null,

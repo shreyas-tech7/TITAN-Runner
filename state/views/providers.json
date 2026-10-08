@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-08T16:12:21.945Z",
+  "updatedAt": "2026-10-08T23:15:18.829Z",
   "providers": {
     "groq": {
-      "breaker": "disabled",
+      "breaker": "closed",
       "until": null,
-      "reason": "no API key configured",
-      "explain": "groq: breaker disabled (no API key configured)",
-      "status": "not_configured",
+      "reason": "never attempted",
+      "explain": "groq: breaker closed (never attempted)",
+      "status": "unknown",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
