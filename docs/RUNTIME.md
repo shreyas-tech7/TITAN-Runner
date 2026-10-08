@@ -760,6 +760,11 @@ The route table is in `worker/src/routes.js`. A test fails if a route has no gro
 | POST | `/admin/keys/:provider/test` | admin |
 | GET | `/admin/diagnose` | admin |
 | POST | `/admin/diagnose/secret-roundtrip` | admin |
+| POST | `/admin/diagnose/full` | admin |
+| GET | `/health/full` | admin |
+| GET | `/admin/setup` | admin |
+| GET | `/admin/health/urls` | admin |
+| POST | `/admin/health/urls` | admin |
 | GET | `/admin/callback` | admin |
 | POST | `/admin/callback-token/rotate` | admin |
 | POST | `/admin/callback-ping` | admin |
