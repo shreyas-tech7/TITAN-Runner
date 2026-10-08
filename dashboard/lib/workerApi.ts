@@ -19,6 +19,11 @@ export function isWorkerConfigured(): boolean {
   return WORKER_URL.length > 0;
 }
 
+/** The public address of the Worker, without a trailing slash. It is empty when no Worker is set. It is not a secret. */
+export function workerUrl(): string {
+  return WORKER_URL.replace(/\/$/, "");
+}
+
 /** The providers that can run a sub-agent task by name: the direct adapters and the custom slots. The list comes from
  * the provider catalog (`config/providers.catalog.json`), the one source of truth. */
 export const KNOWN_PROVIDERS: string[] = PROVIDER_CATALOG.filter((p) => p.failover !== null).map((p) => p.id);

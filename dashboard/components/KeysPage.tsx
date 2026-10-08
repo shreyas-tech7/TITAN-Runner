@@ -9,15 +9,13 @@ import AddKeyModal from "@/components/AddKeyModal";
 import KeysTable from "@/components/KeysTable";
 import RemoveKeyModal from "@/components/RemoveKeyModal";
 import RunnerCallbacks from "@/components/RunnerCallbacks";
+import VaultCard from "@/components/VaultCard";
 import { Badge, Panel } from "@/components/kit";
 import { fetchKeyEvents, testKey, type KeyEvent, type KeyRow } from "@/lib/keysApi";
 import { configuredCount, noCardProviders, provenCount } from "@/lib/keyState";
 import { relative } from "@/lib/time";
 import { useKeys } from "@/lib/useKeys";
-import { OWNER, REPO } from "@/lib/githubApi";
 import { WorkerApiError, isWorkerConfigured } from "@/lib/workerApi";
-
-const ACTIONS_URL = `https://github.com/${OWNER}/${REPO}/actions`;
 
 function PatBanner({ pat }: { pat: NonNullable<ReturnType<typeof useKeys>["data"]>["pat"] }) {
   if (!pat) return null;
@@ -29,19 +27,6 @@ function PatBanner({ pat }: { pat: NonNullable<ReturnType<typeof useKeys>["data"
       </span>
       <a className="btn btn-quiet" href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener noreferrer">
         Edit the token
-      </a>
-    </div>
-  );
-}
-
-function VaultCard({ fix }: { fix: string | null }) {
-  return (
-    <div className="banner" role="status">
-      <span>
-        <strong>The vault is not ready.</strong> <span className="text-muted">Chat and some connectors need it. {fix}</span>
-      </span>
-      <a className="btn btn-quiet" href={`${ACTIONS_URL}/workflows/vault-provision.yml`} target="_blank" rel="noopener noreferrer">
-        Open the workflow
       </a>
     </div>
   );

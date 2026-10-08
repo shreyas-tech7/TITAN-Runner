@@ -56,3 +56,16 @@ export function msUntilNextPulse(lastPulseAt: string | null, cadenceMinutes: num
   const next = last + cadenceMinutes * 60_000;
   return next - Date.now();
 }
+
+/** How long until a time in the future: "in 3h", "in 12m", or "now" when it is past. */
+export function until(iso: string | null): string {
+  if (!iso) return "never";
+  const ms = Date.parse(iso) - Date.now();
+  if (!Number.isFinite(ms)) return iso;
+  if (ms <= 0) return "now";
+  const m = Math.round(ms / 60_000);
+  if (m < 60) return `in ${Math.max(1, m)}m`;
+  const h = Math.round(m / 60);
+  if (h < 48) return `in ${h}h`;
+  return `in ${Math.round(h / 24)}d`;
+}

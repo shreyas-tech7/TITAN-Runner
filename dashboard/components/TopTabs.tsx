@@ -5,11 +5,13 @@ import Link from "next/link";
  * every view deep-linkable) and the current one carries `aria-current="page"`. The order is fixed by the Wave 12 brief:
  * Dashboard, Chat, Connectors, Keys, Health, God's Eye View. A tab appears when its page ships.
  */
-export type TopTab = "dashboard" | "keys" | "gods-eye";
+export type TopTab = "dashboard" | "connectors" | "keys" | "health" | "gods-eye";
 
 const TABS: { id: TopTab; label: string; href: string }[] = [
   { id: "dashboard", label: "Dashboard", href: "/" },
+  { id: "connectors", label: "Connectors", href: "/connectors" },
   { id: "keys", label: "Keys", href: "/keys" },
+  { id: "health", label: "Health", href: "/health" },
   { id: "gods-eye", label: "God's Eye View", href: "/ops/gods-eye" },
 ];
 

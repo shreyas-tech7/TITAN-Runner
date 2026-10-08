@@ -1260,6 +1260,7 @@ button {
 
 .top-tabs {
   display: flex;
+  flex-wrap: wrap; /* five tabs do not fit in one row at 390 px */
   gap: var(--space-1);
   margin: calc(-1 * var(--space-2)) 0 var(--space-4);
   border-bottom: 1px solid var(--line);
@@ -1714,4 +1715,100 @@ button {
 .why-failed summary {
   cursor: pointer;
   color: var(--text-1);
+}
+
+/* ---- Wave 12, release 2: Connectors, Health, setup ring, and the MCP panel --------------------------------------- */
+
+.connector-grid {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: var(--space-3);
+}
+.connector-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.connector-card[data-state="attention"] { border-color: var(--warning-dim); }
+.connector-card-head { display: flex; align-items: center; gap: var(--space-3); }
+.connector-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-1);
+  color: var(--text-0);
+  font: 600 13px var(--font-data-loaded, ui-monospace, monospace);
+}
+.connector-name { margin: 0; font-size: 15px; color: var(--text-0); overflow-wrap: anywhere; }
+.connector-text { margin: 0; flex: 1 1 auto; }
+.connector-meta { margin: 0; font-size: 12px; }
+.connector-card p { margin: 0; }
+.connector-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.chip-row { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-2) 0; }
+.chip-button {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-1);
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chip-button:hover { background: var(--bg-2); }
+.chip-button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--text-0); }
+
+.how-it-works { margin: 0 0 var(--space-3); }
+.how-it-works summary, .try-it summary { cursor: pointer; color: var(--text-1); }
+.try-it { margin-top: var(--space-2); }
+.drawer-section { margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--line); }
+.scope-set { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-2) var(--space-3); }
+.scope-set legend { padding: 0 var(--space-1); color: var(--text-1); font-size: 13px; }
+.scope-set .check-row { align-items: flex-start; }
+.health-url { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-2) var(--space-3); margin-bottom: var(--space-3); }
+.health-url legend { padding: 0 var(--space-1); color: var(--text-1); font-size: 13px; }
+.schema-form .field textarea { min-height: 72px; }
+
+.result-box {
+  margin: var(--space-2) 0;
+  padding: var(--space-3);
+  max-height: 280px;
+  overflow: auto;
+  background: var(--bg-base, var(--bg-1));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text-1);
+  font: 12px/1.5 var(--font-data-loaded, ui-monospace, monospace);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.setup-body { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); }
+.setup-ring-track { stroke: var(--line-strong); }
+.setup-ring-fill { stroke: var(--ion); }
+.setup-ring-text { fill: var(--text-0); font: 600 12px var(--font-data-loaded, ui-monospace, monospace); }
+@media (prefers-reduced-motion: no-preference) {
+  .setup-ring-fill { transition: stroke-dasharray var(--dur-std, 200ms) ease; }
+}
+
+.version-footer { margin-top: var(--space-2); }
+.calls-table td { font-size: 12px; }
+
+/* The drawer must fit a phone. The tables inside it already become cards under 900 px. */
+@media (max-width: 480px) {
+  .drawer { padding: var(--space-3); }
+  .connector-grid { grid-template-columns: 1fr; }
 }
