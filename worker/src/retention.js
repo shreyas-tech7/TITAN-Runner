@@ -14,6 +14,9 @@ export const RETENTION_DAYS = Object.freeze({
   subagents_done: 90,
   subagents_failed: 180,
   callback_pings: 30,
+  approvals: 30,
+  hook_events: 7,
+  notify_deliveries: 30,
 });
 
 const day = 24 * 3600_000;
@@ -41,6 +44,11 @@ export async function pruneOldRows(env, now = new Date()) {
     out.auth_failures = 'error';
   }
   await tryRun(env, 'connector_calls', 'DELETE FROM connector_calls WHERE at < ?', [iso(RETENTION_DAYS.connector_calls)], out);
+  await tryRun(env, 'hook_events', 'DELETE FROM hook_events WHERE at < ?', [iso(RETENTION_DAYS.hook_events)], out);
+  await tryRun(env, 'hook_nonces', 'DELETE FROM hook_nonces WHERE at < ?', [nowIso(new Date(now.getTime() - 20 * 60_000))], out);
+  await tryRun(env, 'connector_rate', 'DELETE FROM connector_rate WHERE window_start < ?', [Math.floor(now.getTime() / 60_000) - 120], out);
+  await tryRun(env, 'approvals', "DELETE FROM approvals WHERE status != 'pending' AND created_at < ?", [iso(RETENTION_DAYS.approvals)], out);
+  await tryRun(env, 'notify_deliveries', 'DELETE FROM notify_deliveries WHERE at < ?', [iso(RETENTION_DAYS.notify_deliveries)], out);
   await tryRun(env, 'oauth_states', 'DELETE FROM oauth_states WHERE expires_at < ?', [nowIso(now)], out);
   await tryRun(env, 'chat_messages', 'DELETE FROM chat_messages WHERE at < ?', [iso(chatDays)], out);
   await tryRun(env, 'chat_threads', 'DELETE FROM chat_threads WHERE updated_at < ?', [iso(chatDays)], out);
@@ -58,7 +66,7 @@ export async function pruneOldRows(env, now = new Date()) {
 // ---------------------------------------------------------------------
 
 /** Tables that never leave the Worker in an export: encrypted records, token hashes, and OAuth state. */
-const EXPORT_SKIP_TABLES = new Set(['vault_records', 'worker_tokens', 'mcp_tokens', 'mcp_oauth_codes', 'mcp_oauth_clients', 'oauth_states', 'auth_failures', 'd1_migrations', 'sqlite_sequence', '_cf_KV']);
+const EXPORT_SKIP_TABLES = new Set(['vault_records', 'worker_tokens', 'mcp_tokens', 'mcp_oauth_codes', 'mcp_oauth_clients', 'oauth_states', 'hook_nonces', 'approvals', 'auth_failures', 'd1_migrations', 'sqlite_sequence', '_cf_KV']);
 const SENSITIVE_COLUMN = /hash|secret|ciphertext|^iv$|token/i;
 const ROWS_PER_TABLE = 5000;
 

@@ -10,7 +10,7 @@ import { CONNECTORS } from '../connectors.generated.js';
 import { validate, withDefaults } from '../lib/jsonschema.js';
 import { TemplateError, buildRequest, checkRequestSpec, expandString } from '../lib/template.js';
 import { HANDLERS, isImpureHandler } from './handlers.js';
-import { MAX_RESULT_BYTES, capSize, pick } from './shape.js';
+import { MAX_RESULT_BYTES, capSize, pick, scrubValue } from './shape.js';
 
 export class ActionInputError extends Error {
   constructor(message, problems = []) {
@@ -189,6 +189,7 @@ function runHandlerBuild(manifest, action, { config, secrets, input }) {
 /**
  * Build the request of the connection test.
  * @returns {{ method: string, url: string, headers: Record<string,string>, body?: string } | null} null when the test is not one request.
+ * A test with the mode onClick sends a real message, so the broker runs it only when a person asks.
  */
 export function buildTestRequest(manifest, { config = {}, secrets = {} }) {
   const t = manifest.test;
@@ -197,7 +198,7 @@ export function buildTestRequest(manifest, { config = {}, secrets = {} }) {
     if (isImpureHandler(t.handler)) return null;
     return runHandlerBuild(manifest, { id: 'test', handler: t.handler }, { config, secrets, input: {} });
   }
-  if (t.mode !== 'request') return null;
+  if (!t.request) return null;
   return buildActionRequest(manifest, { id: 'test', input: { type: 'object', properties: {} }, request: t.request }, { config, secrets, input: {} });
 }
 
@@ -206,7 +207,7 @@ export function shapeTestResponse(manifest, res) {
   const t = manifest.test;
   if (t.handler && HANDLERS[t.handler]) return HANDLERS[t.handler].shape(res, { manifest, input: {} });
   const expect = t.expect ?? {};
-  const pseudo = { id: 'test', response: 'json', okStatus: expect.status ?? [200], pick: expect.pick, request: { graphql: Boolean(expect.noGraphqlErrors) } };
+  const pseudo = { id: 'test', response: expect.pick ? 'json' : 'status', okStatus: expect.status ?? [200], pick: expect.pick, request: { graphql: Boolean(expect.noGraphqlErrors) } };
   return shapeResponse(manifest, pseudo, res);
 }
 
@@ -248,4 +249,4 @@ export function shapeResponse(manifest, action, res) {
   return { ok: true, status: res.status, data: capped.value, truncated: capped.truncated };
 }
 
-export { MAX_RESULT_BYTES, capSize, expandString, pick };
+export { MAX_RESULT_BYTES, capSize, expandString, pick, scrubValue };

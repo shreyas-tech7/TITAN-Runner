@@ -1,0 +1,30 @@
+{
+  "name": "test: send the test message",
+  "target": "test",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "url": "https://hooks.slack.com/services/T0AAAAAA/B0BBBBBB/TESTVALUENOTAREALSECRET00"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://hooks.slack.com/services/T0AAAAAA/B0BBBBBB/TESTVALUENOTAREALSECRET00",
+      "headers": {},
+      "body": {
+        "text": "TITAN test message"
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "text/plain",
+    "body": "ok"
+  },
+  "output": {
+    "status": 200
+  }
+}

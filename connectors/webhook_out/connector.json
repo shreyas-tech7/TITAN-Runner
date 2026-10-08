@@ -32,7 +32,21 @@
   },
   "egress": [],
   "test": {
-    "mode": "onClick"
+    "mode": "onClick",
+    "request": {
+      "method": "POST",
+      "body": {
+        "text": "TITAN test message"
+      }
+    },
+    "expect": {
+      "status": [
+        200,
+        201,
+        202,
+        204
+      ]
+    }
   },
   "actions": [
     {

@@ -25,7 +25,7 @@
   },
   "egress": [],
   "test": {
-    "mode": "onClick",
+    "mode": "request",
     "handler": "rss_test"
   },
   "actions": [

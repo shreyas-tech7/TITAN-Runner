@@ -144,7 +144,7 @@ test('D8: every migration only adds. No file drops, renames, or deletes anything
       assert.ok(!/^\s*(DROP|DELETE|TRUNCATE)\b/i.test(s), `${m.name}: ${s.slice(0, 60)}`);
       assert.ok(!/RENAME\b/i.test(s), `${m.name}: ${s.slice(0, 60)}`);
       assert.ok(!/ALTER TABLE \w+ DROP\b/i.test(s));
-      assert.ok(/^(CREATE TABLE IF NOT EXISTS|CREATE INDEX IF NOT EXISTS|ALTER TABLE \w+ ADD COLUMN|INSERT OR IGNORE INTO)/i.test(s), `${m.name}: not additive: ${s.slice(0, 60)}`);
+      assert.ok(/^(CREATE TABLE IF NOT EXISTS|CREATE (UNIQUE )?INDEX IF NOT EXISTS|ALTER TABLE \w+ ADD COLUMN|INSERT OR IGNORE INTO)/i.test(s), `${m.name}: not additive: ${s.slice(0, 60)}`);
     }
   }
 });
@@ -172,7 +172,8 @@ test('R4: the retention rules remove old rows and keep the rest', async () => {
   assert.equal(out.auth_failures, 1);
   assert.equal(out.subagents_done, 1);
   assert.equal(out.subagents_failed, 1);
-  assert.equal(out.connector_calls, 'no table', 'a table from a later release may not exist yet');
+  assert.equal(out.connector_calls, 0, 'the table of release 2 exists and holds no old rows');
+  assert.equal(out.chat_messages, 'no table', 'a table from a later release may not exist yet');
   const left = (await env.DB.prepare('SELECT id FROM subagents ORDER BY id').all()).results.map((r) => r.id);
   assert.deepEqual(left, ['d-new', 'f-mid']);
   assert.deepEqual([RETENTION_DAYS.connector_calls, RETENTION_DAYS.auth_failures, RETENTION_DAYS.key_events, RETENTION_DAYS.subagents_done, RETENTION_DAYS.subagents_failed], [30, 1, 365, 90, 180]);

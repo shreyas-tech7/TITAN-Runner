@@ -1,0 +1,32 @@
+{
+  "name": "test: post the test message",
+  "target": "test",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "url": "https://hooks.example.org/in/abc123"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://hooks.example.org/in/abc123",
+      "headers": {},
+      "body": {
+        "text": "TITAN test message"
+      }
+    },
+    "hosts": [
+      "hooks.example.org"
+    ]
+  },
+  "response": {
+    "status": 204,
+    "contentType": "text/plain",
+    "body": ""
+  },
+  "output": {
+    "status": 204
+  }
+}

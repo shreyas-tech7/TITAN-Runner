@@ -4,9 +4,9 @@
  *   public    no token
  *   admin     the admin token, header X-Titan-Auth (people)
  *   internal  the callback token, header X-Titan-Callback (workflows). The admin token works only in legacy mode.
- *   mcp       an MCP token, header Authorization: Bearer (tools). Release 2.
- *   hook      the secret of one hook (inbound webhooks). Release 2.
- *   oauth     the redirect of an OAuth provider, checked by its `state` value. Release 2.
+ *   mcp       an MCP token, header Authorization: Bearer (tools).
+ *   hook      the secret of one hook (inbound webhooks and the Telegram webhook).
+ *   oauth     the redirect of an OAuth provider, checked by its `state` value.
  *
  * docs/RUNTIME.md holds the same table in words. `test/routes.test.mjs` fails if a route has no group.
  */
@@ -16,6 +16,14 @@ import {
   handleInternalLearningPath, handleInternalSystemMemory, handleInternalVmStatus, handleListVms, handleOsintInvestigate, handleOsintTools,
   handleProvisionVm, handleSystemMemory,
 } from './legacy.js';
+import {
+  handleApprovals, handleCalls, handleCatalog, handleConnect, handleConnectionDetail, handleDecide, handleDisconnect, handleEvents, handleHookRotate, handleInternalCall, handleInternalConnectors, handleInternalEvent,
+  handleMcpTokenCreate, handleMcpTokenRevoke, handleMcpTokens, handleNotifyTest, handleOAuthBegin, handleOAuthCallback, handleRename, handleRuleDelete, handleRulePreset, handleRuleSave, handleRules, handleRunAction,
+  handleSetPolicy, handleTelegramPair, handleTelegramUnpair, handleTestConnection, handleToolRisk,
+} from './connectors/api.js';
+import { handleInboundHook } from './connectors/hooks.js';
+import { handleTelegramUpdate } from './connectors/telegram.js';
+import { handleMcp, handleMcpGet } from './mcpServer.js';
 import { handleKeyEvents, handleListKeys, handleProviderProof, handleRemoveKey, handleSaveKey, handleSecretRoundTrip, handleTestKey } from './keys.js';
 import { handlePulseBadge, handlePulseHeartbeat, handlePulseState, handleRunPulseNow } from './keeper.js';
 import { SCHEMA_VERSION } from './lib/migrate.js';
@@ -63,6 +71,45 @@ export const ROUTES = [
   { method: 'GET', path: '/vms', group: 'admin', handler: (c) => handleListVms(c.env) },
   { method: 'POST', path: '/vms/provision', group: 'admin', handler: (c) => handleProvisionVm(c.request, c.env) },
 
+  // admin: the connector hub (Wave 12, C3 to C8, M2)
+  { method: 'GET', path: '/connectors', group: 'admin', handler: handleCatalog },
+  { method: 'POST', path: '/connectors/:id/connect', group: 'admin', handler: handleConnect },
+  { method: 'GET', path: '/connections/:cid', group: 'admin', handler: handleConnectionDetail },
+  { method: 'POST', path: '/connections/:cid/test', group: 'admin', handler: handleTestConnection },
+  { method: 'POST', path: '/connections/:cid/rename', group: 'admin', handler: handleRename },
+  { method: 'POST', path: '/connections/:cid/disconnect', group: 'admin', handler: handleDisconnect },
+  { method: 'POST', path: '/connections/:cid/policy', group: 'admin', handler: handleSetPolicy },
+  { method: 'GET', path: '/connections/:cid/calls', group: 'admin', handler: handleCalls },
+  { method: 'POST', path: '/connections/:cid/actions/:actionId', group: 'admin', handler: handleRunAction },
+  { method: 'POST', path: '/connections/:cid/telegram/pair', group: 'admin', handler: handleTelegramPair },
+  { method: 'POST', path: '/connections/:cid/telegram/unpair', group: 'admin', handler: handleTelegramUnpair },
+  { method: 'POST', path: '/connections/:cid/hook/rotate', group: 'admin', handler: handleHookRotate },
+  { method: 'POST', path: '/connections/:cid/tools/:name/risk', group: 'admin', handler: handleToolRisk },
+  { method: 'POST', path: '/oauth/:connectorId/begin', group: 'admin', handler: handleOAuthBegin },
+  { method: 'GET', path: '/approvals', group: 'admin', handler: handleApprovals },
+  { method: 'POST', path: '/approvals/:id/approve', group: 'admin', handler: handleDecide('approve') },
+  { method: 'POST', path: '/approvals/:id/deny', group: 'admin', handler: handleDecide('deny') },
+  { method: 'GET', path: '/admin/mcp/tokens', group: 'admin', handler: handleMcpTokens },
+  { method: 'POST', path: '/admin/mcp/tokens', group: 'admin', handler: handleMcpTokenCreate },
+  { method: 'DELETE', path: '/admin/mcp/tokens/:id', group: 'admin', handler: handleMcpTokenRevoke },
+  { method: 'GET', path: '/admin/notify/rules', group: 'admin', handler: handleRules },
+  { method: 'POST', path: '/admin/notify/rules', group: 'admin', handler: handleRuleSave },
+  { method: 'DELETE', path: '/admin/notify/rules/:id', group: 'admin', handler: handleRuleDelete },
+  { method: 'POST', path: '/admin/notify/preset', group: 'admin', handler: handleRulePreset },
+  { method: 'POST', path: '/admin/notify/test', group: 'admin', handler: handleNotifyTest },
+  { method: 'GET', path: '/admin/events', group: 'admin', handler: handleEvents },
+
+  // mcp: tools with an MCP token. The handler checks the token itself.
+  { method: 'POST', path: '/mcp', group: 'mcp', handler: handleMcp },
+  { method: 'GET', path: '/mcp', group: 'mcp', handler: handleMcpGet },
+
+  // hook: the secret of one hook. A browser never calls these routes.
+  { method: 'POST', path: '/hooks/:hookId', group: 'hook', handler: handleInboundHook },
+  { method: 'POST', path: '/hooks/telegram/:connectionId', group: 'hook', handler: handleTelegramUpdate },
+
+  // oauth: the redirect of an OAuth provider, checked by its state value
+  { method: 'GET', path: '/oauth/:connectorId/callback', group: 'oauth', handler: handleOAuthCallback },
+
   // internal: workflows, with the callback token
   { method: 'POST', path: '/internal/status', group: 'internal', handler: (c) => handleInternalStatus(c.request, c.env) },
   { method: 'POST', path: '/internal/vm-status', group: 'internal', handler: (c) => handleInternalVmStatus(c.request, c.env) },
@@ -73,6 +120,9 @@ export const ROUTES = [
   { method: 'POST', path: '/internal/provider-proof', group: 'internal', handler: handleProviderProof },
   { method: 'POST', path: '/internal/pulse-heartbeat', group: 'internal', handler: handlePulseHeartbeat },
   { method: 'POST', path: '/internal/ping', group: 'internal', handler: handleInternalPing },
+  { method: 'POST', path: '/internal/event', group: 'internal', handler: handleInternalEvent },
+  { method: 'GET', path: '/internal/connectors', group: 'internal', handler: handleInternalConnectors },
+  { method: 'POST', path: '/internal/connector-call', group: 'internal', handler: handleInternalCall },
 ];
 
 // A route that exists only when TITAN_TEST_MODE is set. It measures the sealed box inside the real Workers runtime (K12).

@@ -32,7 +32,7 @@
   },
   "egress": [],
   "test": {
-    "mode": "onClick",
+    "mode": "request",
     "handler": "mcp_test"
   },
   "actions": [

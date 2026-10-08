@@ -77,7 +77,7 @@
   },
   "egress": [],
   "test": {
-    "mode": "onClick",
+    "mode": "request",
     "handler": "rest_test"
   },
   "actions": [

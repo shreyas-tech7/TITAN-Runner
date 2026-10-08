@@ -9,7 +9,7 @@ import { nowIso } from './lib/util.js';
 
 export const EVENT_TYPES = Object.freeze([
   'task.done', 'task.failed', 'approval.needed', 'key.invalid', 'key.proven', 'callback.broken', 'pulse.late',
-  'connector.needs_reconnect', 'brief.daily', 'schedule.fired',
+  'connector.needs_reconnect', 'brief.daily', 'schedule.fired', 'hook.received', 'notify.custom',
 ]);
 
 const DEDUPE_WINDOW_MS = 30 * 60_000;

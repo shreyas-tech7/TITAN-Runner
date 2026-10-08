@@ -111,7 +111,7 @@ for (const id of ids) {
       }
     }
   }
-  if (m.test?.mode === 'request' || (m.test?.mode === 'onClick' && m.test.handler && !isImpureHandler(m.test.handler))) if (!targets.has('test')) bad(id, 'there is no fixture with the target "test"');
+  if (m.test?.request || (m.test?.handler && !isImpureHandler(m.test.handler))) if (!targets.has('test')) bad(id, 'there is no fixture with the target "test"');
   for (const a of m.actions ?? []) if (!isImpureHandler(a.handler) && !targets.has(`action:${a.id}`)) bad(id, `the action "${a.id}" has no fixture`);
 
   manifests.push(m);
