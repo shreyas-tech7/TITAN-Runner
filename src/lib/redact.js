@@ -73,6 +73,9 @@ export const SECRET_PATTERNS = [
   /https?:\/\/ntfy\.sh\/[A-Za-z0-9_-]{6,}/g,
   // Google OAuth client secrets.
   /\bGOCSPX-[A-Za-z0-9_-]{20,}/g,
+  // TITAN MCP tokens and Render API keys.
+  /\btitan_mcp_[A-Za-z0-9_-]{40,}/g,
+  /\brnd_[A-Za-z0-9]{20,}\b/g,
   // Email addresses. Not a credential, but PII the Gmail adapter's own
   // fixtures and live path both carry (senders, recipients, thread
   // participants) — the brief names this alongside keys and tokens

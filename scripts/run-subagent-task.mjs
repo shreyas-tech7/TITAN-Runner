@@ -34,6 +34,7 @@ import { callWorker, callbackAuth, workerBase } from '../src/lib/workerCallback.
 import { scrubForState } from '../src/lib/secretScrub.js';
 import { reviewAction } from '../src/reviewer/index.js';
 import { parseProbeJson } from '../src/orchestrator/capabilityRegistry.js';
+import { chatWithConnectors } from '../src/tools/connectorLoop.js';
 
 const SUBAGENT_ID = process.env.TITAN_SUBAGENT_ID;
 const RAW_TASK_TYPE = (process.env.TITAN_SUBAGENT_TASK_TYPE || 'auto').trim();
@@ -222,7 +223,7 @@ async function main() {
     : [{ role: 'user', content: BRIEF }];
 
   try {
-    const result = await registry.chat(messages, { service });
+    const result = await chatWithConnectors(messages, service, { chat: (m, o) => registry.chat(m, o), taskId: SUBAGENT_ID });
     const summary = safe(result.text).replace(/\s+/g, ' ').trim().slice(0, 1800);
     console.log(`run-subagent-task: completed via ${result.service}/${result.model} in ${result.latencyMs}ms`);
     await reportStatus({

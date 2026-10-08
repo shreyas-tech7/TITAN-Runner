@@ -1,34 +1,42 @@
 # Wave 12 progress
 
-Read this file and `WAVE12_BRIEF.md` again after a context compaction. Update this file after each item. Each row has the item ID, the status, and the next step.
+Read this file and `WAVE12_BRIEF.md` again after a context compaction. Update this file after each item.
 
-Branch: `wave-12` (Release 1). Base: `origin/main` at `8e75efb`.
+Release 1 (K, S, R, vault-provision, callback-ping): merged and deployed. Live proof is in the report.
+Release 2 is on the branch `wave-12-r2`. It is not merged. No pull request is open yet.
 
 | Item | Status | Next step |
 |---|---|---|
-| Phase 0 | Done | |
-| D1, D2 (STE standard and check) | Done in the Runner | Copy to TITAN |
-| K1 provider catalog and gate | Done | |
-| K2 true key status | Done, tests pass | Dashboard page (K7) |
-| K3 save and verify | Done, tests pass | |
-| K4 remove, test now, audit | Done, tests pass | |
-| K5 runner proof | Done (workflow, script, route) | Live check needs a key |
-| K6 more key types, openai_compat | Done | |
-| K7 Keys page | Not started | Next |
-| K8 callback token | Done in the Worker and workflows | Settings button in K7 |
-| K9 stuck task reaper and retry | Done, tests pass | Retry button in the dashboard |
-| K10, K11, K12 | Done. Seal in workerd: WebCrypto 0.16 to 0.4 ms, tweetnacl 1.3 to 2.4 ms for each seal | Playwright scenarios after K7 |
-| S1 to S4 | Done, tests pass | S5 threat model, S6 scan patterns, S7 |
-| R1 pulse keeper | Done in the Worker and the workflow | Dashboard banner, gap stats |
-| R4, R5, R6 | Done in the Worker | |
-| R2, R3 | R3 done (daily light probe). R2 not started | R2 |
-| C, H, M, T | Release 2 | |
+| C1 manifest format, schema, generator | Done. 19 connectors, 73 fixture tests pass | |
+| C2 vault | Done in release 1 | |
+| C3 broker, policies, approvals, call log | Done, tests pass | |
+| C5 built-in connectors | Done (19) | Live check of the public routes after deploy |
+| C6 inbound webhooks (hmac, github, static) | Done, tests pass | |
+| C7 notification router and rules | Done, tests pass | Settings UI |
+| C8 OAuth with PKCE | Done against a fake server, tests pass | |
+| C9 `connector_call` tool and loop | Code written (`src/tools/connectorCall.js`, `connectorLoop.js`, `run-subagent-task.mjs`). NOT tested | Tests with a fake Worker, S7 state test |
+| C10 `connectors:new` and `connectors:check` | Not started | Add scripts and npm entries |
+| H1 H2 H3 H4 health | Done in the Worker, tests pass | Dashboard pages |
+| M1 M2 MCP server and tokens | Done, tests pass | MCP Inspector proof against `wrangler dev` |
+| M3 remote MCP client | Done, tests pass (modern, legacy, SSE) | |
+| M4 "Use TITAN from Claude" card | Not started | Dashboard |
+| T1 to T5 Telegram | Done, tests pass | The pulse approval comment (T4) comes with A4 |
+| S6 secret patterns | Done, tests pass | |
+| S7 personal data tests | Broker half done. State and log half not done | Test for the runner tool |
+| S5 threat model rows | Not started | `docs/runner-upgrade/THREAT_MODEL.md` |
+| Dashboard: Connectors, Health, tabs, command palette, Settings, setup ring | Not started | Next big piece |
+| Docs: CONNECTORS, MCP, HEALTH, RUNTIME, CONFIG, RUNBOOK, DATA_CONTRACT, CHANGELOG, DECISIONS | RUNTIME route table updated only | Write them |
+| e2e and a11y for new pages | Not started | |
+| Workerd test of the new routes | Not started | |
+| PR, merge, deploy, live checks for release 2 | Not started | |
 | A, Q, X, V, M5 | Release 3 | |
-| P1 to P8 | TITAN repo | After Release 3 |
+| P1 to P8 | TITAN repo | After release 3 |
 
 ## Notes for a restart
 
-- The Runner repo is `/workspaces/TITAN-Runner`. The TITAN repo is `/workspaces/TITAN`. Both have the branch `wave-12`.
+- The Runner repo is `/workspaces/TITAN-Runner`. The TITAN repo is `/workspaces/TITAN`.
 - Run one heavy process at a time. Set `NODE_OPTIONS=--max-old-space-size=1536`.
-- The Worker fake D1 uses `node:sqlite`. It needs Node 22.13 or newer.
-- Do not use the words "self-improve" in a branch name. The denylist gate blocks it.
+- GitHub push protection blocks real-shaped fake credentials. Write `@@FAKE:name@@` in fixtures. See `worker/test/helpers/fakeValues.mjs`.
+- Do not use the words "self-improve" in a branch name.
+- Generator scripts for the manifests are in the session scratchpad only. The manifests and fixtures in `connectors/` are the source now. Edit them by hand.
+- The full Worker suite once hung on one test when run with all files. Each file passes alone. Check `worker/test/security.test.mjs` S4 in a full run.

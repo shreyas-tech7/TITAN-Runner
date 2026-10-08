@@ -22,6 +22,7 @@ import { join, relative, sep } from 'node:path';
 import { checkRepoRelativePath } from '../lib/pathJail.js';
 import { checkEgress, parseAllowlist } from './ssrf.js';
 import { guardedFetch } from '../lib/net.js';
+import { connectorTools } from './connectorCall.js';
 
 const MAX_READ_BYTES = 64 * 1024;
 const MAX_LIST_ENTRIES = 200;
@@ -174,6 +175,7 @@ export function builtinTools(opts) {
         return text.length > MAX_FETCH_BYTES ? `${text.slice(0, MAX_FETCH_BYTES)}\n…[truncated]` : text;
       },
     },
+    ...connectorTools({ env: opts.env }),
   ];
 }
 

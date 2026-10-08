@@ -447,7 +447,7 @@ export async function invokeAction(env, { connectionId, actionId, input = {}, ca
     if (verdict.decision === 'approve') {
       const approvalId = await createApproval(env, { connection, manifest, action, risk, input, caller, origin });
       await logCall(env, { ...base, outcome: 'pending_approval' });
-      return { ok: true, state: 'pending_approval', approvalId };
+      return { ok: true, state: 'pending_approval', approvalId, dataClass: action.dataClass };
     }
 
     const rate = await takeRate(env, `act:${connectionId}:${actionId}`, action.rateLimit?.perMinute ?? 60);
@@ -465,7 +465,7 @@ export async function invokeAction(env, { connectionId, actionId, input = {}, ca
       }
       return { ok: false, state: 'error', status: result.status, error: result.error, ms: result.ms };
     }
-    return { ok: true, state: 'done', status: result.status, data: result.data, truncated: result.truncated, ms: result.ms };
+    return { ok: true, state: 'done', status: result.status, data: result.data, truncated: result.truncated, ms: result.ms, dataClass: action.dataClass };
   } catch (err) {
     const e = lowerError(err, manifest);
     if (e instanceof BrokerError) {
