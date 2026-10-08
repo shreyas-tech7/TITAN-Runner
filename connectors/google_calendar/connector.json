@@ -4,18 +4,18 @@
   "icon": "GC",
   "version": "1.0.0",
   "category": "productivity",
-  "description": "Read upcoming events. Add an event to your own calendar.",
+  "description": "Read upcoming events and your busy times. TITAN cannot change your calendar.",
   "docsUrl": "https://developers.google.com/workspace/calendar/api/v3/reference",
   "getKeyUrl": "https://console.cloud.google.com/apis/credentials",
   "apiVersion": "Calendar API v3",
   "auth": {
     "kind": "oauth2_pkce",
-    "setupNote": "Make an OAuth client of type Web in your own Google Cloud project. Add the redirect URL that TITAN shows. Paste the client id and the client secret. Then choose Connect. TITAN asks for the narrow calendar.events scope only.",
+    "setupNote": "Make an OAuth client of type Web in your own Google Cloud project. Add the redirect address that TITAN shows. Paste the client id and the client secret. Then choose Connect. TITAN asks for the read only scope calendar.readonly. Google ends the refresh token after 7 days while the consent screen has the status Testing. Move the consent screen to In production for your own account to stop that. For personal use, Google does not ask you to pass a review.",
     "oauth": {
       "authUrl": "https://accounts.google.com/o/oauth2/v2/auth",
       "tokenUrl": "https://oauth2.googleapis.com/token",
       "scopes": [
-        "https://www.googleapis.com/auth/calendar.events"
+        "https://www.googleapis.com/auth/calendar.readonly"
       ],
       "extraAuthParams": {
         "access_type": "offline",
@@ -23,6 +23,7 @@
       },
       "forbiddenScopes": [
         "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/calendar.events",
         "https://mail.google.com/"
       ]
     },
@@ -51,9 +52,9 @@
     "mode": "request",
     "request": {
       "method": "GET",
-      "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+      "url": "https://www.googleapis.com/calendar/v3/users/me/calendarList",
       "query": {
-        "maxResults": "1"
+        "maxResults": "5"
       }
     },
     "expect": {
@@ -61,8 +62,8 @@
         200
       ],
       "pick": [
-        "summary",
-        "timeZone"
+        "items[].summary",
+        "items[].primary"
       ]
     }
   },
@@ -116,60 +117,49 @@
       }
     },
     {
-      "id": "create_event",
-      "title": "Add an event",
-      "risk": "write",
+      "id": "free_busy",
+      "title": "Find busy times",
+      "risk": "read",
       "dataClass": "personal",
       "input": {
         "type": "object",
         "properties": {
-          "summary": {
+          "time_min": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "start": {
-            "type": "string",
+            "minLength": 10,
             "maxLength": 40
           },
-          "end": {
+          "time_max": {
             "type": "string",
+            "minLength": 10,
             "maxLength": 40
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 2000
           }
         },
         "required": [
-          "summary",
-          "start",
-          "end"
+          "time_min",
+          "time_max"
         ]
       },
       "request": {
         "method": "POST",
-        "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+        "url": "https://www.googleapis.com/calendar/v3/freeBusy",
         "body": {
-          "summary": "{{input.summary}}",
-          "description": "{{input.description}}",
-          "start": {
-            "dateTime": "{{input.start}}"
-          },
-          "end": {
-            "dateTime": "{{input.end}}"
-          }
+          "timeMin": "{{input.time_min}}",
+          "timeMax": "{{input.time_max}}",
+          "items": [
+            {
+              "id": "primary"
+            }
+          ]
         }
       },
       "pick": [
-        "id",
-        "htmlLink",
-        "summary",
-        "start",
-        "end"
+        "timeMin",
+        "timeMax",
+        "calendars.primary.busy"
       ],
       "rateLimit": {
-        "perMinute": 10
+        "perMinute": 30
       }
     }
   ]

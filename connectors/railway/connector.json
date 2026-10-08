@@ -123,6 +123,45 @@
       }
     },
     {
+      "id": "service_status",
+      "title": "Service status",
+      "risk": "read",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "service_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "service_id"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://backboard.railway.com/graphql/v2",
+        "graphql": true,
+        "body": {
+          "query": "query($id: String!) { service(id: $id) { id name projectId updatedAt } }",
+          "variables": {
+            "id": "{{input.service_id}}"
+          }
+        }
+      },
+      "pick": [
+        "data.service.id",
+        "data.service.name",
+        "data.service.projectId",
+        "data.service.updatedAt"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
       "id": "redeploy",
       "title": "Redeploy a service",
       "risk": "write",

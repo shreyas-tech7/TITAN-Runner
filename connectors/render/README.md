@@ -11,5 +11,5 @@ Lists your services and deploys, and starts a deploy. The key has the power of y
 
 | Action | Risk | Data |
 |---|---|---|
-| `list_services`, `list_deploys` | read | internal |
+| `list_services`, `service_status`, `list_deploys` | read | internal |
 | `trigger_deploy` | write | internal |

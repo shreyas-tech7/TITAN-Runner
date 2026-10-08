@@ -28,7 +28,7 @@
     "mode": "request",
     "request": {
       "method": "GET",
-      "url": "https://api.render.com/v1/owners",
+      "url": "https://api.render.com/v1/services",
       "query": {
         "limit": "1"
       }
@@ -38,8 +38,8 @@
         200
       ],
       "pick": [
-        "owner.name",
-        "owner.type"
+        "service.name",
+        "service.type"
       ]
     }
   },
@@ -75,6 +75,39 @@
         "service.suspended",
         "service.dashboardUrl",
         "service.updatedAt"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "service_status",
+      "title": "Service status",
+      "risk": "read",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "service_id": {
+            "type": "string",
+            "pattern": "^srv-[a-z0-9]{10,40}$"
+          }
+        },
+        "required": [
+          "service_id"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://api.render.com/v1/services/{{input.service_id}}"
+      },
+      "pick": [
+        "id",
+        "name",
+        "type",
+        "suspended",
+        "dashboardUrl",
+        "updatedAt"
       ],
       "rateLimit": {
         "perMinute": 30

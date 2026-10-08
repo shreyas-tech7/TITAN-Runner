@@ -1,15 +1,15 @@
 {
-  "name": "a path with .. is refused",
+  "name": "the prefix /items does not allow /items2",
   "target": "action:get",
   "connection": {
     "config": {
       "base_url": "https://api.example.org/v2",
-      "path_prefixes": "/"
+      "path_prefixes": "/items"
     },
     "secrets": {}
   },
   "input": {
-    "path": "/../admin"
+    "path": "/items2"
   },
-  "expectBuildError": "must not hold"
+  "expectBuildError": "outside the allowed paths"
 }

@@ -129,6 +129,44 @@
       "rateLimit": {
         "perMinute": 30
       }
+    },
+    {
+      "id": "space_status",
+      "title": "Space status",
+      "risk": "read",
+      "dataClass": "public",
+      "description": "The stage is RUNNING, SLEEPING, BUILDING, or an error stage.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]{1,96}$"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]{1,96}$"
+          }
+        },
+        "required": [
+          "owner",
+          "name"
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://huggingface.co/api/spaces/{{input.owner}}/{{input.name}}"
+      },
+      "pick": [
+        "id",
+        "sdk",
+        "lastModified",
+        "runtime.stage",
+        "runtime.hardware.current"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
     }
   ]
 }

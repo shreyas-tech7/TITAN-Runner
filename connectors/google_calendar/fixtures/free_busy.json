@@ -1,0 +1,69 @@
+{
+  "name": "find busy times",
+  "target": "action:free_busy",
+  "connection": {
+    "config": {
+      "client_id": "@@FAKE:google_client_id@@"
+    },
+    "secrets": {
+      "client_secret": "@@FAKE:google_client_secret@@",
+      "access_token": "TEST_ACCESS_TOKEN_NOT_REAL"
+    }
+  },
+  "input": {
+    "time_min": "2026-10-09T00:00:00Z",
+    "time_max": "2026-10-10T00:00:00Z"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://www.googleapis.com/calendar/v3/freeBusy",
+      "headers": {
+        "Authorization": "Bearer TEST_ACCESS_TOKEN_NOT_REAL"
+      },
+      "body": {
+        "timeMin": "2026-10-09T00:00:00Z",
+        "timeMax": "2026-10-10T00:00:00Z",
+        "items": [
+          {
+            "id": "primary"
+          }
+        ]
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "kind": "calendar#freeBusy",
+      "timeMin": "2026-10-09T00:00:00Z",
+      "timeMax": "2026-10-10T00:00:00Z",
+      "calendars": {
+        "primary": {
+          "busy": [
+            {
+              "start": "2026-10-09T10:00:00Z",
+              "end": "2026-10-09T11:00:00Z"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "output": {
+    "timeMin": "2026-10-09T00:00:00Z",
+    "timeMax": "2026-10-10T00:00:00Z",
+    "calendars": {
+      "primary": {
+        "busy": [
+          {
+            "start": "2026-10-09T10:00:00Z",
+            "end": "2026-10-09T11:00:00Z"
+          }
+        ]
+      }
+    }
+  }
+}

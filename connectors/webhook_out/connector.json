@@ -10,7 +10,8 @@
   "apiVersion": "HTTPS POST with a JSON body",
   "auth": {
     "kind": "secret_url",
-    "setupNote": "Paste the https address of the receiver. The address is the secret, so TITAN keeps it in the vault. The broker checks the DNS answer of the host on each call and refuses a private address.",
+    "signingField": "signing_secret",
+    "setupNote": "Paste the https address of the receiver. The address is the secret, so TITAN keeps it in the vault. Add a signing secret if the receiver checks a signature. The broker checks the DNS answer of the host on each call and refuses a private address.",
     "fields": [
       {
         "name": "url",
@@ -18,6 +19,14 @@
         "secret": true,
         "pattern": "^https://[^\\s]+$",
         "help": "It must start with https://."
+      },
+      {
+        "name": "signing_secret",
+        "label": "Signing secret",
+        "secret": true,
+        "optional": true,
+        "pattern": "^[A-Za-z0-9_-]{16,128}$",
+        "help": "Optional. TITAN adds the header X-Titan-Signature, as the inbound hook expects."
       }
     ]
   },

@@ -1,24 +1,25 @@
 {
-  "name": "test: GET the test path with a header key",
-  "target": "test",
+  "name": "DELETE a path",
+  "target": "action:delete",
   "connection": {
     "config": {
       "base_url": "https://api.example.org/v2",
-      "auth_style": "header",
-      "header_name": "X-Api-Key",
-      "test_path": "/health"
+      "auth_style": "bearer",
+      "path_prefixes": "/items,/health"
     },
     "secrets": {
       "api_key": "TEST_VALUE_NOT_A_REAL_SECRET"
     }
   },
-  "input": {},
+  "input": {
+    "path": "/items/43"
+  },
   "expect": {
     "request": {
-      "method": "GET",
-      "url": "https://api.example.org/v2/health",
+      "method": "DELETE",
+      "url": "https://api.example.org/v2/items/43",
       "headers": {
-        "X-Api-Key": "TEST_VALUE_NOT_A_REAL_SECRET",
+        "Authorization": "Bearer TEST_VALUE_NOT_A_REAL_SECRET",
         "Accept": "application/json"
       },
       "body": null
@@ -28,13 +29,11 @@
     ]
   },
   "response": {
-    "status": 200,
+    "status": 204,
     "contentType": "application/json",
-    "body": {
-      "ok": true
-    }
+    "body": ""
   },
   "output": {
-    "status": 200
+    "status": 204
   }
 }

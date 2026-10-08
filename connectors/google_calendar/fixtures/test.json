@@ -1,5 +1,5 @@
 {
-  "name": "test: read one event",
+  "name": "test: list calendars",
   "target": "test",
   "connection": {
     "config": {
@@ -14,7 +14,7 @@
   "expect": {
     "request": {
       "method": "GET",
-      "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1",
+      "url": "https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=5",
       "headers": {
         "Authorization": "Bearer TEST_ACCESS_TOKEN_NOT_REAL"
       },
@@ -26,13 +26,22 @@
     "status": 200,
     "contentType": "application/json",
     "body": {
-      "summary": "Home",
-      "timeZone": "Europe/London",
-      "items": []
+      "items": [
+        {
+          "summary": "Home",
+          "primary": true,
+          "id": "x",
+          "accessRole": "owner"
+        }
+      ]
     }
   },
   "output": {
-    "summary": "Home",
-    "timeZone": "Europe/London"
+    "items": [
+      {
+        "summary": "Home",
+        "primary": true
+      }
+    ]
   }
 }

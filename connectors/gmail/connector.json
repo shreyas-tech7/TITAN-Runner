@@ -4,13 +4,13 @@
   "icon": "GM",
   "version": "1.0.0",
   "category": "productivity",
-  "description": "Read the headers of recent mail. Make a draft. TITAN cannot send mail.",
+  "description": "Read unread mail headers. Make a draft. TITAN cannot send mail.",
   "docsUrl": "https://developers.google.com/workspace/gmail/api/reference/rest",
   "getKeyUrl": "https://console.cloud.google.com/apis/credentials",
   "apiVersion": "Gmail API v1",
   "auth": {
     "kind": "oauth2_pkce",
-    "setupNote": "Make an OAuth client of type Web in your own Google Cloud project. TITAN asks for gmail.readonly and gmail.compose only. It never asks for the send scope or the full mail scope.",
+    "setupNote": "Make an OAuth client of type Web in your own Google Cloud project. TITAN asks for gmail.readonly and gmail.compose only. It never asks for the send scope or the full mail scope. Google ends the refresh token after 7 days while the consent screen has the status Testing. Move the consent screen to In production for your own account to stop that. For personal use, Google does not ask you to pass a review.",
     "oauth": {
       "authUrl": "https://accounts.google.com/o/oauth2/v2/auth",
       "tokenUrl": "https://oauth2.googleapis.com/token",
@@ -67,18 +67,14 @@
   },
   "actions": [
     {
-      "id": "list_recent",
-      "title": "List recent mail",
+      "id": "list_unread",
+      "title": "List unread mail",
       "risk": "read",
       "dataClass": "personal",
-      "description": "Returns ids only. Use get_headers for the subject and sender.",
+      "description": "Returns ids only. Use get_message for the subject and sender.",
       "input": {
         "type": "object",
         "properties": {
-          "query": {
-            "type": "string",
-            "maxLength": 200
-          },
           "limit": {
             "type": "integer",
             "minimum": 1,
@@ -92,7 +88,7 @@
         "method": "GET",
         "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages",
         "query": {
-          "q": "{{input.query}}",
+          "q": "is:unread",
           "maxResults": "{{input.limit}}"
         }
       },
@@ -106,10 +102,11 @@
       }
     },
     {
-      "id": "get_headers",
-      "title": "Read the headers of one message",
+      "id": "get_message",
+      "title": "Read one message header",
       "risk": "read",
       "dataClass": "personal",
+      "description": "Returns the From, Subject, and Date headers and a short snippet. It does not read the body.",
       "input": {
         "type": "object",
         "properties": {

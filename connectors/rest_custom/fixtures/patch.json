@@ -1,6 +1,6 @@
 {
-  "name": "POST a JSON body",
-  "target": "action:post",
+  "name": "PATCH a JSON body",
+  "target": "action:patch",
   "connection": {
     "config": {
       "base_url": "https://api.example.org/v2",
@@ -12,22 +12,22 @@
     }
   },
   "input": {
-    "path": "/items",
+    "path": "/items/43",
     "body": {
-      "name": "New"
+      "done": true
     }
   },
   "expect": {
     "request": {
-      "method": "POST",
-      "url": "https://api.example.org/v2/items",
+      "method": "PATCH",
+      "url": "https://api.example.org/v2/items/43",
       "headers": {
         "Authorization": "Bearer TEST_VALUE_NOT_A_REAL_SECRET",
         "Accept": "application/json",
         "Content-Type": "application/json"
       },
       "body": {
-        "name": "New"
+        "done": true
       }
     },
     "hosts": [
@@ -35,7 +35,7 @@
     ]
   },
   "response": {
-    "status": 201,
+    "status": 200,
     "contentType": "application/json",
     "body": {
       "id": 43

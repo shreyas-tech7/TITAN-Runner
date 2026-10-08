@@ -1,6 +1,6 @@
 {
-  "name": "list recent mail",
-  "target": "action:list_recent",
+  "name": "list unread mail",
+  "target": "action:list_unread",
   "connection": {
     "config": {
       "client_id": "@@FAKE:google_client_id@@"
@@ -10,13 +10,11 @@
       "access_token": "TEST_ACCESS_TOKEN_NOT_REAL"
     }
   },
-  "input": {
-    "query": "is:unread"
-  },
+  "input": {},
   "expect": {
     "request": {
       "method": "GET",
-      "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is%3Aunread&maxResults=5",
+      "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=5",
       "headers": {
         "Authorization": "Bearer TEST_ACCESS_TOKEN_NOT_REAL"
       },

@@ -4,7 +4,7 @@
   "icon": "MC",
   "version": "1.0.0",
   "category": "ai",
-  "description": "Connect to a remote MCP server. List its tools and call one.",
+  "description": "Connect to a remote MCP server. TITAN lists its tools and calls one.",
   "docsUrl": "https://modelcontextprotocol.io/specification",
   "getKeyUrl": "",
   "apiVersion": "MCP over Streamable HTTP (versions 2025-03-26 to 2026-07-28)",
@@ -37,11 +37,11 @@
   },
   "actions": [
     {
-      "id": "list_tools",
-      "title": "List the tools",
+      "id": "refresh_tools",
+      "title": "Refresh the tool list",
       "risk": "read",
       "dataClass": "internal",
-      "description": "Shows the name and the description of each tool.",
+      "description": "Reads the tool list from the server and keeps it. Each tool gets a risk that you can change.",
       "input": {
         "type": "object",
         "properties": {},
@@ -57,7 +57,7 @@
       "title": "Call a tool",
       "risk": "write",
       "dataClass": "personal",
-      "description": "The tool runs on the remote server. A sub-agent cannot use this action.",
+      "description": "The tool runs on the remote server. The risk of the tool decides if it needs approval. The default is write. A sub-agent cannot use this action.",
       "input": {
         "type": "object",
         "properties": {

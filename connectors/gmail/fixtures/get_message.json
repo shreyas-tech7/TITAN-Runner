@@ -1,6 +1,6 @@
 {
-  "name": "read the headers of one message",
-  "target": "action:get_headers",
+  "name": "read one message header",
+  "target": "action:get_message",
   "connection": {
     "config": {
       "client_id": "@@FAKE:google_client_id@@"

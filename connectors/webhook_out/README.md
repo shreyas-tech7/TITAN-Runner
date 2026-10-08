@@ -9,3 +9,4 @@ Posts JSON to an address that you choose. Use it to reach an automation tool suc
 - The broker resolves the host through DNS over HTTPS and refuses a private or loopback answer.
 - A redirect is refused.
 - Each post needs approval unless you set the action to auto-approve.
+- With a signing secret, TITAN adds `X-Titan-Signature: t=<unix>,v1=<hex>`. The signature is HMAC-SHA256 over `t.body`.

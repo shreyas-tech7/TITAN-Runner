@@ -11,5 +11,5 @@ Lists projects and deploys, and redeploys a service. TITAN already uses Railway 
 
 | Action | Risk | Data |
 |---|---|---|
-| `list_projects`, `list_deploys` | read | internal |
+| `list_projects`, `list_deploys`, `service_status` | read | internal |
 | `redeploy` | write | internal |

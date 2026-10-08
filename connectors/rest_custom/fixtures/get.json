@@ -4,8 +4,8 @@
   "connection": {
     "config": {
       "base_url": "https://api.example.org/v2",
-      "header_name": "Authorization",
-      "key_prefix": "Bearer "
+      "auth_style": "bearer",
+      "path_prefixes": "/items,/health"
     },
     "secrets": {
       "api_key": "TEST_VALUE_NOT_A_REAL_SECRET"

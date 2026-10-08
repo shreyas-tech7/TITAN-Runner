@@ -26,6 +26,7 @@
         "prefix": { "type": "string", "maxLength": 20 },
         "queryParam": { "type": "string", "maxLength": 40 },
         "baseUrlField": { "type": "string", "maxLength": 40 },
+        "signingField": { "type": "string", "maxLength": 40 },
         "hostAllowlist": { "type": "array", "items": { "type": "string" } },
         "oauth": {
           "type": "object",

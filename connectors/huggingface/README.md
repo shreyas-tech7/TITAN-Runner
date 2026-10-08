@@ -1,6 +1,6 @@
 # Hugging Face
 
-Checks your token and searches public models and datasets on the Hub. The results are public data. Chat calls through Hugging Face live in the provider keys, not here.
+Checks your token, reads the status of a Space, and searches public models and datasets on the Hub. The results are public data. Chat calls through Hugging Face live in the provider keys, not here.
 
 ## Set up
 

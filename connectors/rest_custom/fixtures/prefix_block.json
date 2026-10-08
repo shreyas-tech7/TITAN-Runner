@@ -1,0 +1,15 @@
+{
+  "name": "a path outside the allowed prefixes is refused",
+  "target": "action:get",
+  "connection": {
+    "config": {
+      "base_url": "https://api.example.org/v2",
+      "path_prefixes": "/items,/health"
+    },
+    "secrets": {}
+  },
+  "input": {
+    "path": "/admin/users"
+  },
+  "expectBuildError": "outside the allowed paths"
+}

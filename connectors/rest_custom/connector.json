@@ -4,14 +4,14 @@
   "icon": "RE",
   "version": "1.0.0",
   "category": "custom",
-  "description": "Call any https JSON API with one key. You set the base address.",
+  "description": "Call any https JSON API with one key. You set the base address and the allowed paths.",
   "docsUrl": "https://github.com/shreyas-tech7/TITAN-Runner/blob/main/docs/CONNECTORS.md",
   "getKeyUrl": "",
   "apiVersion": "Any HTTPS JSON API",
   "auth": {
     "kind": "none",
     "baseUrlField": "base_url",
-    "setupNote": "Paste the base address of the API. Paste the key if the API needs one. Choose the header name and the prefix that the API wants.",
+    "setupNote": "Paste the base address of the API. Choose how the API wants the key: bearer, header, basic, or none. Name the paths that TITAN may call.",
     "fields": [
       {
         "name": "base_url",
@@ -20,6 +20,15 @@
         "pattern": "^https://[^\\s?#]+$",
         "help": "It must start with https:// and hold no query.",
         "placeholder": "https://api.example.com/v1"
+      },
+      {
+        "name": "auth_style",
+        "label": "Key style",
+        "secret": false,
+        "optional": true,
+        "pattern": "^(none|bearer|header|basic)$",
+        "help": "bearer sends Authorization: Bearer. header sends the key in the header you name. basic sends a user name and the key as the password.",
+        "default": "bearer"
       },
       {
         "name": "api_key",
@@ -35,16 +44,34 @@
         "secret": false,
         "optional": true,
         "pattern": "^[A-Za-z][A-Za-z0-9-]{0,39}$",
-        "help": "The header that carries the key.",
-        "default": "Authorization"
+        "help": "Used by the style header.",
+        "placeholder": "X-Api-Key"
       },
       {
-        "name": "key_prefix",
-        "label": "Key prefix",
+        "name": "username",
+        "label": "User name",
         "secret": false,
         "optional": true,
-        "pattern": "^[A-Za-z0-9 _.-]{0,20}$",
-        "help": "Text before the key. Leave it empty for Bearer with the header Authorization. Type none for no prefix."
+        "pattern": "^[\\x21-\\x7e]{1,100}$",
+        "help": "Used by the style basic."
+      },
+      {
+        "name": "path_prefixes",
+        "label": "Allowed paths",
+        "secret": false,
+        "optional": true,
+        "pattern": "^/[A-Za-z0-9._~/-]*(,\\s*/[A-Za-z0-9._~/-]*)*$",
+        "help": "A list of path prefixes, with commas between them. TITAN refuses any other path.",
+        "default": "/"
+      },
+      {
+        "name": "test_path",
+        "label": "Test path",
+        "secret": false,
+        "optional": true,
+        "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{0,300}$",
+        "help": "TITAN sends a GET to this path to test the connection.",
+        "default": "/"
       }
     ]
   },
@@ -107,6 +134,92 @@
         ]
       },
       "handler": "rest_post",
+      "rateLimit": {
+        "perMinute": 10
+      }
+    },
+    {
+      "id": "put",
+      "title": "PUT JSON to a path",
+      "risk": "write",
+      "dataClass": "personal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{0,300}$"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "handler": "rest_put",
+      "rateLimit": {
+        "perMinute": 10
+      }
+    },
+    {
+      "id": "patch",
+      "title": "PATCH a path with JSON",
+      "risk": "write",
+      "dataClass": "personal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{0,300}$"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "handler": "rest_patch",
+      "rateLimit": {
+        "perMinute": 10
+      }
+    },
+    {
+      "id": "delete",
+      "title": "DELETE a path",
+      "risk": "write",
+      "dataClass": "personal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{0,300}$"
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "handler": "rest_delete",
       "rateLimit": {
         "perMinute": 10
       }

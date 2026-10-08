@@ -1,5 +1,5 @@
 {
-  "name": "test: the owner",
+  "name": "test: list one service",
   "target": "test",
   "connection": {
     "config": {},
@@ -11,7 +11,7 @@
   "expect": {
     "request": {
       "method": "GET",
-      "url": "https://api.render.com/v1/owners?limit=1",
+      "url": "https://api.render.com/v1/services?limit=1",
       "headers": {
         "Authorization": "Bearer @@FAKE:render_key@@"
       },
@@ -24,11 +24,11 @@
     "contentType": "application/json",
     "body": [
       {
-        "owner": {
-          "id": "usr-1",
-          "name": "Shreyas",
-          "email": "x@example.com",
-          "type": "user"
+        "service": {
+          "id": "srv-abc123def456",
+          "name": "titan-api",
+          "type": "web_service",
+          "ownerId": "usr-1"
         },
         "cursor": "c"
       }
@@ -36,9 +36,9 @@
   },
   "output": [
     {
-      "owner": {
-        "name": "Shreyas",
-        "type": "user"
+      "service": {
+        "name": "titan-api",
+        "type": "web_service"
       }
     }
   ]

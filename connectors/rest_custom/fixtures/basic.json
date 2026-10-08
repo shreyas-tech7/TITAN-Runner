@@ -1,21 +1,25 @@
 {
-  "name": "no key means no auth header",
+  "name": "basic auth",
   "target": "action:get",
   "connection": {
     "config": {
       "base_url": "https://api.example.org",
-      "auth_style": "none"
+      "auth_style": "basic",
+      "username": "shreyas"
     },
-    "secrets": {}
+    "secrets": {
+      "api_key": "pass-word-123"
+    }
   },
   "input": {
-    "path": "/health"
+    "path": "/me"
   },
   "expect": {
     "request": {
       "method": "GET",
-      "url": "https://api.example.org/health",
+      "url": "https://api.example.org/me",
       "headers": {
+        "Authorization": "Basic c2hyZXlhczpwYXNzLXdvcmQtMTIz",
         "Accept": "application/json"
       },
       "body": null
@@ -28,10 +32,10 @@
     "status": 200,
     "contentType": "application/json",
     "body": {
-      "up": true
+      "me": true
     }
   },
   "output": {
-    "up": true
+    "me": true
   }
 }

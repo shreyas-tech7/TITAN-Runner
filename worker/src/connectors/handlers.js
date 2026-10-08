@@ -115,7 +115,11 @@ function feedShape(res, input, mode) {
 // Custom REST API
 // ---------------------------------------------------------------------
 
-const FORBIDDEN_HEADERS = new Set(['host', 'content-length', 'content-type', 'accept', 'transfer-encoding', 'connection', 'cookie', 'set-cookie', 'proxy-authorization', 'upgrade', 'te', 'trailer', 'expect', 'user-agent', 'x-forwarded-for', 'x-real-ip']);
+const FORBIDDEN_HEADERS = new Set(['host', 'content-length', 'content-type', 'accept', 'transfer-encoding', 'connection', 'cookie', 'set-cookie', 'proxy-authorization', 'authorization', 'upgrade', 'te', 'trailer', 'expect', 'user-agent', 'x-forwarded-for', 'x-real-ip']);
+
+function b64(text) {
+  return btoa(unescape(encodeURIComponent(text)));
+}
 
 function restBase(config) {
   let base;
@@ -131,18 +135,29 @@ function restBase(config) {
 }
 
 function restAuthHeaders(config, secrets) {
-  if (!secrets.api_key) return {};
-  const name = config.header_name || 'Authorization';
-  if (!/^[A-Za-z][A-Za-z0-9-]{0,39}$/.test(name) || FORBIDDEN_HEADERS.has(name.toLowerCase()) || name.toLowerCase().startsWith('x-titan')) throw new HandlerError(`The header name "${name}" is not allowed.`);
-  let prefix = config.key_prefix ?? '';
-  if (prefix === 'none') prefix = '';
-  else if (prefix === '' && name.toLowerCase() === 'authorization') prefix = 'Bearer ';
-  return { [name]: `${prefix}${secrets.api_key}` };
+  const style = config.auth_style || 'bearer';
+  const key = secrets.api_key;
+  if (!key || style === 'none') return {};
+  if (style === 'bearer') return { Authorization: `Bearer ${key}` };
+  if (style === 'basic') return { Authorization: `Basic ${b64(`${config.username ?? ''}:${key}`)}` };
+  if (style === 'header') {
+    const name = config.header_name || 'X-Api-Key';
+    if (!/^[A-Za-z][A-Za-z0-9-]{0,39}$/.test(name) || FORBIDDEN_HEADERS.has(name.toLowerCase()) || name.toLowerCase().startsWith('x-titan')) throw new HandlerError(`The header name "${name}" is not allowed.`);
+    return { [name]: key };
+  }
+  throw new HandlerError(`The key style "${style}" is not known.`);
 }
 
-function restUrl(base, path, query) {
+/** A path is allowed when it equals a prefix or sits below it. The prefix "/items" allows "/items/4" and refuses "/items2". */
+export function pathAllowed(path, prefixesCsv) {
+  const prefixes = String(prefixesCsv || '/').split(',').map((p) => p.trim()).filter(Boolean);
+  return prefixes.some((p) => p === '/' || path === p || path.startsWith(p.endsWith('/') ? p : `${p}/`));
+}
+
+function restUrl(base, path, query, prefixes) {
   if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//')) throw new HandlerError('The path must start with one "/".');
   if (/[?#\\]/.test(path) || path.split('/').some((seg) => seg === '..' || seg === '.')) throw new HandlerError('The path must not hold "..", "?", "#", or a backslash.');
+  if (prefixes !== undefined && !pathAllowed(path, prefixes)) throw new HandlerError('The path is outside the allowed paths of this connection.');
   const prefix = base.pathname.replace(/\/+$/, '');
   const url = new URL(`${prefix}${path}`, base.origin);
   if (url.origin !== base.origin) throw new HandlerError('The path leaves the host of the base address.');
@@ -179,6 +194,19 @@ function restShape(manifest, res) {
   return { ok: true, status: res.status, data: capped.value, truncated: capped.truncated };
 }
 
+function restHandler(method, withBody) {
+  return {
+    build: ({ config, secrets, input }) => ({
+      method,
+      url: restUrl(restBase(config), input.path, input.query, config.path_prefixes),
+      headers: restAuthHeaders(config, secrets),
+      body: withBody && input.body !== undefined ? JSON.stringify(input.body) : undefined,
+      contentType: withBody && input.body !== undefined ? 'application/json' : null,
+    }),
+    shape: (res, { manifest }) => restShape(manifest, res),
+  };
+}
+
 // ---------------------------------------------------------------------
 // The table
 // ---------------------------------------------------------------------
@@ -188,25 +216,12 @@ export const HANDLERS = {
   rss_test: { build: ({ config }) => feedRequest(config), shape: (res) => feedShape(res, {}, 'test') },
   rss_read: { build: ({ config }) => feedRequest(config), shape: (res, { input }) => feedShape(res, input ?? {}, 'read') },
   rest_test: {
-    build: ({ config, secrets }) => {
-      const base = restBase(config);
-      return { method: 'GET', url: `${base.origin}${base.pathname.replace(/\/+$/, '')}`, headers: restAuthHeaders(config, secrets), body: undefined, contentType: null };
-    },
+    build: ({ config, secrets }) => ({ method: 'GET', url: restUrl(restBase(config), config.test_path || '/', {}), headers: restAuthHeaders(config, secrets), body: undefined, contentType: null }),
     shape: (res, { manifest }) => (res.status >= 200 && res.status < 400 ? { ok: true, status: res.status, data: { status: res.status } } : { ok: false, status: res.status, error: `${manifest?.name ?? 'The API'} answered ${res.status}` }),
   },
-  rest_get: {
-    build: ({ config, secrets, input }) => ({ method: 'GET', url: restUrl(restBase(config), input.path, input.query), headers: restAuthHeaders(config, secrets), body: undefined, contentType: null }),
-    shape: (res, { manifest }) => restShape(manifest, res),
-  },
-  rest_post: {
-    build: ({ config, secrets, input }) => ({
-      method: 'POST',
-      url: restUrl(restBase(config), input.path, input.query),
-      headers: restAuthHeaders(config, secrets),
-      body: input.body === undefined ? undefined : JSON.stringify(input.body),
-      contentType: input.body === undefined ? null : 'application/json',
-    }),
-    shape: (res, { manifest }) => restShape(manifest, res),
-  },
+  rest_get: restHandler('GET', false),
+  rest_post: restHandler('POST', true),
+  rest_put: restHandler('PUT', true),
+  rest_patch: restHandler('PATCH', true),
+  rest_delete: restHandler('DELETE', false),
 };
-
