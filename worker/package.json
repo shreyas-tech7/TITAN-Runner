@@ -11,9 +11,12 @@
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
-    "tweetnacl-sealedbox-js": "^1.2.0"
+    "tweetnacl-sealedbox-js": "^1.2.0",
+    "tweetnacl": "^1.0.3",
+    "blakejs": "^1.2.1"
   },
   "devDependencies": {
-    "wrangler": "^4.132.0"
+    "wrangler": "^4.132.0",
+    "libsodium-wrappers": "^0.7.15"
   }
 }

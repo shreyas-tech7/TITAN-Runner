@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isTrustedIssueAuthor, TRUSTED_ASSOCIATIONS } from '../src/index.js';
+import { isTrustedIssueAuthor, TRUSTED_ASSOCIATIONS } from '../src/tasks.js';
 
 const env = { GITHUB_OWNER: 'Owner-Login' };
 

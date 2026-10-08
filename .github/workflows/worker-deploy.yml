@@ -1,22 +1,23 @@
 name: Deploy Worker
 
-# Closes the gap that let a previous worker/src/index.js fix sit unused in
-# the repo: nothing deployed it, because titan-runner-brain's only deploy
-# path was `npm run deploy` (wrangler deploy) in worker/, run manually by a
-# human with Cloudflare credentials (see docs/RUNTIME.md's "Not deployed as
-# part of this build" note). This automates it on every change to worker/,
-# using the exact wrangler version already pinned in worker/package.json's
-# devDependencies rather than pulling in a third-party wrangler-action.
+# Deploys worker/ to Cloudflare on every push to main that touches it (Wave 12 adds three steps before the deploy).
 #
-# Same "degrade honestly, never hard-fail on a missing opt-in secret"
-# pattern as spawn-subagent.yml's OmniRoute step: until CLOUDFLARE_API_TOKEN
-# and CLOUDFLARE_ACCOUNT_ID are added as repo secrets (see docs/RUNTIME.md's
-# runbook), this workflow no-ops with a warning instead of failing CI.
+#   1. Apply the D1 migrations in worker/migrations/. The migrations only add. If this step fails, for example because the
+#      Cloudflare token cannot edit D1, the run shows a warning and goes on. The Worker also applies a missing migration
+#      by itself on its first request, so a failed step here does not break the new code.
+#   2. Make the vault key CONNECTOR_KEK if the Worker has none (decision W12-D3). The key is born in this runner, goes into
+#      the Worker secret store over stdin, and is never printed. No person sees it. If `wrangler secret list` fails, the
+#      step makes no key and shows a warning.
+#   3. Deploy with the commit hash and the build time as variables, so GET /version shows what runs.
+#
+# Same "degrade honestly" pattern as the other Cloudflare workflows: without CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID the workflow warns and does nothing, and CI does not fail.
 on:
   push:
     branches: [main]
     paths:
       - "worker/**"
+      - "config/providers.catalog.json"
       - ".github/workflows/worker-deploy.yml"
   workflow_dispatch: {}
 
@@ -31,6 +32,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      WORKER_URL: https://titan-runner-brain.titan-runner.workers.dev
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -56,13 +59,72 @@ jobs:
         working-directory: worker
         run: npm ci --no-audit --no-fund
 
+      - name: Apply the D1 migrations
+        if: steps.check.outputs.configured == 'true'
+        working-directory: worker
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if ! npx wrangler d1 migrations apply titan-runner-brain --remote; then
+            echo "::warning::The D1 migrations did not apply from this runner. The Cloudflare token may lack the D1 edit permission. The Worker applies a missing migration by itself on its first request."
+            exit 1
+          fi
+
+      - name: Make the vault key if the Worker has none
+        if: steps.check.outputs.configured == 'true'
+        working-directory: worker
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set +x
+          set -uo pipefail
+          umask 077
+          # Secret names only. wrangler never returns a secret value.
+          if ! listing="$(npx wrangler secret list --format json 2>/dev/null)"; then
+            echo "::warning::wrangler secret list failed, so no vault key was made. Run the workflow Provision vault key by hand."
+            exit 0
+          fi
+          names="$(printf '%s' "$listing" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).map(e=>e.name).join(" "))}catch{process.exit(1)}})')" || {
+            echo "::warning::The secret list could not be read, so no vault key was made."
+            exit 0
+          }
+          case " $names " in
+            *" CONNECTOR_KEK "*) echo "CONNECTOR_KEK exists. Nothing to do."; exit 0 ;;
+          esac
+          keyfile="$(mktemp "${RUNNER_TEMP:-/tmp}/kek.XXXXXX")"
+          trap 'rm -f "$keyfile"' EXIT
+          node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))' > "$keyfile"
+          echo "::add-mask::$(cat "$keyfile")"
+          npx wrangler secret put CONNECTOR_KEK < "$keyfile" > /dev/null
+          echo "CONNECTOR_KEK was made and set." >> "$GITHUB_STEP_SUMMARY"
+          echo "CONNECTOR_KEK was made and set."
+
       - name: wrangler deploy
         if: steps.check.outputs.configured == 'true'
         working-directory: worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler deploy
+        run: |
+          npx wrangler deploy --var "TITAN_COMMIT:${GITHUB_SHA}" --var "TITAN_BUILD_TIME:$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: Check that the new version runs
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          set +x
+          for attempt in 1 2 3 4 5 6 7 8; do
+            body="$(curl -sS -m 10 "$WORKER_URL/version" || true)"
+            case "$body" in
+              *"$GITHUB_SHA"*) echo "GET /version shows the commit ${GITHUB_SHA}."; echo "Deployed ${GITHUB_SHA}. GET /version matches." >> "$GITHUB_STEP_SUMMARY"; exit 0 ;;
+            esac
+            sleep 8
+          done
+          echo "::warning::GET /version did not show the commit ${GITHUB_SHA} after 8 tries. Check the Worker logs."
+          exit 1
 
       - name: Not configured yet
         if: steps.check.outputs.configured != 'true'

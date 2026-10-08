@@ -8,7 +8,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPublicKey, verify } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import worker, { handleGevJwks, handleGevToken } from '../src/index.js';
+import worker from '../src/index.js';
+import { handleGevJwks, handleGevToken } from '../src/legacy.js';
 import { mintGevToken, parseSigningJwk, signingKeyIsConsistent } from '../src/gev-token.js';
 
 const vector = JSON.parse(readFileSync(new URL('./gev-vector.json', import.meta.url), 'utf8'));

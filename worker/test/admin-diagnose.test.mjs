@@ -8,7 +8,7 @@
 // real GitHub API (same no-live-network reasoning as sealedbox.test.mjs).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { handleAdminDiagnose } from '../src/index.js';
+import { handleAdminDiagnose } from '../src/legacy.js';
 
 function fakeEnv(overrides = {}) {
   return { GITHUB_OWNER: 'shreyas-tech7', GITHUB_REPO: 'TITAN-Runner', GITHUB_PAT: 'gh_fake_test_pat', ...overrides };

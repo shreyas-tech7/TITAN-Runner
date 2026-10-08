@@ -9,7 +9,7 @@ import {
   handleProvisionVm,
   handleInternalVmStatus,
   dispatchQueuedVms,
-} from '../src/index.js';
+} from '../src/legacy.js';
 
 /**
  * A tiny fake D1. `plan` maps a substring of the SQL to the result the
