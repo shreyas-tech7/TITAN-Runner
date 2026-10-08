@@ -43,7 +43,7 @@ export function minutesInZone(date, tz) {
 
 const toMinutes = (hhmm) => {
   const m = /^(\d{2}):(\d{2})$/.exec(hhmm ?? '');
-  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  return m && Number(m[1]) <= 23 && Number(m[2]) <= 59 ? Number(m[1]) * 60 + Number(m[2]) : null;
 };
 
 /** True when `date` falls inside the quiet hours. The range may cross midnight. */

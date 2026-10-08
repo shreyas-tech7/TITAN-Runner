@@ -23,6 +23,7 @@ import {
 } from './connectors/api.js';
 import { handleInboundHook } from './connectors/hooks.js';
 import { handleTelegramUpdate } from './connectors/telegram.js';
+import { handleDiagnoseFull, handleGetUrls, handleHealthFull, handleSetUrls, handleSetup } from './health.js';
 import { handleMcp, handleMcpGet } from './mcpServer.js';
 import { handleKeyEvents, handleListKeys, handleProviderProof, handleRemoveKey, handleSaveKey, handleSecretRoundTrip, handleTestKey } from './keys.js';
 import { handlePulseBadge, handlePulseHeartbeat, handlePulseState, handleRunPulseNow } from './keeper.js';
@@ -98,6 +99,13 @@ export const ROUTES = [
   { method: 'POST', path: '/admin/notify/preset', group: 'admin', handler: handleRulePreset },
   { method: 'POST', path: '/admin/notify/test', group: 'admin', handler: handleNotifyTest },
   { method: 'GET', path: '/admin/events', group: 'admin', handler: handleEvents },
+
+  // admin: health and setup (Wave 12, Track H)
+  { method: 'GET', path: '/health/full', group: 'admin', handler: handleHealthFull },
+  { method: 'POST', path: '/admin/diagnose/full', group: 'admin', handler: handleDiagnoseFull },
+  { method: 'GET', path: '/admin/setup', group: 'admin', handler: handleSetup },
+  { method: 'GET', path: '/admin/health/urls', group: 'admin', handler: handleGetUrls },
+  { method: 'POST', path: '/admin/health/urls', group: 'admin', handler: handleSetUrls },
 
   // mcp: tools with an MCP token. The handler checks the token itself.
   { method: 'POST', path: '/mcp', group: 'mcp', handler: handleMcp },
