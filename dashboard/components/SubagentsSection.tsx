@@ -9,7 +9,7 @@
 import { useState } from "react";
 import { relative } from "@/lib/time";
 import { Badge, Panel, StatusDot, type Tone } from "@/components/kit";
-import { queueTask, KNOWN_PROVIDERS, WorkerApiError, type SubagentRow, type SubagentStatus, type LearningPathRow } from "@/lib/workerApi";
+import { queueTask, retryTask, KNOWN_PROVIDERS, WorkerApiError, type SubagentRow, type SubagentStatus, type LearningPathRow } from "@/lib/workerApi";
 
 const STATUS_META: Record<SubagentStatus, { label: string; tone: Tone; pulse: boolean }> = {
   queued: { label: "Queued", tone: "neutral", pulse: false },
@@ -52,8 +52,9 @@ function LearningPathView({ path }: { path: LearningPathRow }) {
   );
 }
 
-function SubagentRowView({ row, learningPath }: { row: SubagentRow; learningPath: LearningPathRow | undefined }) {
+function SubagentRowView({ row, learningPath, onRetry, retrying }: { row: SubagentRow; learningPath: LearningPathRow | undefined; onRetry: () => void; retrying: boolean }) {
   const meta = STATUS_META[row.status] ?? STATUS_META.queued;
+  const stuck = row.status === "failed" || ((row.status === "dispatched" || row.status === "running") && Date.now() - Date.parse(row.started_at ?? row.dispatched_at ?? row.queued_at) > 25 * 60_000);
   return (
     <li className="e-item">
       <div className="e-item-head">
@@ -76,7 +77,21 @@ function SubagentRowView({ row, learningPath }: { row: SubagentRow; learningPath
           </span>
         )}
       </div>
-      {row.result_summary && <div className="e-hint">{row.result_summary}</div>}
+      {row.result_summary && row.status !== "failed" && <div className="e-hint">{row.result_summary}</div>}
+      {row.status === "failed" && (
+        <details className="why-failed">
+          <summary>Why did this fail?</summary>
+          <p className="e-hint">{row.result_summary || "No reason was recorded. Open the run on the Actions tab."}</p>
+          <p className="e-dim">If the callback was rejected, open Settings and click Repair runner callbacks. Then retry the task.</p>
+        </details>
+      )}
+      {stuck && (
+        <div className="e-item-links">
+          <button className="btn btn-quiet" onClick={onRetry} disabled={retrying} aria-label={`Retry the task ${row.id}`}>
+            {retrying ? "Retrying" : "Retry"}
+          </button>
+        </div>
+      )}
       {learningPath && <LearningPathView path={learningPath} />}
     </li>
   );
@@ -98,6 +113,20 @@ export default function SubagentsSection({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justQueuedId, setJustQueuedId] = useState<string | null>(null);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  async function handleRetry(id: string) {
+    setRetryingId(id);
+    setError(null);
+    try {
+      await retryTask(token, id);
+      onQueued();
+    } catch (err) {
+      setError(err instanceof WorkerApiError ? err.message : "Could not reach the Worker.");
+    } finally {
+      setRetryingId(null);
+    }
+  }
 
   async function handleSubmit() {
     const trimmed = brief.trim();
@@ -147,7 +176,7 @@ export default function SubagentsSection({
       ) : (
         <ul className="e-list" aria-label="Recent sub-agent tasks">
           {subagents.map((row) => (
-            <SubagentRowView key={row.id} row={row} learningPath={learningPaths.find((p) => p.subagent_id === row.id)} />
+            <SubagentRowView key={row.id} row={row} learningPath={learningPaths.find((p) => p.subagent_id === row.id)} onRetry={() => void handleRetry(row.id)} retrying={retryingId === row.id} />
           ))}
         </ul>
       )}

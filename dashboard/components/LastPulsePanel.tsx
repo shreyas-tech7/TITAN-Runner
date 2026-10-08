@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { PolledJsonResult } from "@/lib/usePolledJson";
-import { pulseView } from "@/lib/pulseView";
+import { pulseGapStats, pulseView } from "@/lib/pulseView";
 import type { HeartbeatState, PulseHistoryState } from "@/lib/types";
 import { formatCountdown, formatDuration, relative } from "@/lib/time";
 import { Badge, Meter, Panel, Sparkline, StatusDot } from "@/components/kit";
@@ -25,6 +25,7 @@ export default function LastPulsePanel({ heartbeat, history }: { heartbeat: Poll
   const v = useMemo(() => pulseView(heartbeat.data, history.data?.pulses, now), [heartbeat.data, history.data, now]);
   // Until a heartbeat arrives, the badge says what is true: still loading, or could not load. It never says "no pulse yet" for a failed read.
   const badge = heartbeat.data ? STATE_BADGE[v.state] : heartbeat.loading ? ({ tone: "neutral", word: "Loading" } as const) : heartbeat.error ? ({ tone: "neutral", word: "Unknown" } as const) : STATE_BADGE.never;
+  const gaps = pulseGapStats(history.data?.pulses, now);
   const untilNext = v.nextDueAt ? Date.parse(v.nextDueAt) - now : null;
 
   return (
@@ -71,6 +72,12 @@ export default function LastPulsePanel({ heartbeat, history }: { heartbeat: Poll
               <dt>Next due</dt>
               <dd className="e-num">
                 {untilNext === null ? "unknown" : untilNext > 0 ? `in ${formatCountdown(untilNext)}` : v.minutesLate > 0 ? `${v.minutesLate} min late` : "now"}
+              </dd>
+            </div>
+            <div className="e-fact">
+              <dt>Gap between pulses, last 24 hours</dt>
+              <dd className="e-num" title="The cron asks for 15 minutes. The Worker keeper starts a pulse when GitHub is late.">
+                {gaps.count === 0 ? "not enough pulses" : `median ${gaps.medianMinutes} min, p90 ${gaps.p90Minutes} min`}
               </dd>
             </div>
             <div className="e-fact">

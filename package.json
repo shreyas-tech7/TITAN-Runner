@@ -26,7 +26,8 @@
     "sync:providers": "node scripts/sync-provider-env.mjs",
     "gen:migrations": "node scripts/gen-worker-migrations.mjs",
     "check:migrations": "node scripts/gen-worker-migrations.mjs --check",
-    "check:test-mode": "node scripts/check-test-mode.mjs"
+    "check:test-mode": "node scripts/check-test-mode.mjs",
+    "check:all": "node scripts/check-all.mjs"
   },
   "license": "MIT",
   "bin": {

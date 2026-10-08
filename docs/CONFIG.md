@@ -83,3 +83,49 @@ key makes that provider `not_configured`, and the pulse still runs.
 | `TITAN_FAKE_PROVIDER`, `TITAN_FAKE_GITHUB`, `TITAN_FAKE_LOG_DIR`, `TITAN_FAKE_PULSE_INDEX` | unset | The simulation fakes (`src/fakes/`). `titan simulate` sets them. |
 | `TITAN_CLOCK_OFFSET_MS` | `0` | Moves the engine clock; honoured only while the fakes are wired. |
 | `TITAN_CONTROL_ACTOR` | local user | Who a control action is attributed to (the workflow passes `github.actor`). |
+
+## Worker (Wave 12)
+
+These are variables and secrets of the `titan-runner-brain` Worker, not of the pulse.
+
+| Name | Kind | Meaning |
+|---|---|---|
+| `TITAN_ADMIN_TOKEN` | secret | The token for people. It opens the `admin` routes. |
+| `GITHUB_PAT` | secret | A fine-grained token. It needs Secrets (read and write), Contents (read and write), Issues (read and write), Actions (read), and Variables (read). |
+| `CONNECTOR_KEK` | secret | The vault key, 32 random bytes as hex. A workflow makes it. Do not set it by hand. |
+| `GEV_SIGNING_KEY` | secret | The signing key for the God's Eye View tab. |
+| `TITAN_ALLOWED_ORIGINS` | variable | More CORS origins, separated by commas. The defaults are the Pages origin and the two local origins. |
+| `DASHBOARD_URL` | variable | The address of the dashboard. OAuth sends a person back here. |
+| `TITAN_COMMIT`, `TITAN_BUILD_TIME` | variable | Set by `worker-deploy.yml` with `--var`. `GET /version` shows them. |
+| `TITAN_TEST_MODE`, `TITAN_TEST_HOST_MAP`, `TITAN_PROVIDER_CHECK_TIMEOUT_MS` | test only | Local tests only. Never set them in `wrangler.toml`. A CI check fails if you do. |
+
+### Repo secrets and variables used by workflows
+
+| Name | Kind | Meaning |
+|---|---|---|
+| `TITAN_CALLBACK_TOKEN` | secret | The Worker makes it and writes it. Workflows send it as `X-Titan-Callback`. |
+| `TITAN_ADMIN_TOKEN` | secret | A script sends it only when the callback token is empty. |
+| `TITAN_WORKER_URL` | variable | The address of the Worker. |
+| `OPENCODE_MODEL` | secret | An optional pin for the OpenCode model. |
+| `CUSTOM_1_*` to `CUSTOM_3_*` | secret | A custom OpenAI compatible provider: `API_KEY`, `BASE_URL`, `MODEL`, and `LABEL`. |
+| `HERMES_1_*` to `HERMES_3_*` | secret | A Hermes agent: `API_KEY`, `BASE_URL`, `MODEL`, `CHAT_PATH`, and `SPECIALIZATION`. |
+
+The full list of provider secrets is generated from `config/providers.catalog.json` into `.env.example`.
+
+### Retention of D1 rows
+
+The 6-hour cron removes old rows with these limits:
+
+| Table | Limit |
+|---|---|
+| `connector_calls` | 30 days |
+| `auth_failures` | 1 day |
+| `oauth_states` | when they expire |
+| chat messages and threads | 30 days by default. The setting `retention.chatDays` changes it. |
+| `key_events` | 365 days |
+| `events` | 30 days |
+| `callback_pings` | 30 days |
+| `subagents` with status `done` | 90 days |
+| `subagents` with status `failed` | 180 days |
+| revoked rows in `worker_tokens` | 30 days |
+

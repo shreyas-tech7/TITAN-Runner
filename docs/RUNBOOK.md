@@ -103,3 +103,34 @@ return broken JSON, refuse, 429 with a Retry-After, 5xx, drop the
 connection, run out of quota, or kill the process mid-step; the fake GitHub
 is a JSON fixture. `TITAN_NETWORK=off` is set for you: nothing can reach a
 real provider.
+
+## A key is not working (Wave 12)
+
+1. Open the Keys page. Read the state and the reason on the row.
+2. If the state is `invalid`, save a new key. Click "Replace" on the row.
+3. If the state is `saved_unverified`, click "Test now". Wait 3 minutes.
+4. If the proof never arrives, open Settings and click "Repair runner callbacks".
+5. If a banner names a GitHub permission, edit the token `GITHUB_PAT` of the Worker and add that permission. Do not make a new token.
+6. If a banner says that a secret has a spelling slip, save the key again on the Keys page. Then delete the old secret on GitHub.
+
+## The callback path is broken
+
+Symptoms: sub-agent tasks stay `dispatched`, and then become `failed` after 25 minutes.
+
+1. Open Settings. Click "Repair runner callbacks". The Worker makes a new callback token and runs a round trip test.
+2. If the test fails, open the Actions tab and read the run of `callback-ping`.
+3. If the Worker could not write the secret, read "Last error" in the panel. The Worker tries again after one hour.
+4. After the repair, click "Retry" on a failed task.
+
+## The pulse is late
+
+The Worker starts a pulse when the last heartbeat is older than 15 minutes. The banner on the dashboard warns only when the keeper fails too.
+
+1. Open the dashboard. Read the banner.
+2. If the keeper failed, read its error. A common cause is a `GITHUB_PAT` without the Contents write permission.
+3. Start a pulse by hand: open Actions, choose "TITAN Pulse", and click "Run workflow".
+
+## The vault is not ready
+
+Chat and some connectors need the vault. Open the Actions tab, choose "Provision vault key", and click "Run workflow". The workflow makes the key inside a runner. Do not use the input "rotate" unless you accept that old records become unreadable.
+

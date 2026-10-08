@@ -58,6 +58,21 @@ export const SECRET_PATTERNS = [
   /\bauthorization["']?\s*[:=]\s*["']?[^"'\s,}]{8,}/gi,
   // `?token=…` / `&api_key=…` in a URL.
   /\b(?:api[_-]?key|access[_-]?token|token|secret)=[^&\s"']{8,}/gi,
+  // Wave 12 (S6): the credentials of the connectors. Each pattern uses a fixed literal prefix and a bounded class.
+  // Telegram bot token: the bot id, a colon, and 35 characters.
+  /\b\d{8,10}:[A-Za-z0-9_-]{35}\b/g,
+  // Notion: the old integration secret and the new ntn_ token.
+  /\bsecret_[A-Za-z0-9]{43}\b/g,
+  /\bntn_[A-Za-z0-9]{30,}\b/g,
+  // Linear API keys and OAuth tokens.
+  /\blin_(?:api|oauth)_[A-Za-z0-9]{32,}\b/g,
+  // Slack and Discord webhook URLs. The URL is the secret.
+  /https:\/\/hooks\.slack\.com\/services\/T[A-Z0-9]+\/B[A-Z0-9]+\/[A-Za-z0-9]{16,}/g,
+  /https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d{15,}\/[A-Za-z0-9_-]{20,}/g,
+  // ntfy topic URLs. The topic name is the only secret of a topic.
+  /https?:\/\/ntfy\.sh\/[A-Za-z0-9_-]{6,}/g,
+  // Google OAuth client secrets.
+  /\bGOCSPX-[A-Za-z0-9_-]{20,}/g,
   // Email addresses. Not a credential, but PII the Gmail adapter's own
   // fixtures and live path both carry (senders, recipients, thread
   // participants) — the brief names this alongside keys and tokens

@@ -79,3 +79,22 @@ attempts, output, error per step), `sideEffects` (key → time fired),
 `tools` (non-idempotent tool calls already made), `verification` (verdict,
 checks, judge, round), `remediations`, `usage`, `gate`. Deleted when the
 task ends; retained through every wait.
+
+## Worker tables (Wave 12)
+
+The Worker keeps its own state in D1. These tables never hold a key, a token, or personal data in clear text.
+
+| Table | Holds |
+|---|---|
+| `provider_keys` | The fingerprint, the last four characters, the check, and the proof of each key. Never the key. |
+| `key_events` | The audit log of key actions. |
+| `worker_tokens` | The hash of each callback token and its status. |
+| `callback_pings` | The round trip tests of the callback path. |
+| `auth_failures` | Wrong token counts. The key is a hash of the client address. |
+| `settings` | The pulse keeper state and similar values. |
+| `events` | The event log. It holds titles and short text only. |
+| `vault_records` | Encrypted records: AES-256-GCM, one IV for each record. |
+| `subagents` | Sub-agent tasks. `dispatched_at` and `retry_count` are new. |
+
+The schema lives in `worker/migrations/`. Every migration only adds.
+

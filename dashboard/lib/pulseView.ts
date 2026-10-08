@@ -65,3 +65,26 @@ export function pulseView(hb: HeartbeatState | null | undefined, history: PulseH
     window: recent.length,
   };
 }
+
+/** The real gaps between pulses over the last day (Wave 12, R1). The cron asks for 15 minutes. GitHub often runs it later. */
+export interface PulseGapStats {
+  count: number;
+  medianMinutes: number | null;
+  p90Minutes: number | null;
+  maxMinutes: number | null;
+}
+
+export function pulseGapStats(history: PulseHistoryEntry[] | undefined, nowMs: number, windowHours = 24): PulseGapStats {
+  const from = nowMs - windowHours * 3_600_000;
+  const times = (history ?? [])
+    .map((p) => Date.parse(p.at))
+    .filter((t) => Number.isFinite(t) && t >= from && t <= nowMs)
+    .sort((a, b) => a - b);
+  const gaps: number[] = [];
+  for (let i = 1; i < times.length; i += 1) gaps.push((times[i] - times[i - 1]) / 60_000);
+  if (gaps.length === 0) return { count: 0, medianMinutes: null, p90Minutes: null, maxMinutes: null };
+  gaps.sort((a, b) => a - b);
+  const rank = (q: number) => gaps[Math.min(gaps.length - 1, Math.max(0, Math.ceil(q * gaps.length) - 1))];
+  const round = (n: number) => Math.round(n * 10) / 10;
+  return { count: gaps.length, medianMinutes: round(rank(0.5)), p90Minutes: round(rank(0.9)), maxMinutes: round(gaps[gaps.length - 1]) };
+}

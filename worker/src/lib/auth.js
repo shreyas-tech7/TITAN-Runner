@@ -4,7 +4,7 @@
  * Each token type has one job (decision W12-D6):
  *   - admin:    people. The header `X-Titan-Auth`. It opens the `admin` routes.
  *   - callback: workflows. The header `X-Titan-Callback`. It opens the `internal` routes. The Worker manages it.
- *   - mcp:      tools. The header `Authorization: Bearer`. It opens `/mcp` only, within its scopes.
+ *   - mcp:      tools. The Authorization header with a Bearer value. It opens `/mcp` only, within its scopes.
  *   - hook:     inbound webhooks. A secret for one hook. It opens that one `/hooks/...` route only.
  * The route table that gives each route its group is in `routes.js` and in docs/RUNTIME.md.
  */

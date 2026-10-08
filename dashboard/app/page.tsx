@@ -179,6 +179,7 @@ export default function DashboardPage() {
       },
       { id: "open-repo", label: "Open repo", run: () => window.open(`https://github.com/${OWNER}/${REPO}`, "_blank") },
       { id: "toggle-settings", label: "Settings", run: () => setSettingsOpen(true) },
+      { id: "add-key", label: "Add a key", run: () => window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/keys/`) },
       ...THEMES.map((t) => ({ id: `theme-${t}`, label: `Theme: ${THEME_LABEL[t]}`, run: () => applyTheme(t) })),
     ];
     const taskCommands: Command[] = allTasks.slice(-30).map((t) => ({
@@ -229,7 +230,7 @@ export default function DashboardPage() {
       <main id="main">
       <OfflineNotice />
 
-      <StalenessBanner lastPulseAt={heartbeat.data?.lastPulseAt ?? null} />
+      <StalenessBanner lastPulseAt={heartbeat.data?.lastPulseAt ?? null} token={ adminToken } />
 
       <div className="vitals-grid">
         <CommandClock />
@@ -297,7 +298,7 @@ export default function DashboardPage() {
           }}
         />
       )}
-      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} adminToken={ adminToken } onUnauthorized={lockDashboard} />}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
     </div>
       )}

@@ -34,6 +34,8 @@ export interface SubagentRow {
   source: "github-issue" | "dashboard" | "meta-agent";
   provider: string | null;
   queued_at: string;
+  dispatched_at?: string | null;
+  retry_count?: number;
   started_at: string | null;
   finished_at: string | null;
   result_summary: string | null;
@@ -119,7 +121,7 @@ export class WorkerApiError extends Error {
   }
 }
 
-async function callWorker(path: string, token: string, init: RequestInit = {}): Promise<Response> {
+export async function callWorker(path: string, token: string, init: RequestInit = {}): Promise<Response> {
   if (!WORKER_URL) {
     throw new WorkerApiError("The titan-runner-brain Worker isn't configured yet (NEXT_PUBLIC_TITAN_WORKER_URL is empty) — see docs/RUNTIME.md.");
   }
@@ -137,7 +139,7 @@ async function callWorker(path: string, token: string, init: RequestInit = {}): 
   return res;
 }
 
-async function readErrorMessage(res: Response, fallback: string): Promise<string> {
+export async function readErrorMessage(res: Response, fallback: string): Promise<string> {
   try {
     const body = (await res.json()) as { error?: string };
     return body?.error || fallback;
@@ -148,6 +150,13 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
 
 export async function fetchStatus(token: string): Promise<StatusResponse> {
   const res = await callWorker("/status", token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+/** POST /tasks/:id/retry: a failed or stuck task goes back to queued (Wave 12, K9). */
+export async function retryTask(token: string, id: string): Promise<{ ok: true; id: string }> {
+  const res = await callWorker(`/tasks/${encodeURIComponent(id)}/retry`, token, { method: "POST", body: "{}" });
   if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
   return res.json();
 }

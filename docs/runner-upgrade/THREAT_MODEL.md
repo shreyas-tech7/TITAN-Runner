@@ -98,3 +98,111 @@ dashboard. A push is a publication.
   the same author filter, but the Worker is denylisted for self-improve and cannot be
   deployed or verified from this run.
 - Free-tier providers may ban an account for automated use regardless of anything here.
+
+## Wave 12: keys, the vault, connectors, and the Worker
+
+This section covers the parts that Wave 12 adds. It uses the STRIDE method: Spoofing, Tampering, Repudiation, Information disclosure, Denial of service, and Elevation of privilege. The mark "built" means that the control exists in the code and a test covers it. The mark "release 2" means that the part ships in the second release of the wave.
+
+### Assets that are new
+
+1. The callback token. It opens the `internal` routes of the Worker.
+2. `CONNECTOR_KEK`, the vault key. It protects every connector credential and every chat key.
+3. Connector credentials: API tokens, webhook URLs, OAuth tokens, and bot tokens.
+4. Personal data: mail, calendar, notes, and chat. Decision W12-D7 keeps it out of the repo.
+5. MCP tokens and OAuth clients for MCP.
+
+### Keys (provider keys)
+
+| Threat | Control | Status |
+|---|---|---|
+| S: someone saves a key with a stolen admin token | The admin token is the only gate, so the lockout (10 wrong tokens in 10 minutes gives 429 for 15 minutes) and the audit log limit the damage. A save never reveals an old key. | built |
+| T: a key is changed in transit or in the sealed box | The key goes over https. The Worker seals it for the GitHub public key. A test opens the box with libsodium. | built |
+| R: nobody can say who changed a key | The `key_events` table records each save, replace, test, and remove with the fingerprint, the actor, and the request id. | built |
+| I: the key leaks into a response, a log line, D1, or an error | The key is never written to any of them. A test searches for the key in every sink after a full flow. A provider error text is never repeated, because a provider can echo part of a key. | built |
+| D: someone makes the Worker call a slow or hostile host | A provider check has an 8 second limit. A base URL must use https and a public host. `safeFetch` follows no redirect. | built |
+| E: a custom base URL reaches a private network | The host name is checked, and a DNS over HTTPS lookup refuses a private address, both at save time and when the adapter runs. | built |
+
+### The vault
+
+| Threat | Control | Status |
+|---|---|---|
+| S: a record is copied to another row to read it under another identity | The additional data of each record is `connectionId|connectorId|kekVersion`. A copied record fails to open. | built |
+| T: a stored record is changed | AES-256-GCM detects any change of the ciphertext. | built |
+| I: the key encryption key leaks | The key is made inside a GitHub runner and goes over stdin into the Worker secret store. No person, no log, and no argument holds it. | built |
+| D: the key is missing | Vault routes answer 503 `vault_not_ready` with the fix. | built |
+| E: a rotation exposes old records | A new key cannot open old records. The workflow warns before it replaces a key. | built |
+
+### The callback token and the route groups
+
+| Threat | Control | Status |
+|---|---|---|
+| S: a workflow call is faked | The callback token is 32 random bytes. The Worker keeps only its hash. | built |
+| E: one stolen token opens everything (finding R-10) | Each token type opens one route group. The callback token opens `internal` routes only. After legacy mode ends, the admin token no longer opens them. | built |
+| I: the token leaks from the repo secrets | The Worker rotates the token every 30 days, and a button rotates it at once. The old token works for 30 minutes after a rotation. | built |
+| D: wrong tokens fill the database | A lockout caps the writes: at most 10 for each client and group, and none while locked. | built |
+
+### CORS (finding R-11) and lockout (finding R-12)
+
+| Threat | Control | Status |
+|---|---|---|
+| E: a foreign page calls the Worker with a stolen token | CORS allows three origins. Any other origin gets 403 before a handler runs. | built |
+| S: guessing the admin token | The lockout returns 429 after 10 wrong tokens in 10 minutes. The table stores a hash of the address and never the address. | built |
+
+### The pulse keeper
+
+| Threat | Control | Status |
+|---|---|---|
+| D: the keeper starts too many pulses | A dispatch needs a heartbeat older than 15 minutes and a last dispatch older than 14 minutes. The workflow keeps its concurrency group. | built |
+| T: a forged heartbeat hides a dead pulse | The heartbeat route needs the callback token. The Worker uses its own clock. | built |
+| R: nobody knows why a pulse started | The keeper records its last dispatch and its last error. | built |
+
+### The connector broker (release 2)
+
+| Threat | Control |
+|---|---|
+| S: a sub-agent acts as the owner | The callback token reads `public` and `internal` data only. A `write` action returns `pending_approval`. A `destructive` action is admin only, with a typed confirm. |
+| T: a request template builds a hostile request | Templates use objects and not joined strings. Path values are URL encoded. Unknown fields are rejected. |
+| I: a credential reaches a log or `state/` | The call log keeps metadata only. A result passes through `scrubForState` before any log line. A `personal` result never goes to a workflow. |
+| D: a connector floods a service | Each action has a rate limit. |
+| E: a connector reaches a private host | `safeFetch` checks every call against the manifest hosts. |
+
+### Inbound webhooks (release 2)
+
+| Threat | Control |
+|---|---|
+| S: a fake caller | Each hook has its own secret, checked with a timing safe compare. The `hmac` mode signs a timestamp and the body, with a 300 second window and a replay check. |
+| T: a changed body | The signature covers the body. |
+| D: a flood | The body limit is 64 KB. The limit for each hook is 30 calls each minute. |
+| E: a hook creates a task with extra rights | A hook can only create a task of the type `auto` or an event. It never creates `osint` or `meta-lesson`. |
+
+### OAuth (release 2)
+
+| Threat | Control |
+|---|---|
+| S: a forged redirect | `state` is random and lives 10 minutes. PKCE binds the code to the Worker. |
+| I: tokens leak in a URL | The redirect to the dashboard holds no token. Tokens are stored in the vault. |
+| E: too wide a scope | Calendar asks for `calendar.readonly`. Gmail asks for `gmail.readonly` and `gmail.compose`. Gmail has no send action. |
+
+### MCP (release 2)
+
+| Threat | Control |
+|---|---|
+| S: a stolen MCP token | A token has scopes, and a person revokes it in the dashboard. Only the hash is stored. |
+| E: a tool reaches personal data | The scope `personal:read` is separate. A `destructive` action is never reachable from MCP. |
+| T: a hostile web page calls `/mcp` | The Worker checks the `Origin` header. |
+
+### Telegram (release 2)
+
+| Threat | Control |
+|---|---|
+| S: someone else commands the bot | The bot answers only the paired owner chat. The webhook checks the secret header. A pair code lives 10 minutes and works once. |
+| T: a forged approval button | `callback_data` holds an HMAC. The Worker checks the HMAC and the owner chat id. |
+| I: personal data in a message | A message holds personal data only if the rule permits it. |
+
+### Chat (release 3)
+
+| Threat | Control |
+|---|---|
+| I: the chat key leaks | The key is in the vault, encrypted, and off by default. |
+| D: a long stream uses the CPU budget | The work for each chunk is small. A provider that goes over the limit falls back to a non stream call. |
+| I: chat history stays forever | The history lives 30 days by default. A person deletes one thread or all history. |

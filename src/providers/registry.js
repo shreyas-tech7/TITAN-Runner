@@ -82,6 +82,22 @@ export class Registry {
     }
   }
 
+  /**
+   * Wave 12, R2: when OpenRouter fails for more than half of its recent calls, and the last call was inside the last
+   * hour, Gemini goes ahead of it. A named provider is never reordered.
+   */
+  #preferGemini(order) {
+    const rec = this.#health.get('openrouter');
+    const recent = rec?.lastCheckedAt && Date.now() - Date.parse(rec.lastCheckedAt) <= 3_600_000;
+    const i = order.indexOf('openrouter');
+    const j = order.indexOf('gemini');
+    if (!(recent && rec.errorRate > 0.5) || i === -1 || j === -1 || j < i) return order;
+    const out = [...order];
+    out.splice(j, 1);
+    out.splice(i, 0, 'gemini');
+    return out;
+  }
+
   /** Attach (or replace) the quota ledger — the engine does this per pulse. */
   useQuota(ledger) {
     this.#quota = ledger ?? null;
@@ -147,9 +163,10 @@ export class Registry {
     const explicitId = service !== 'auto' && ALL_CHAT_IDS.includes(service) ? service : null;
     const failover = opts.failover ?? explicitId === null;
     const maxProviders = Math.max(1, Number.isInteger(opts.maxProviders) ? opts.maxProviders : DEFAULT_MAX_PROVIDERS_PER_CALL);
-    const order = explicitId
+    const base = explicitId
       ? (failover ? [explicitId, ...ALL_CHAT_IDS.filter((id) => id !== explicitId)] : [explicitId])
       : [...ALL_CHAT_IDS];
+    const order = explicitId ? base : this.#preferGemini(base);
 
     const tried = [];
     const skipped = [];
