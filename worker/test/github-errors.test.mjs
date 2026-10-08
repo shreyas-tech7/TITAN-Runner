@@ -8,7 +8,7 @@
 // assert the message actually distinguishes those cases.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { describeGithubFailure } from '../src/index.js';
+import { describeGithubFailure } from '../src/lib/github.js';
 
 // A made-up token shape, built from parts so no key-shaped literal sits in the source.
 const FAKE_PAT = ['ghp', 'should_never_appear'].join('_');
@@ -44,13 +44,13 @@ test('404 (wrong owner/repo, or PAT cannot see the repo) gets its own hint', asy
   const res = fakeGithubResponse(404, { message: 'Not Found' });
   const message = await describeGithubFailure('GitHub secret PUT', res);
   assert.match(message, /GitHub secret PUT failed: 404/);
-  assert.match(message, /GITHUB_OWNER\/GITHUB_REPO/);
+  assert.match(message, /GITHUB_OWNER and GITHUB_REPO/);
 });
 
 test('an unrecognized status still reports status and body, with no hint text', async () => {
   const res = fakeGithubResponse(503, { message: 'Service unavailable' });
   const message = await describeGithubFailure('GitHub public-key fetch', res);
-  assert.equal(message, 'GitHub public-key fetch failed: 503 — {"message":"Service unavailable"}');
+  assert.equal(message, 'GitHub public-key fetch failed: 503. {"message":"Service unavailable"}');
 });
 
 test('never includes an Authorization header value, even if present on the response', async () => {

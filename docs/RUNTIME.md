@@ -730,6 +730,84 @@ one-time setup is done:
    `/admin/keys` would give, so a bad PAT shows up immediately instead of on
    the next real key paste.
 
+## Tokens and routes (Wave 12)
+
+Each token type has one job. A token that opens one group of routes never opens another.
+
+| Token | Header | Used by | Opens |
+|---|---|---|---|
+| Admin token | `X-Titan-Auth` | People, through the dashboard | The `admin` routes |
+| Callback token | `X-Titan-Callback` | Workflows | The `internal` routes only |
+| MCP token | `Authorization: Bearer` | Tools, such as Claude Code | `/mcp` only, within its scopes (release 2) |
+| Hook secret | One header for each check mode | Inbound webhooks | One `/hooks/...` route only (release 2) |
+
+The route table is in `worker/src/routes.js`. A test fails if a route has no group or if this table misses a route.
+
+| Method | Path | Group |
+|---|---|---|
+| GET | `/` | public |
+| GET | `/version` | public |
+| GET | `/gev/jwks` | public |
+| GET | `/badge/pulse` | public |
+| GET | `/status` | admin |
+| POST | `/tasks` | admin |
+| POST | `/tasks/:id/retry` | admin |
+| GET | `/admin/keys` | admin |
+| POST | `/admin/keys` | admin |
+| GET | `/admin/keys/events` | admin |
+| DELETE | `/admin/keys/:provider` | admin |
+| POST | `/admin/keys/:provider/test` | admin |
+| GET | `/admin/diagnose` | admin |
+| POST | `/admin/diagnose/secret-roundtrip` | admin |
+| GET | `/admin/callback` | admin |
+| POST | `/admin/callback-token/rotate` | admin |
+| POST | `/admin/callback-ping` | admin |
+| GET | `/admin/pulse` | admin |
+| POST | `/admin/pulse/run` | admin |
+| GET | `/admin/export` | admin |
+| POST | `/admin/delete-area` | admin |
+| GET | `/gev/token` | admin |
+| POST | `/admin/osint/ingest` | admin |
+| GET | `/osint/tools` | admin |
+| POST | `/osint/investigate` | admin |
+| GET | `/geospatial/events` | admin |
+| GET | `/system-memory` | admin |
+| GET | `/vms` | admin |
+| POST | `/vms/provision` | admin |
+| POST | `/internal/status` | internal |
+| POST | `/internal/vm-status` | internal |
+| POST | `/internal/geospatial-event` | internal |
+| POST | `/internal/learning-path` | internal |
+| POST | `/internal/system-memory` | internal |
+| GET | `/internal/system-memory` | internal |
+| POST | `/internal/provider-proof` | internal |
+| POST | `/internal/pulse-heartbeat` | internal |
+| POST | `/internal/ping` | internal |
+
+### Wrong token lockout
+
+The Worker counts wrong tokens for each client and route group. A client is a hash of its address, so the Worker never stores the address. After 10 wrong tokens in 10 minutes, the client gets `429` for 15 minutes on that route group. A request with no token is not counted. The table `auth_failures` keeps rows for one day.
+
+### CORS
+
+The Worker allows these origins: `https://shreyas-tech7.github.io`, `http://localhost:3000`, and `http://127.0.0.1:3000`. Set the variable `TITAN_ALLOWED_ORIGINS` to add more. Every response carries `Vary: Origin`. A request from another origin gets `403` before it reaches a handler. Hook routes and OAuth callback routes send no CORS headers, because a browser never calls them. A tool that sends no `Origin` header is allowed.
+
+### The callback token
+
+The Worker makes the callback token. It keeps the SHA-256 hash in D1. It writes the plain value to the secret `TITAN_CALLBACK_TOKEN` as a sealed box. No person sees it. The first token comes from the 1-minute tick. The tick rotates the token every 30 days. A forced rotation uses `POST /admin/callback-token/rotate`. The old token stays valid for 30 minutes after a rotation.
+
+Until 30 minutes after the first callback token becomes active, the `internal` routes also accept the admin token. This is legacy mode. After that, a call with the admin token gets `401 callback_token_required`. The scripts send the admin token only when the callback token is empty.
+
+If the write of the secret fails, the tick tries again after one hour. Use the button "Repair runner callbacks" in Settings. It rotates the token and runs the round trip test. The workflow `callback-ping.yml` is the runner side of that test.
+
+### The pulse keeper
+
+GitHub runs a `schedule` workflow when it has room. The live pulse ran about every 5 hours. The Worker keeps the pulse alive. It fires a `titan-pulse` dispatch when the last heartbeat is older than 15 minutes and the last dispatch is older than 14 minutes. The pulse sends its heartbeat to `POST /internal/pulse-heartbeat` at its end. If that call fails, the keeper reads `state/heartbeat.json` on `main`. The cron stays as a backup.
+
+### Stuck tasks
+
+A task that stays `dispatched` or `running` for more than 25 minutes becomes `failed` with a reason. Use `POST /tasks/:id/retry` to queue it again.
+
 ## Always-on VM fleet (Railway free VMs)
 
 A *third* execution surface layered alongside the 15-minute pulse and the

@@ -1,30 +1,44 @@
 name: Provider self-test
 
-# Manual + weekly (task instructions, section 6): re-discovers each
-# provider's current free-tier model catalog and sends one tiny (5-token)
-# completion to every configured provider, so a churned model id or an
-# expired key shows up in state/providers.json and the dashboard's
-# provider-health strip within a week at most, and immediately on demand.
-# Deliberately its own workflow, separate from titan-pulse.yml — a live
-# provider probe has no place adding latency or failure risk to the
-# 15-minute cron's own job (same reasoning as pages-deploy.yml being split
-# out from the pulse).
+# Three ways to run (Wave 12, K5 and R3):
+#   weekly (Monday) and by hand: the full self-test. It refreshes each model catalog and sends one tiny
+#     completion to every configured provider. It commits state/providers.json.
+#   daily: the light probe. It lists models only and uses no tokens. It commits state/providers.json.
+#   repository_dispatch "provider-selftest" with a provider id: the Worker fires this after a key is saved or
+#     when a person clicks "Test now". It proves that one provider works in a real runner. It commits nothing and
+#     posts its result to the Worker, with the callback token.
+# Deliberately its own workflow, separate from titan-pulse.yml: a live provider probe has no place adding latency
+# or failure risk to the 15-minute pulse.
 on:
   schedule:
-    - cron: "0 7 * * 1" # Monday, 07:00 UTC
-  workflow_dispatch: {}
+    - cron: "0 7 * * 1" # Monday, 07:00 UTC, the full self-test
+    - cron: "30 6 * * *" # every day, 06:30 UTC, the light probe
+  repository_dispatch:
+    types: [provider-selftest]
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Prove one provider only (a catalog id such as groq). Leave empty to run the full self-test."
+        required: false
+        default: ""
 
 permissions:
   contents: write # commit state/providers.json
 
+# A single-provider proof must not wait behind a batch run, so the two kinds use two groups.
 concurrency:
-  group: provider-selftest
+  group: provider-selftest-${{ (github.event_name == 'repository_dispatch' || inputs.provider != '') && 'single' || 'batch' }}
   cancel-in-progress: false
 
 jobs:
   selftest:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # Untrusted values reach the script through env only.
+      TITAN_SELFTEST_PROVIDER: ${{ github.event.client_payload.provider || inputs.provider }}
+      TITAN_SELFTEST_REQUEST_ID: ${{ github.event.client_payload.requestId }}
+      TITAN_SELFTEST_MODE: ${{ github.event.schedule == '30 6 * * *' && 'light' || 'full' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -37,6 +51,11 @@ jobs:
 
       - name: Run the provider self-test
         env:
+          TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
+          TITAN_CALLBACK_TOKEN: ${{ secrets.TITAN_CALLBACK_TOKEN }}
+          # The admin token is used only when the callback token is empty (Wave 12, K8).
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          # BEGIN provider secrets (generated from config/providers.catalog.json, run npm run sync:providers)
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
@@ -47,15 +66,49 @@ jobs:
           GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
           HF_API_KEY: ${{ secrets.HF_API_KEY }}
           HF_MODEL: ${{ secrets.HF_MODEL }}
-          FREEBUFF_API_KEY: ${{ secrets.FREEBUFF_API_KEY }}
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           OPENCODE_BASE_URL: ${{ secrets.OPENCODE_BASE_URL }}
+          OPENCODE_MODEL: ${{ secrets.OPENCODE_MODEL }}
+          OMNIROUTE_API_KEY: ${{ secrets.OMNIROUTE_API_KEY }}
+          OMNIROUTE_BASE_URL: ${{ secrets.OMNIROUTE_BASE_URL }}
+          OMNIROUTE_MODEL: ${{ secrets.OMNIROUTE_MODEL }}
+          HERMES_1_API_KEY: ${{ secrets.HERMES_1_API_KEY }}
+          HERMES_1_BASE_URL: ${{ secrets.HERMES_1_BASE_URL }}
+          HERMES_1_MODEL: ${{ secrets.HERMES_1_MODEL }}
+          HERMES_1_CHAT_PATH: ${{ secrets.HERMES_1_CHAT_PATH }}
+          HERMES_1_SPECIALIZATION: ${{ secrets.HERMES_1_SPECIALIZATION }}
+          HERMES_2_API_KEY: ${{ secrets.HERMES_2_API_KEY }}
+          HERMES_2_BASE_URL: ${{ secrets.HERMES_2_BASE_URL }}
+          HERMES_2_MODEL: ${{ secrets.HERMES_2_MODEL }}
+          HERMES_2_CHAT_PATH: ${{ secrets.HERMES_2_CHAT_PATH }}
+          HERMES_2_SPECIALIZATION: ${{ secrets.HERMES_2_SPECIALIZATION }}
+          HERMES_3_API_KEY: ${{ secrets.HERMES_3_API_KEY }}
+          HERMES_3_BASE_URL: ${{ secrets.HERMES_3_BASE_URL }}
+          HERMES_3_MODEL: ${{ secrets.HERMES_3_MODEL }}
+          HERMES_3_CHAT_PATH: ${{ secrets.HERMES_3_CHAT_PATH }}
+          HERMES_3_SPECIALIZATION: ${{ secrets.HERMES_3_SPECIALIZATION }}
+          FREEBUFF_API_KEY: ${{ secrets.FREEBUFF_API_KEY }}
+          CUSTOM_1_API_KEY: ${{ secrets.CUSTOM_1_API_KEY }}
+          CUSTOM_1_BASE_URL: ${{ secrets.CUSTOM_1_BASE_URL }}
+          CUSTOM_1_MODEL: ${{ secrets.CUSTOM_1_MODEL }}
+          CUSTOM_1_LABEL: ${{ secrets.CUSTOM_1_LABEL }}
+          CUSTOM_2_API_KEY: ${{ secrets.CUSTOM_2_API_KEY }}
+          CUSTOM_2_BASE_URL: ${{ secrets.CUSTOM_2_BASE_URL }}
+          CUSTOM_2_MODEL: ${{ secrets.CUSTOM_2_MODEL }}
+          CUSTOM_2_LABEL: ${{ secrets.CUSTOM_2_LABEL }}
+          CUSTOM_3_API_KEY: ${{ secrets.CUSTOM_3_API_KEY }}
+          CUSTOM_3_BASE_URL: ${{ secrets.CUSTOM_3_BASE_URL }}
+          CUSTOM_3_MODEL: ${{ secrets.CUSTOM_3_MODEL }}
+          CUSTOM_3_LABEL: ${{ secrets.CUSTOM_3_LABEL }}
+          # END provider secrets
         run: node scripts/provider-selftest.mjs
 
       - name: Scrub and verify state before committing
+        if: env.TITAN_SELFTEST_PROVIDER == ''
         run: node scripts/check-secrets-in-state.mjs
 
       - name: Commit and push the result
+        if: env.TITAN_SELFTEST_PROVIDER == ''
         run: |
           git config user.name "titan-runner-bot"
           git config user.email "titan-runner@users.noreply.github.com"
@@ -64,15 +117,11 @@ jobs:
             echo "No provider health changes this run."
           else
             git commit -m "chore(providers): self-test $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            # A concurrent titan-pulse commit can land between this job's
-            # checkout and this push — rebase onto whatever is now on THIS
-            # SAME branch (GITHUB_REF_NAME, never a hardcoded "main" — see
-            # titan-pulse.yml's identical fix) rather than fail the whole
-            # run over an ordinary race. A real same-branch conflict aborts
-            # the rebase and skips this run's push; the next scheduled run
-            # recomputes fresh health data regardless.
+            # A concurrent titan-pulse commit can land between this job's checkout and this push. Rebase onto the
+            # same branch (GITHUB_REF_NAME, never a hardcoded main). A real conflict aborts the rebase and skips this
+            # push. The next run recomputes fresh data.
             if ! git pull --rebase origin "${GITHUB_REF_NAME}"; then
-              echo "::warning::Rebase conflict against origin/${GITHUB_REF_NAME} — skipping this run's push; the next self-test will recompute fresh data."
+              echo "::warning::Rebase conflict against origin/${GITHUB_REF_NAME}. Skipping this push."
               git rebase --abort
               exit 0
             fi

@@ -29,13 +29,12 @@
  * A `titan-task`-labeled issue can be filed by anyone, since this repo is
  * public — the gate is what stands between that and a live provider call.
  */
-import { registry, FAILOVER_ORDER } from '../src/providers/registry.js';
+import { registry, ALL_CHAT_IDS } from '../src/providers/registry.js';
+import { callWorker, callbackAuth, workerBase } from '../src/lib/workerCallback.js';
 import { scrubForState } from '../src/lib/secretScrub.js';
 import { reviewAction } from '../src/reviewer/index.js';
 import { parseProbeJson } from '../src/orchestrator/capabilityRegistry.js';
 
-const WORKER_URL = process.env.TITAN_WORKER_URL;
-const ADMIN_TOKEN = process.env.TITAN_ADMIN_TOKEN;
 const SUBAGENT_ID = process.env.TITAN_SUBAGENT_ID;
 const RAW_TASK_TYPE = (process.env.TITAN_SUBAGENT_TASK_TYPE || 'auto').trim();
 const BRIEF = process.env.TITAN_SUBAGENT_BRIEF || '';
@@ -59,38 +58,18 @@ function safe(value) {
 }
 
 async function reportStatus(patch) {
-  if (!WORKER_URL || !ADMIN_TOKEN || !SUBAGENT_ID) {
-    console.error(
-      'run-subagent-task: TITAN_WORKER_URL / TITAN_ADMIN_TOKEN / dispatch id not set — cannot report status back to the Worker.',
-    );
+  if (!workerBase() || !callbackAuth() || !SUBAGENT_ID) {
+    console.error('run-subagent-task: TITAN_WORKER_URL, a callback token, or the dispatch id is not set, so the status cannot go back to the Worker.');
     return;
   }
-  try {
-    const res = await fetch(`${WORKER_URL.replace(/\/$/, '')}/internal/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Titan-Auth': ADMIN_TOKEN },
-      body: JSON.stringify({ id: SUBAGENT_ID, ...patch }),
-    });
-    if (!res.ok) console.error(`run-subagent-task: status callback rejected: ${res.status}`);
-  } catch (err) {
-    console.error('run-subagent-task: status callback errored:', safe(err instanceof Error ? err.message : err));
-  }
+  const res = await callWorker('/internal/status', { body: { id: SUBAGENT_ID, ...patch } });
+  if (!res.ok) console.error(`run-subagent-task: status callback rejected: ${res.status ?? safe(res.error)}`);
 }
 
-/** Best-effort internal callback — never lets a reporting failure fail the
- * task itself, same spirit as reportStatus above. */
+/** Best-effort internal callback. A failed report never fails the task. */
 async function postInternal(path, body) {
-  if (!WORKER_URL || !ADMIN_TOKEN) return;
-  try {
-    const res = await fetch(`${WORKER_URL.replace(/\/$/, '')}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Titan-Auth': ADMIN_TOKEN },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) console.error(`run-subagent-task: ${path} callback rejected: ${res.status}`);
-  } catch (err) {
-    console.error(`run-subagent-task: ${path} callback errored:`, safe(err instanceof Error ? err.message : err));
-  }
+  const res = await callWorker(path, { body });
+  if (!res.ok && res.status !== null) console.error(`run-subagent-task: ${path} callback rejected: ${res.status}`);
 }
 
 /**
@@ -128,13 +107,11 @@ async function maybeReportGeospatialEvent(taskType, resultText) {
  * @returns {Promise<string>} A system-role prefix, or '' if there's nothing to prepend.
  */
 async function fetchSystemMemoryPrefix() {
-  if (!WORKER_URL || !ADMIN_TOKEN) return '';
+  if (!workerBase() || !callbackAuth()) return '';
   try {
-    const res = await fetch(`${WORKER_URL.replace(/\/$/, '')}/system-memory`, {
-      headers: { 'X-Titan-Auth': ADMIN_TOKEN },
-    });
+    const res = await callWorker('/internal/system-memory', { method: 'GET' });
     if (!res.ok) return '';
-    const { lessons } = await res.json();
+    const lessons = res.json?.lessons;
     if (!Array.isArray(lessons) || lessons.length === 0) return '';
     const bullets = lessons.map((l) => `- ${l.prompt_injection}`).join('\n');
     return `Lessons learned from previous sub-agent runs — apply these:\n${bullets}`;
@@ -231,8 +208,8 @@ async function main() {
   }
 
   const service = RAW_TASK_TYPE === 'any' || !RAW_TASK_TYPE || SPECIAL_TASK_TYPES.includes(RAW_TASK_TYPE) ? 'auto' : RAW_TASK_TYPE;
-  if (service !== 'auto' && !FAILOVER_ORDER.includes(service)) {
-    const summary = `no adapter for task_type "${safe(RAW_TASK_TYPE)}" — this cluster only reuses this repo's existing adapters: ${FAILOVER_ORDER.join(', ')}, or "auto"`;
+  if (service !== 'auto' && !ALL_CHAT_IDS.includes(service)) {
+    const summary = `no adapter for task_type "${safe(RAW_TASK_TYPE)}" — this cluster only reuses this repo's existing adapters: ${ALL_CHAT_IDS.join(', ')}, or "auto"`;
     console.error(`run-subagent-task: ${summary}`);
     await reportStatus({ status: 'failed', result_summary: summary, run_url: RUN_URL });
     process.exitCode = 1;

@@ -44,6 +44,7 @@ function world() {
   const repo = join(scratch, 'repo');
   mkdirSync(repo, { recursive: true });
   cpSync(join(ROOT, 'src'), join(repo, 'src'), { recursive: true });
+  cpSync(join(ROOT, 'config'), join(repo, 'config'), { recursive: true });
   cpSync(join(ROOT, 'package.json'), join(repo, 'package.json'));
   const stateDir = join(scratch, 'state');
   const logs = join(scratch, 'logs');

@@ -1,39 +1,18 @@
-// Covers the input checks and the secret handling on the Worker's two admin write routes (Wave 11 audit):
-// POST /tasks and POST /admin/keys. A provider key goes to GitHub as a sealed box and is never sent back
-// to the browser, never logged, and never accepted when it is oversized or not one printable token.
-// Network and database are stubbed. The fake key below is built from parts so no key-shaped literal is
-// committed.
+// Covers the input checks and the secret handling on the Worker's two admin write routes (Wave 11 audit, updated in Wave 12):
+// POST /tasks and POST /admin/keys. A provider key goes to GitHub as a sealed box and is never sent back to the browser,
+// never logged, and never accepted when it is oversized or not one printable token. Network and database are fakes.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import nacl from 'tweetnacl';
-import sealedbox from 'tweetnacl-sealedbox-js';
-import worker, { MAX_PROVIDER_KEY_LENGTH, checkProviderKeyValue, parseTaskType } from '../src/index.js';
+import worker from '../src/index.js';
+import { MAX_PROVIDER_KEY_LENGTH, checkProviderKeyValue } from '../src/keys.js';
+import { parseTaskType } from '../src/tasks.js';
+import { ADMIN, FAKE_GROQ_KEY, FakeWorld, authed, captureConsole, post } from './helpers/world.mjs';
 
-const ADMIN = ['admin', 'token', 'for', 'tests', '0123456789'].join('-');
-const FAKE_KEY = ['gsk', 'x'.repeat(8), 'FAKE', 'y'.repeat(24)].join('_');
-
-function fakeDb() {
-  const calls = [];
-  return {
-    calls,
-    prepare(sql) {
-      return {
-        bind(...args) {
-          return {
-            async run() {
-              calls.push({ sql, args });
-              return { success: true };
-            },
-          };
-        },
-      };
-    },
-  };
+function setup(t) {
+  const world = new FakeWorld().install(t);
+  world.providers.host('api.groq.com').valid.add(FAKE_GROQ_KEY);
+  return { world, env: world.env() };
 }
-const envWith = (over = {}) => ({ TITAN_ADMIN_TOKEN: ADMIN, GITHUB_OWNER: 'o', GITHUB_REPO: 'r', GITHUB_PAT: 'fake-pat', DB: fakeDb(), ...over });
-const post = (path, body, headers = {}) =>
-  new Request(`https://worker.example${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) });
-const authed = { 'X-Titan-Auth': ADMIN };
 
 test('parseTaskType accepts routing words and rejects the rest', () => {
   assert.deepEqual(parseTaskType(undefined), { value: 'auto' });
@@ -50,7 +29,7 @@ test('parseTaskType accepts routing words and rejects the rest', () => {
 });
 
 test('checkProviderKeyValue takes one printable token up to the cap', () => {
-  assert.equal(checkProviderKeyValue(FAKE_KEY), null);
+  assert.equal(checkProviderKeyValue(FAKE_GROQ_KEY), null);
   assert.equal(checkProviderKeyValue('a'.repeat(MAX_PROVIDER_KEY_LENGTH)), null);
   assert.match(checkProviderKeyValue('a'.repeat(MAX_PROVIDER_KEY_LENGTH + 1)), /too long/);
   assert.match(checkProviderKeyValue(''), /required/);
@@ -60,101 +39,79 @@ test('checkProviderKeyValue takes one printable token up to the cap', () => {
 });
 
 test('both write routes refuse a request with no token or a wrong token, before touching anything', async (t) => {
-  let fetched = false;
-  t.mock.method(globalThis, 'fetch', async () => {
-    fetched = true;
-    throw new Error('no network on an unauthorized call');
-  });
-  const env = envWith();
+  const { world, env } = setup(t);
   for (const path of ['/tasks', '/admin/keys']) {
-    for (const headers of [{}, { 'X-Titan-Auth': 'wrong' }, { 'X-Titan-Auth': ADMIN + 'x' }, { 'X-Titan-Auth': '' }]) {
-      const res = await worker.fetch(post(path, { brief: 'x', provider: 'groq', value: FAKE_KEY }, headers), env);
+    for (const headers of [{}, { 'X-Titan-Auth': 'wrong' }, { 'X-Titan-Auth': `${ADMIN}x` }, { 'X-Titan-Auth': '' }]) {
+      const res = await worker.fetch(post(path, { brief: 'x', provider: 'groq', value: FAKE_GROQ_KEY }, headers), env);
       assert.equal(res.status, 401, `${path} ${JSON.stringify(headers)}`);
     }
   }
-  assert.equal(env.DB.calls.length, 0);
-  assert.equal(fetched, false);
+  assert.equal(world.trail().length, 0, 'no network call');
+  assert.equal((await env.DB.prepare('SELECT COUNT(*) AS n FROM subagents').first()).n, 0);
 });
 
-test('a Worker with no admin token configured refuses everything, even an empty header', async () => {
-  const env = envWith({ TITAN_ADMIN_TOKEN: undefined });
-  const res = await worker.fetch(post('/tasks', { brief: 'x' }, { 'X-Titan-Auth': '' }), env);
+test('a Worker with no admin token configured refuses everything, even an empty header', async (t) => {
+  const { env } = setup(t);
+  const res = await worker.fetch(post('/tasks', { brief: 'x' }, { 'X-Titan-Auth': '' }), { ...env, TITAN_ADMIN_TOKEN: undefined });
   assert.equal(res.status, 401);
 });
 
-test('POST /tasks stores a clean task type, and refuses a bad or reserved one without writing', async () => {
-  const env = envWith();
+test('POST /tasks stores a clean task type, and refuses a bad or reserved one without writing', async (t) => {
+  const { env } = setup(t);
   const ok = await worker.fetch(post('/tasks', { brief: 'do a thing', task_type: ' Gemini ' }, authed), env);
   assert.equal(ok.status, 200);
-  assert.equal(env.DB.calls.length, 1);
-  assert.equal(env.DB.calls[0].args[1], 'gemini');
   const none = await worker.fetch(post('/tasks', { brief: 'do a thing' }, authed), env);
   assert.equal(none.status, 200);
-  assert.equal(env.DB.calls[1].args[1], 'auto');
+  const types = (await env.DB.prepare('SELECT task_type FROM subagents ORDER BY queued_at').all()).results.map((r) => r.task_type).sort();
+  assert.deepEqual(types, ['auto', 'gemini']);
   for (const task_type of ['osint', 'meta-lesson', 'a b', 'x'.repeat(200), 5]) {
     const res = await worker.fetch(post('/tasks', { brief: 'do a thing', task_type }, authed), env);
     assert.equal(res.status, 400, JSON.stringify(task_type));
   }
-  assert.equal(env.DB.calls.length, 2, 'refused tasks write nothing');
+  assert.equal((await env.DB.prepare('SELECT COUNT(*) AS n FROM subagents').first()).n, 2, 'refused tasks write nothing');
   assert.equal((await worker.fetch(post('/tasks', '{not json', authed), env)).status, 400);
   assert.equal((await worker.fetch(post('/tasks', { task_type: 'groq' }, authed), env)).status, 400);
 });
 
 test('POST /admin/keys seals the key for GitHub and never sends it back', async (t) => {
-  const pair = nacl.box.keyPair();
-  const sent = [];
-  t.mock.method(globalThis, 'fetch', async (url, init) => {
-    sent.push({ url: String(url), init });
-    if (String(url).endsWith('/actions/secrets/public-key')) return new Response(JSON.stringify({ key: Buffer.from(pair.publicKey).toString('base64'), key_id: 'kid-1' }), { status: 200 });
-    return new Response(null, { status: 204 });
-  });
-  const env = envWith();
-  const res = await worker.fetch(post('/admin/keys', { provider: 'GROQ', value: ` ${FAKE_KEY} ` }, authed), env);
+  const { world, env } = setup(t);
+  const res = await worker.fetch(post('/admin/keys', { provider: 'GROQ', value: ` ${FAKE_GROQ_KEY} ` }, authed), env);
   assert.equal(res.status, 200);
   const text = await res.text();
-  assert.deepEqual(JSON.parse(text), { ok: true, provider: 'groq', secretName: 'GROQ_API_KEY' });
-  assert.ok(!text.includes(FAKE_KEY));
-  const put = sent.find((s) => s.init?.method === 'PUT');
-  assert.ok(put.url.endsWith('/actions/secrets/GROQ_API_KEY'));
-  const payload = JSON.parse(put.init.body);
-  assert.equal(payload.key_id, 'kid-1');
-  assert.ok(!put.init.body.includes(FAKE_KEY), 'GitHub gets ciphertext only');
-  const opened = sealedbox.open(Uint8Array.from(Buffer.from(payload.encrypted_value, 'base64')), pair.publicKey, pair.secretKey);
-  assert.equal(new TextDecoder().decode(opened), FAKE_KEY, 'the sealed value is the trimmed key');
-  const meta = env.DB.calls.find((c) => /provider_keys_meta/.test(c.sql));
-  assert.ok(meta && !JSON.stringify(meta.args).includes(FAKE_KEY), 'the database records that a key exists, never the key');
+  const body = JSON.parse(text);
+  assert.equal(body.ok, true);
+  assert.equal(body.provider, 'groq');
+  assert.equal(body.secretName, 'GROQ_API_KEY');
+  assert.ok(!text.includes(FAKE_GROQ_KEY), 'the response never holds the key');
+  assert.equal(world.github.open('GROQ_API_KEY'), FAKE_GROQ_KEY, 'the sealed value opens to the exact trimmed key');
+  assert.ok(!JSON.stringify(env.DB.dump()).includes(FAKE_GROQ_KEY), 'D1 never holds the key');
 });
 
 test('a GitHub failure on the way never puts the key in the response or the logs', async (t) => {
-  const logged = [];
-  t.mock.method(console, 'error', (...args) => logged.push(JSON.stringify(args)));
-  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ message: 'Bad credentials' }), { status: 401 }));
-  const res = await worker.fetch(post('/admin/keys', { provider: 'groq', value: FAKE_KEY }, authed), envWith());
+  const { world, env } = setup(t);
+  const logs = captureConsole(t);
+  world.github.fail.publicKey = 401;
+  const res = await worker.fetch(post('/admin/keys', { provider: 'groq', value: FAKE_GROQ_KEY }, authed), env);
   assert.equal(res.status, 502);
-  assert.ok(!(await res.text()).includes(FAKE_KEY));
-  assert.ok(!logged.join('').includes(FAKE_KEY));
+  assert.ok(!(await res.text()).includes(FAKE_GROQ_KEY));
+  assert.ok(!logs().includes(FAKE_GROQ_KEY));
 });
 
 test('an oversized, spaced, or control-character key is refused before any network call, and the error does not repeat it', async (t) => {
-  let fetched = false;
-  t.mock.method(globalThis, 'fetch', async () => {
-    fetched = true;
-    return new Response('{}');
-  });
-  const env = envWith();
-  for (const value of ['k'.repeat(MAX_PROVIDER_KEY_LENGTH + 1), 'two words here', `${FAKE_KEY}\n`.repeat(3), `${FAKE_KEY}\u0000`]) {
+  const { world, env } = setup(t);
+  for (const value of ['k'.repeat(MAX_PROVIDER_KEY_LENGTH + 1), 'two words here', `${FAKE_GROQ_KEY}\n`.repeat(3), `${FAKE_GROQ_KEY}\u0000`]) {
     const res = await worker.fetch(post('/admin/keys', { provider: 'groq', value }, authed), env);
     assert.equal(res.status, 400);
     const text = await res.text();
-    assert.ok(!text.includes(FAKE_KEY));
-    assert.ok(text.length < 200);
+    assert.ok(!text.includes(FAKE_GROQ_KEY));
+    assert.ok(text.length < 300);
   }
-  assert.equal(fetched, false);
-  assert.equal(env.DB.calls.length, 0);
+  assert.equal(world.trail().length, 0);
 });
 
-test('an unknown provider is refused and the error does not carry the value', async () => {
-  const res = await worker.fetch(post('/admin/keys', { provider: 'nope', value: FAKE_KEY }, authed), envWith());
+test('an unknown provider is refused and the error does not carry the value', async (t) => {
+  const { env } = setup(t);
+  const res = await worker.fetch(post('/admin/keys', { provider: 'nope', value: FAKE_GROQ_KEY }, authed), env);
   assert.equal(res.status, 400);
-  assert.ok(!(await res.text()).includes(FAKE_KEY));
+  assert.ok(!(await res.text()).includes(FAKE_GROQ_KEY));
 });

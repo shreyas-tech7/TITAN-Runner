@@ -11,17 +11,18 @@
  * catchable message rather than a raw fetch error against an empty URL.
  */
 
+import { PROVIDER_CATALOG } from "./providers";
+
 const WORKER_URL = (process.env.NEXT_PUBLIC_TITAN_WORKER_URL || "").trim();
 
 export function isWorkerConfigured(): boolean {
   return WORKER_URL.length > 0;
 }
 
-/** The five adapters this repo already has — must match
- * `src/providers/registry.js`'s `FAILOVER_ORDER` and the Worker's own
- * `KNOWN_PROVIDERS` exactly. */
-export const KNOWN_PROVIDERS = ["groq", "together", "openrouter", "gemini", "huggingface"] as const;
-export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
+/** The providers that can run a sub-agent task by name: the direct adapters and the custom slots. The list comes from
+ * the provider catalog (`config/providers.catalog.json`), the one source of truth. */
+export const KNOWN_PROVIDERS: string[] = PROVIDER_CATALOG.filter((p) => p.failover !== null).map((p) => p.id);
+export type KnownProvider = string;
 
 export type SubagentStatus = "queued" | "dispatched" | "running" | "done" | "failed";
 
@@ -33,6 +34,8 @@ export interface SubagentRow {
   source: "github-issue" | "dashboard" | "meta-agent";
   provider: string | null;
   queued_at: string;
+  dispatched_at?: string | null;
+  retry_count?: number;
   started_at: string | null;
   finished_at: string | null;
   result_summary: string | null;
@@ -118,7 +121,7 @@ export class WorkerApiError extends Error {
   }
 }
 
-async function callWorker(path: string, token: string, init: RequestInit = {}): Promise<Response> {
+export async function callWorker(path: string, token: string, init: RequestInit = {}): Promise<Response> {
   if (!WORKER_URL) {
     throw new WorkerApiError("The titan-runner-brain Worker isn't configured yet (NEXT_PUBLIC_TITAN_WORKER_URL is empty) — see docs/RUNTIME.md.");
   }
@@ -136,17 +139,29 @@ async function callWorker(path: string, token: string, init: RequestInit = {}): 
   return res;
 }
 
-async function readErrorMessage(res: Response, fallback: string): Promise<string> {
+export async function readErrorMessage(res: Response, fallback: string): Promise<string> {
+  // The Worker puts a short reason in `message` and a code in `error`. It also sends a request id (Wave 12, R5), so a person
+  // can quote it. The id appears at the end of every error text.
+  const header = res.headers.get("X-Request-Id");
   try {
-    const body = (await res.json()) as { error?: string };
-    return body?.error || fallback;
+    const body = (await res.json()) as { error?: string; message?: string; requestId?: string };
+    const text = body?.message || body?.error || fallback;
+    const id = header || body?.requestId;
+    return id && !text.includes(id) ? `${text} (request id ${id})` : text;
   } catch {
-    return fallback;
+    return header ? `${fallback} (request id ${header})` : fallback;
   }
 }
 
 export async function fetchStatus(token: string): Promise<StatusResponse> {
   const res = await callWorker("/status", token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+/** POST /tasks/:id/retry: a failed or stuck task goes back to queued (Wave 12, K9). */
+export async function retryTask(token: string, id: string): Promise<{ ok: true; id: string }> {
+  const res = await callWorker(`/tasks/${encodeURIComponent(id)}/retry`, token, { method: "POST", body: "{}" });
   if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
   return res.json();
 }

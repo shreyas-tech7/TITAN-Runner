@@ -30,14 +30,23 @@ import { OpenRouterProvider } from './openrouter.js';
 import { GeminiProvider } from './gemini.js';
 import { HuggingFaceProvider } from './huggingface.js';
 import { OmniRouteProvider } from './omniroute.js';
+import { OpenAICompatProvider } from './openaiCompat.js';
+import { CUSTOM_PROVIDER_IDS, DIRECT_PROVIDER_IDS } from './catalog.js';
+import { config } from '../config.js';
 import { providerHealth } from './health.js';
 import { classifyFailure, aggregateClass } from '../reliability/failures.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('providers:registry');
 
-/** Fastest/most generous free tier first, flakiest last. */
-export const FAILOVER_ORDER = ['groq', 'together', 'openrouter', 'gemini', 'huggingface'];
+/** Fastest/most generous free tier first, flakiest last. The list comes from config/providers.catalog.json. */
+export const FAILOVER_ORDER = DIRECT_PROVIDER_IDS;
+
+/** The custom OpenAI compatible slots. They come after the direct providers in every failover. */
+export const CUSTOM_ORDER = CUSTOM_PROVIDER_IDS;
+
+/** Every id that chat may route to, in failover order. */
+export const ALL_CHAT_IDS = Object.freeze([...FAILOVER_ORDER, ...CUSTOM_ORDER]);
 
 /** Distinct direct providers one `auto` call may try before giving up. */
 export const DEFAULT_MAX_PROVIDERS_PER_CALL = 3;
@@ -68,6 +77,25 @@ export class Registry {
     this.#providers.set('openrouter', new OpenRouterProvider());
     this.#providers.set('gemini', new GeminiProvider());
     this.#providers.set('huggingface', new HuggingFaceProvider());
+    for (const slot of config.custom) {
+      this.#providers.set(slot.id, new OpenAICompatProvider({ id: slot.id, label: slot.label, baseUrl: slot.baseUrl, apiKey: slot.apiKey, model: slot.model }));
+    }
+  }
+
+  /**
+   * Wave 12, R2: when OpenRouter fails for more than half of its recent calls, and the last call was inside the last
+   * hour, Gemini goes ahead of it. A named provider is never reordered.
+   */
+  #preferGemini(order) {
+    const rec = this.#health.get('openrouter');
+    const recent = rec?.lastCheckedAt && Date.now() - Date.parse(rec.lastCheckedAt) <= 3_600_000;
+    const i = order.indexOf('openrouter');
+    const j = order.indexOf('gemini');
+    if (!(recent && rec.errorRate > 0.5) || i === -1 || j === -1 || j < i) return order;
+    const out = [...order];
+    out.splice(j, 1);
+    out.splice(i, 0, 'gemini');
+    return out;
   }
 
   /** Attach (or replace) the quota ledger — the engine does this per pulse. */
@@ -85,16 +113,16 @@ export class Registry {
   }
 
   providerIds() {
-    return [...FAILOVER_ORDER];
+    return [...ALL_CHAT_IDS];
   }
 
   getProvider(id) {
     return this.#providers.get(id) ?? null;
   }
 
-  /** Which of the five have a key configured — used for the dashboard's provider view. */
+  /** Which providers have a key configured — used for the dashboard's provider view. */
   configuredIds() {
-    return FAILOVER_ORDER.filter((id) => this.#providers.get(id)?.isConfigured());
+    return ALL_CHAT_IDS.filter((id) => this.#providers.get(id)?.isConfigured());
   }
 
   /** Whether the optional OmniRoute gateway is configured. */
@@ -132,12 +160,13 @@ export class Registry {
    */
   async chat(messages, opts = {}) {
     const { service = 'auto', signal, temperature, maxTokens, priority } = opts;
-    const explicitId = service !== 'auto' && FAILOVER_ORDER.includes(service) ? service : null;
+    const explicitId = service !== 'auto' && ALL_CHAT_IDS.includes(service) ? service : null;
     const failover = opts.failover ?? explicitId === null;
     const maxProviders = Math.max(1, Number.isInteger(opts.maxProviders) ? opts.maxProviders : DEFAULT_MAX_PROVIDERS_PER_CALL);
-    const order = explicitId
-      ? (failover ? [explicitId, ...FAILOVER_ORDER.filter((id) => id !== explicitId)] : [explicitId])
-      : [...FAILOVER_ORDER];
+    const base = explicitId
+      ? (failover ? [explicitId, ...ALL_CHAT_IDS.filter((id) => id !== explicitId)] : [explicitId])
+      : [...ALL_CHAT_IDS];
+    const order = explicitId ? base : this.#preferGemini(base);
 
     const tried = [];
     const skipped = [];

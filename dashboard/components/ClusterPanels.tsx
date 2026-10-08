@@ -16,7 +16,7 @@ import { useEffect } from "react";
 import type { WorkerStatusResult } from "@/lib/useWorkerStatus";
 import { isWorkerConfigured } from "@/lib/workerApi";
 import SubagentsSection from "./SubagentsSection";
-import ProviderKeysPanel from "./ProviderKeysPanel";
+import KeysSummaryCard from "./KeysSummaryCard";
 import OmniRouteStatusPanel from "./OmniRouteStatusPanel";
 import OsintPanel from "./OsintPanel";
 import SystemMemoryPanel from "./SystemMemoryPanel";
@@ -70,7 +70,7 @@ export default function ClusterPanels({
         learningPaths={status.data?.learningPaths ?? []}
         onQueued={status.refresh}
       />
-      <ProviderKeysPanel token={token} providers={status.data?.providers ?? []} onChanged={status.refresh} />
+      <KeysSummaryCard token={token} onUnauthorized={onUnauthorized} />
       <OmniRouteStatusPanel subagents={status.data?.subagents ?? []} />
       <VmFleetPanel token={token} />
       <OsintPanel token={token} subagents={status.data?.subagents ?? []} onQueued={status.refresh} />

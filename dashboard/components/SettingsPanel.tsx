@@ -4,8 +4,9 @@ import { useState } from "react";
 import { getToken, setToken, clearToken, maskToken, tokenLocation } from "@/lib/token";
 import { newTokenSettingsUrl, OWNER, REPO } from "@/lib/githubApi";
 import { useModal } from "@/components/useModal";
+import RunnerCallbacks from "@/components/RunnerCallbacks";
 
-export default function SettingsPanel({ onClose }: { onClose: () => void }) {
+export default function SettingsPanel({ onClose, adminToken, onUnauthorized }: { onClose: () => void; adminToken?: string; onUnauthorized?: () => void }) {
   const [stored, setStored] = useState<string | null>(() => getToken());
   const [draft, setDraft] = useState("");
   const [saved, setSaved] = useState(false);
@@ -85,6 +86,15 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           )}
+
+          {adminToken ? (
+            <div style={{ marginTop: 20, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
+              <div className="label" style={{ marginBottom: 8 }}>
+                Runner callbacks
+              </div>
+              <RunnerCallbacks token={ adminToken } onUnauthorized={onUnauthorized ?? (() => {})} />
+            </div>
+          ) : null}
 
           <div style={{ marginTop: 20, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
             <div className="label" style={{ marginBottom: 8 }}>

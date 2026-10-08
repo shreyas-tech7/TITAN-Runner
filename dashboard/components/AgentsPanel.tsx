@@ -17,8 +17,8 @@ import type { SubagentRow } from "@/lib/workerApi";
 import type { QuotaRow } from "@/lib/quota";
 import { relative, formatDuration } from "@/lib/time";
 import { Badge, Meter, Panel, StatusDot, type Tone } from "@/components/kit";
+import { pulseProviderIds } from "@/lib/providers";
 
-const ROSTER_IDS = ["groq", "together", "openrouter", "gemini", "huggingface", "opencode", "freebuff"];
 
 type RosterStatus = "running" | "online" | "warning" | "offline" | "idle";
 
@@ -52,7 +52,8 @@ export default function AgentsPanel({
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const rows = ROSTER_IDS.map((id) => {
+  // The ids come from the provider catalog. No other file keeps a provider list.
+  const rows = pulseProviderIds(providers).map((id) => {
     const record = providers?.[id];
     const capability = agents?.[`phase2:${id}`];
     const active = subagents.filter((s) => s.provider === id && (s.status === "running" || s.status === "dispatched"));

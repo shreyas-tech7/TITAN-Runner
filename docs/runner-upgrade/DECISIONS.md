@@ -143,3 +143,30 @@ complexity.
   at the stricter of the task's level and the control file's, so the field
   can only ever ask for less autonomy. Every other engine-internal field in
   the block is ignored.
+
+## Wave 12
+
+The decisions W12-D1 to W12-D10 come from the brief. They are final. W12-D11 and up are decisions that the build made.
+
+- **W12-D1** TITAN-Runner is the live product. Keys and Connectors are built here first. The private TITAN repo gets parity panels that call the Runner Worker through its own backend.
+- **W12-D2** The Worker is the broker for connectors. Connector credentials stay inside the Worker. D1 stores them with AES-256-GCM under the key encryption key `CONNECTOR_KEK`.
+- **W12-D3** A GitHub runner makes `CONNECTOR_KEK` and sends it to the Worker secret store over stdin. No person sees it. The pattern is the same as `gev-provision.yml`.
+- **W12-D4** Provider keys keep their home: GitHub Actions secrets, written as sealed boxes. An optional copy for instant chat goes into the Worker vault. It is off by default.
+- **W12-D5** One file, `config/providers.catalog.json`, is the source of truth for providers. A CI gate checks that the Worker, the dashboard, the pulse, `.env.example`, and the workflow env maps agree with it.
+- **W12-D6** Each token type has one job. The admin token is for people. The callback token is for workflows. MCP tokens are for tools. Hook secrets are for inbound webhooks.
+- **W12-D7** Personal data never goes to a public Actions run, `state/`, an issue, or a commit. The Worker handles it, and D1 keeps it with retention limits.
+- **W12-D8** D1 changes are additive migrations in `worker/migrations/`. `worker-deploy.yml` applies them before each deploy.
+- **W12-D9** Every outbound call of the Worker goes through `safeFetch()`: https only, an allowlist of hosts, public hosts only, no redirects, a time limit, and a size limit.
+- **W12-D10** The browser never calls a new third party host. New calls go through the Worker. A test fails if the page policy gains a host.
+- **W12-D11** The Worker entry module exports a default handler only. The current workerd refuses to start a Worker whose entry module exports other values, such as a number. Phase 0 found that the old `index.js` did this. The handlers moved to their own modules, and the tests import them from there.
+- **W12-D12** The Worker applies a missing migration by itself, using the same table that wrangler uses. Nobody proved that the Cloudflare token has the D1 edit permission. Without this fallback, the new code would run with missing tables if the deploy step could not migrate.
+- **W12-D13** The fake GitHub, the fake providers, and the fake D1 live in `worker/test/helpers/` and not in `src/fakes/`. They need `tweetnacl` and `node:sqlite`, which the root package does not have. The old fakes in `src/fakes/` stay as they are.
+- **W12-D14** The callback token row is `pending` while the Worker writes the secret, and `active` only after the write works. A pending token is accepted, so a workflow that starts during the write does not get a 401. A failed write revokes the row.
+- **W12-D15** The sealed box uses WebCrypto for X25519 and falls back to tweetnacl. In workerd the WebCrypto path costs 0.16 to 0.4 ms and the tweetnacl path costs 1.3 to 2.4 ms for each seal. Both are under the 5 ms threshold of the brief. The faster path is the default.
+- **W12-D16** A key that the pulse used with success counts as `proven`. The pulse is a runner. Without this rule, a working Gemini key set by hand would show "Saved, not verified".
+- **W12-D17** A check that did not finish (429, a timeout, no route) is not evidence about a key. The row says "Saved, not verified" and not "Rate limited".
+- **W12-D18** Together AI and Hugging Face stay in the catalog but are marked as not free. Together AI sells credits only. Hugging Face gives free accounts no inference credit. The first key guide lists only Groq, Google Gemini, and OpenRouter.
+- **W12-D19** Replacing the vault key makes old records unreadable. A runner cannot read the old key, so a re-encrypt is not possible there. The workflow refuses a replacement unless the input says "yes", and it warns in the summary. Re-encryption stays on the list as a P2 item.
+- **W12-D20** `GET /admin/keys` marks a secret as `outside` when it exists without a D1 record, and as `changed outside` when its date is later than the dashboard save. The dashboard then hides the fingerprint, because it would describe an older key.
+- **W12-D21** The test mode flag `TITAN_TEST_MODE` is never set in `wrangler.toml`. A broken host map fails closed. `scripts/check-test-mode.mjs` checks the config in CI.
+

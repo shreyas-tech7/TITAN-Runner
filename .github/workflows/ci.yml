@@ -36,6 +36,21 @@ jobs:
       - name: Secret scan of state/
         run: node scripts/check-secrets-in-state.mjs
 
+      - name: Provider catalog (workflows, .env.example, dashboard copy agree with config/providers.catalog.json)
+        run: node scripts/check-provider-catalog.mjs
+
+      - name: Worker migrations (the generated copy matches worker/migrations)
+        run: node scripts/gen-worker-migrations.mjs --check
+
+      - name: The deployed Worker config never sets the test flag
+        run: node scripts/check-test-mode.mjs
+
+      - name: Documentation standard (ASD-STE100, changed lines of a pull request)
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-ste.mjs --base "origin/$TITAN_BASE_REF"
+        env:
+          TITAN_BASE_REF: ${{ github.event.pull_request.base.ref }}
+
       - name: Static workflow checks (SHA pins, no untrusted text in run:, permissions)
         run: node scripts/check-workflows.mjs
 
@@ -65,3 +80,22 @@ jobs:
         env:
           TITAN_BASE_REF: origin/${{ github.event.pull_request.base.ref }}
         run: node scripts/check-secrets-in-diff.mjs "$TITAN_BASE_REF" HEAD
+
+  # The Worker tests need node:sqlite for a real D1 stand-in (Node 22.13 or newer), so they run on Node 24.
+  worker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm ci --no-audit --no-fund
+
+      - name: Worker tests (fake GitHub, fake providers, SQLite D1)
+        working-directory: worker
+        run: npm test

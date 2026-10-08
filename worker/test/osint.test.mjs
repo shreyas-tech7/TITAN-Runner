@@ -3,7 +3,7 @@
 // with a real regression test rather than trusting manual inspection.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseAwesomeOsintList } from '../src/index.js';
+import { parseAwesomeOsintList } from '../src/legacy.js';
 
 test('parses categories and tool entries from an awesome-list-shaped README', () => {
   const markdown = `

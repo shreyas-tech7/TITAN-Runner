@@ -19,6 +19,9 @@
 #                      repository_dispatch steps no-op rather than error —
 #                      see docs/RUNTIME.md. Verify it works with
 #                      GET /admin/diagnose before trusting a real key paste.
+#   CONNECTOR_KEK      the vault key (32 random bytes as hex) for AES-256-GCM. Do not set it by hand. worker-deploy.yml
+#                      or the vault-provision workflow makes it inside a GitHub runner and sends it over stdin.
+#                      Without it, vault routes answer 503 vault_not_ready.
 #   GEV_SIGNING_KEY    the Ed25519 private key (a JWK string) that signs the 5
 #                      minute access links GET /gev/token hands the dashboard
 #                      for the God's Eye View tab. Do not set it by hand. The
@@ -52,7 +55,13 @@ crons = ["* * * * *", "0 */6 * * *"]
 binding = "DB"
 database_name = "titan-runner-brain"
 database_id = "341c3067-7111-4fd3-8fe5-3e25120f0661"
+# Additive migrations (Wave 12, decision W12-D8). worker-deploy.yml applies them before each deploy.
+migrations_dir = "migrations"
 
 [vars]
 GITHUB_OWNER = "shreyas-tech7"
 GITHUB_REPO = "TITAN-Runner"
+# Where the dashboard lives. The OAuth callback sends a person back here (Wave 12, C8).
+DASHBOARD_URL = "https://shreyas-tech7.github.io/TITAN-Runner"
+# worker-deploy.yml adds TITAN_COMMIT and TITAN_BUILD_TIME at deploy time with --var, for GET /version.
+# TITAN_TEST_MODE must never appear in this file. scripts/check-test-mode.mjs fails CI if it does.

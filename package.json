@@ -19,7 +19,15 @@
     "check:secrets:diff": "node scripts/check-secrets-in-diff.mjs --staged",
     "check:workflows": "node scripts/check-workflows.mjs",
     "check:schemas": "node scripts/export-schemas.mjs --check",
-    "schemas": "node scripts/export-schemas.mjs"
+    "schemas": "node scripts/export-schemas.mjs",
+    "test:worker": "cd worker && npm test --silent",
+    "check:ste": "node scripts/check-ste.mjs --base origin/main",
+    "check:providers": "node scripts/check-provider-catalog.mjs",
+    "sync:providers": "node scripts/sync-provider-env.mjs",
+    "gen:migrations": "node scripts/gen-worker-migrations.mjs",
+    "check:migrations": "node scripts/gen-worker-migrations.mjs --check",
+    "check:test-mode": "node scripts/check-test-mode.mjs",
+    "check:all": "node scripts/check-all.mjs"
   },
   "license": "MIT",
   "bin": {

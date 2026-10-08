@@ -1,0 +1,49 @@
+name: Callback ping
+
+# The round trip test of the callback path (Wave 12, K8). The Worker fires the dispatch "callback-ping" with an id.
+# This workflow calls POST /internal/ping on the Worker with the callback token. The Worker records the time, and the
+# dashboard shows how many seconds the round trip took. Run it by hand from the Actions tab for a manual check.
+on:
+  repository_dispatch:
+    types: [callback-ping]
+  workflow_dispatch:
+    inputs:
+      id:
+        description: "Ping id. Leave empty to make a manual id."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: callback-ping
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+
+      - name: Mask the tokens
+        run: |
+          if [ -n "$TITAN_CALLBACK_TOKEN" ]; then echo "::add-mask::$TITAN_CALLBACK_TOKEN"; fi
+          if [ -n "$TITAN_ADMIN_TOKEN" ]; then echo "::add-mask::$TITAN_ADMIN_TOKEN"; fi
+        env:
+          TITAN_CALLBACK_TOKEN: ${{ secrets.TITAN_CALLBACK_TOKEN }}
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+
+      - name: Call the Worker
+        env:
+          TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
+          TITAN_CALLBACK_TOKEN: ${{ secrets.TITAN_CALLBACK_TOKEN }}
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          TITAN_PING_ID: ${{ github.event.client_payload.id || inputs.id }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: node scripts/callback-ping.mjs
