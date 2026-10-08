@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-10-07T02:39:16.683Z",
-  "lastStatus": "written",
-  "lastReason": null,
+  "lastAttemptAt": "2026-10-08T01:44:10.963Z",
+  "lastStatus": "skipped",
+  "lastReason": "rate_limited",
   "lastDigestDate": "2026-10-07",
   "lastDigestFile": "state/digests/2026-10-07-research.md",
   "provider": "gemini",

@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-07T02:39:16.683Z",
-  "lastAttemptAt": "2026-10-07T02:39:16.683Z",
-  "lastStatus": "written",
-  "lastReason": null,
+  "updatedAt": "2026-10-08T01:44:10.963Z",
+  "lastAttemptAt": "2026-10-08T01:44:10.963Z",
+  "lastStatus": "skipped",
+  "lastReason": "rate_limited",
   "digest": {
     "date": "2026-10-07",
     "file": "state/digests/2026-10-07-research.md",
