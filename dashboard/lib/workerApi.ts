@@ -11,17 +11,18 @@
  * catchable message rather than a raw fetch error against an empty URL.
  */
 
+import { PROVIDER_CATALOG } from "./providers";
+
 const WORKER_URL = (process.env.NEXT_PUBLIC_TITAN_WORKER_URL || "").trim();
 
 export function isWorkerConfigured(): boolean {
   return WORKER_URL.length > 0;
 }
 
-/** The five adapters this repo already has — must match
- * `src/providers/registry.js`'s `FAILOVER_ORDER` and the Worker's own
- * `KNOWN_PROVIDERS` exactly. */
-export const KNOWN_PROVIDERS = ["groq", "together", "openrouter", "gemini", "huggingface"] as const;
-export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
+/** The providers that can run a sub-agent task by name: the direct adapters and the custom slots. The list comes from
+ * the provider catalog (`config/providers.catalog.json`), the one source of truth. */
+export const KNOWN_PROVIDERS: string[] = PROVIDER_CATALOG.filter((p) => p.failover !== null).map((p) => p.id);
+export type KnownProvider = string;
 
 export type SubagentStatus = "queued" | "dispatched" | "running" | "done" | "failed";
 

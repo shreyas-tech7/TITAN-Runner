@@ -41,6 +41,7 @@ test('a full dry-run pulse claims a manual task and completes it end to end', ()
   const scratch = mkdtempSync(join(tmpdir(), 'titan-pulse-e2e-'));
   try {
     cpSync(join(REPO_ROOT, 'src'), join(scratch, 'src'), { recursive: true });
+    cpSync(join(REPO_ROOT, 'config'), join(scratch, 'config'), { recursive: true });
     seedEmptyState(join(scratch, 'state'));
 
     const out = execFileSync(process.execPath, ['src/pulse.js'], {
@@ -80,6 +81,7 @@ test('a pulse with nothing pending and no manual task is a clean no-op', () => {
   const scratch = mkdtempSync(join(tmpdir(), 'titan-pulse-noop-'));
   try {
     cpSync(join(REPO_ROOT, 'src'), join(scratch, 'src'), { recursive: true });
+    cpSync(join(REPO_ROOT, 'config'), join(scratch, 'config'), { recursive: true });
     seedEmptyState(join(scratch, 'state'));
 
     const out = execFileSync(process.execPath, ['src/pulse.js'], {

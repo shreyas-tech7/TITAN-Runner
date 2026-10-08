@@ -8,6 +8,11 @@ name: TITAN Pulse
 on:
   schedule:
     - cron: "*/15 * * * *"
+  # The pulse keeper (Wave 12, R1). GitHub runs a schedule when it has room, and the live pulse ran about every 5 hours.
+  # The Worker has a reliable 1-minute cron. When the last heartbeat is older than 15 minutes, it fires this dispatch.
+  # The cron above stays as a backup. The concurrency group below still stops two pulses from running at once.
+  repository_dispatch:
+    types: [titan-pulse]
   workflow_dispatch:
     inputs:
       task-text:
@@ -74,6 +79,10 @@ jobs:
           # `.example.com` allows subdomains). Empty = the tool allows nothing.
           # See src/tools/ssrf.js and docs/CONFIG.md.
           TITAN_EGRESS_ALLOWLIST: ${{ vars.TITAN_EGRESS_ALLOWLIST }}
+          # The pulse sends events to the Worker through the callback path (Wave 12, C7 and R1).
+          TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
+          TITAN_CALLBACK_TOKEN: ${{ secrets.TITAN_CALLBACK_TOKEN }}
+          # BEGIN provider secrets (generated from config/providers.catalog.json, run npm run sync:providers)
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
@@ -84,9 +93,41 @@ jobs:
           GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
           HF_API_KEY: ${{ secrets.HF_API_KEY }}
           HF_MODEL: ${{ secrets.HF_MODEL }}
-          FREEBUFF_API_KEY: ${{ secrets.FREEBUFF_API_KEY }}
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           OPENCODE_BASE_URL: ${{ secrets.OPENCODE_BASE_URL }}
+          OPENCODE_MODEL: ${{ secrets.OPENCODE_MODEL }}
+          OMNIROUTE_API_KEY: ${{ secrets.OMNIROUTE_API_KEY }}
+          OMNIROUTE_BASE_URL: ${{ secrets.OMNIROUTE_BASE_URL }}
+          OMNIROUTE_MODEL: ${{ secrets.OMNIROUTE_MODEL }}
+          HERMES_1_API_KEY: ${{ secrets.HERMES_1_API_KEY }}
+          HERMES_1_BASE_URL: ${{ secrets.HERMES_1_BASE_URL }}
+          HERMES_1_MODEL: ${{ secrets.HERMES_1_MODEL }}
+          HERMES_1_CHAT_PATH: ${{ secrets.HERMES_1_CHAT_PATH }}
+          HERMES_1_SPECIALIZATION: ${{ secrets.HERMES_1_SPECIALIZATION }}
+          HERMES_2_API_KEY: ${{ secrets.HERMES_2_API_KEY }}
+          HERMES_2_BASE_URL: ${{ secrets.HERMES_2_BASE_URL }}
+          HERMES_2_MODEL: ${{ secrets.HERMES_2_MODEL }}
+          HERMES_2_CHAT_PATH: ${{ secrets.HERMES_2_CHAT_PATH }}
+          HERMES_2_SPECIALIZATION: ${{ secrets.HERMES_2_SPECIALIZATION }}
+          HERMES_3_API_KEY: ${{ secrets.HERMES_3_API_KEY }}
+          HERMES_3_BASE_URL: ${{ secrets.HERMES_3_BASE_URL }}
+          HERMES_3_MODEL: ${{ secrets.HERMES_3_MODEL }}
+          HERMES_3_CHAT_PATH: ${{ secrets.HERMES_3_CHAT_PATH }}
+          HERMES_3_SPECIALIZATION: ${{ secrets.HERMES_3_SPECIALIZATION }}
+          FREEBUFF_API_KEY: ${{ secrets.FREEBUFF_API_KEY }}
+          CUSTOM_1_API_KEY: ${{ secrets.CUSTOM_1_API_KEY }}
+          CUSTOM_1_BASE_URL: ${{ secrets.CUSTOM_1_BASE_URL }}
+          CUSTOM_1_MODEL: ${{ secrets.CUSTOM_1_MODEL }}
+          CUSTOM_1_LABEL: ${{ secrets.CUSTOM_1_LABEL }}
+          CUSTOM_2_API_KEY: ${{ secrets.CUSTOM_2_API_KEY }}
+          CUSTOM_2_BASE_URL: ${{ secrets.CUSTOM_2_BASE_URL }}
+          CUSTOM_2_MODEL: ${{ secrets.CUSTOM_2_MODEL }}
+          CUSTOM_2_LABEL: ${{ secrets.CUSTOM_2_LABEL }}
+          CUSTOM_3_API_KEY: ${{ secrets.CUSTOM_3_API_KEY }}
+          CUSTOM_3_BASE_URL: ${{ secrets.CUSTOM_3_BASE_URL }}
+          CUSTOM_3_MODEL: ${{ secrets.CUSTOM_3_MODEL }}
+          CUSTOM_3_LABEL: ${{ secrets.CUSTOM_3_LABEL }}
+          # END provider secrets
         run: |
           START=$(date +%s%3N)
           node src/pulse.js || echo "PULSE_FAILED=1" >> "$GITHUB_ENV"
@@ -123,6 +164,18 @@ jobs:
             fi
             git push
           fi
+
+      # Tell the Worker that this pulse finished. The pulse keeper reads the heartbeat. If this call fails, the pulse still
+      # passes: the script always exits 0, and the keeper falls back to state/heartbeat.json on main.
+      - name: Send the heartbeat to the Worker
+        if: always()
+        continue-on-error: true
+        env:
+          TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
+          TITAN_CALLBACK_TOKEN: ${{ secrets.TITAN_CALLBACK_TOKEN }}
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: node scripts/pulse-heartbeat.mjs
 
       - name: Report real run duration
         run: echo "Pulse took ${{ steps.run_pulse.outputs.duration_ms }}ms"

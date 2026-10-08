@@ -23,6 +23,7 @@
  * is PUBLIC, so a VM manifest/brief/result is exactly as world-readable as
  * `state/*.json`. The SSH private key and the admin token are never logged.
  */
+import { callWorker, callbackAuth, workerBase } from '../src/lib/workerCallback.js';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -30,8 +31,6 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { scrubForState } from '../src/lib/secretScrub.js';
 import { reviewAction } from '../src/reviewer/index.js';
 
-const WORKER_URL = process.env.TITAN_WORKER_URL;
-const ADMIN_TOKEN = process.env.TITAN_ADMIN_TOKEN;
 const VM_ID = process.env.TITAN_VM_ID;
 const BRIEF = process.env.TITAN_VM_BRIEF || '';
 const RUN_URL = process.env.GITHUB_RUN_URL || '';
@@ -120,20 +119,12 @@ export function isCapacityMessage(output) {
 }
 
 async function reportVmStatus(patch) {
-  if (!WORKER_URL || !ADMIN_TOKEN || !VM_ID) {
-    console.error('provision-railway-vm: TITAN_WORKER_URL / TITAN_ADMIN_TOKEN / vm id not set — cannot report status back.');
+  if (!workerBase() || !callbackAuth() || !VM_ID) {
+    console.error('provision-railway-vm: TITAN_WORKER_URL, a callback token, or the vm id is not set, so the status cannot go back.');
     return;
   }
-  try {
-    const res = await fetch(`${WORKER_URL.replace(/\/$/, '')}/internal/vm-status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Titan-Auth': ADMIN_TOKEN },
-      body: JSON.stringify({ id: VM_ID, ...patch }),
-    });
-    if (!res.ok) console.error(`provision-railway-vm: status callback rejected: ${res.status}`);
-  } catch (err) {
-    console.error('provision-railway-vm: status callback errored:', safe(err instanceof Error ? err.message : err));
-  }
+  const res = await callWorker('/internal/vm-status', { body: { id: VM_ID, ...patch } });
+  if (!res.ok) console.error(`provision-railway-vm: status callback rejected: ${res.status ?? safe(res.error)}`);
 }
 
 /** One SSH connection to railway.new with a throwaway key. Returns the

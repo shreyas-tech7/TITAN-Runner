@@ -83,6 +83,8 @@ export const config = Object.freeze({
   opencode: {
     apiKey: credential(process.env.OPENCODE_API_KEY),
     baseUrl: (process.env.OPENCODE_BASE_URL?.trim() || 'https://opencode.ai/zen').replace(/\/+$/, ''),
+    // Optional. Empty means the agent picks the first free model it finds (Wave 12, K6).
+    model: process.env.OPENCODE_MODEL?.trim() || '',
   },
   // OmniRoute (task brief phase 1): an optional self-hosted gateway,
   // OFF by default — empty baseUrl means "not configured", the same
@@ -95,6 +97,16 @@ export const config = Object.freeze({
     apiKey: credential(process.env.OMNIROUTE_API_KEY),
     model: process.env.OMNIROUTE_MODEL?.trim() || 'auto',
   },
+
+  // Three slots for any OpenAI compatible provider (Wave 12, K6). A slot is used only when it has a key, a
+  // model, and a base URL that uses https and a public host. See src/providers/openaiCompat.js.
+  custom: [1, 2, 3].map((n) => ({
+    id: `custom_${n}`,
+    label: process.env[`CUSTOM_${n}_LABEL`]?.trim() || `Custom ${n}`,
+    baseUrl: (process.env[`CUSTOM_${n}_BASE_URL`]?.trim() || '').replace(/\/+$/, ''),
+    apiKey: credential(process.env[`CUSTOM_${n}_API_KEY`]),
+    model: process.env[`CUSTOM_${n}_MODEL`]?.trim() || '',
+  })),
 
   orchestrator: {
     maxTasksPerPulse: positiveInt(process.env.TITAN_MAX_TASKS_PER_PULSE, 3),
@@ -135,8 +147,10 @@ export function isProviderConfigured(id) {
       return config.opencode.apiKey.length > 0;
     case 'omniroute':
       return config.omniroute.baseUrl.length > 0;
-    default:
-      return false;
+    default: {
+      const slot = config.custom.find((c) => c.id === id);
+      return Boolean(slot && slot.apiKey && slot.baseUrl && slot.model);
+    }
   }
 }
 

@@ -3,6 +3,7 @@
 import type { ProviderHealthRecord, ProviderStatus } from "@/lib/types";
 import { relative, formatDuration } from "@/lib/time";
 import { Badge, Panel, StatusDot, type Tone } from "@/components/kit";
+import { pulseProviderIds } from "@/lib/providers";
 
 const STATUS_META: Record<ProviderStatus, { label: string; tone: Tone }> = {
   ok: { label: "OK", tone: "ok" },
@@ -15,10 +16,6 @@ const STATUS_META: Record<ProviderStatus, { label: string; tone: Tone }> = {
   model_invalid: { label: "Rediscovering model", tone: "warn" },
   unknown: { label: "Never checked", tone: "neutral" },
 };
-
-/** Every provider the pulse knows about, shown even if `state/providers.json`
- *  has no entry for it yet (a fresh checkout before the first self-test). */
-const ALL_PROVIDER_IDS = ["groq", "together", "openrouter", "gemini", "huggingface", "opencode", "freebuff"];
 
 function emptyRecord(id: string): ProviderHealthRecord {
   return {
@@ -42,7 +39,8 @@ function emptyRecord(id: string): ProviderHealthRecord {
 }
 
 export default function ProviderHealthStrip({ providers }: { providers: Record<string, ProviderHealthRecord> | undefined }) {
-  const rows = ALL_PROVIDER_IDS.map((id) => providers?.[id] ?? emptyRecord(id));
+  // The ids come from the catalog, so a provider shows even before `state/providers.json` has an entry for it.
+  const rows = pulseProviderIds(providers).map((id) => providers?.[id] ?? emptyRecord(id));
   const inCooldown = (r: ProviderHealthRecord) => r.cooldownUntil && Date.parse(r.cooldownUntil) > Date.now();
 
   return (

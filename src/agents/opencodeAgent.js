@@ -218,6 +218,8 @@ export class OpenCodeAgent extends AgentAdapter {
       ? requested.slice(prefix.length)
       : requested;
     if (bare && bare !== 'default') return bare;
+    // A person can pin a model with OPENCODE_MODEL (Wave 12, K6).
+    if (config.opencode.model) return config.opencode.model;
 
     const cached = providerHealth.get('opencode').model;
     if (cached) return cached;

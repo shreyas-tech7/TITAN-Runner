@@ -66,16 +66,61 @@ jobs:
       # suspenders costs nothing here.
       - name: Mask secret-derived values before anything can log them
         run: |
-          for v in "$TITAN_ADMIN_TOKEN" "$GROQ_API_KEY" "$TOGETHER_API_KEY" "$OPENROUTER_API_KEY" "$GEMINI_API_KEY" "$HF_API_KEY"; do
-            if [ -n "$v" ]; then echo "::add-mask::$v"; fi
-          done
+          while IFS='=' read -r name value; do
+            case "$name" in
+              TITAN_ADMIN_TOKEN|TITAN_CALLBACK_TOKEN|*_API_KEY)
+                if [ -n "$value" ]; then echo "::add-mask::$value"; fi ;;
+            esac
+          done < <(env)
         env:
           TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          TITAN_CALLBACK_TOKEN: ${{ secrets.TITAN_CALLBACK_TOKEN }}
+          # BEGIN provider secrets (generated from config/providers.catalog.json, run npm run sync:providers)
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          TOGETHER_MODEL: ${{ secrets.TOGETHER_MODEL }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
           HF_API_KEY: ${{ secrets.HF_API_KEY }}
+          HF_MODEL: ${{ secrets.HF_MODEL }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_BASE_URL: ${{ secrets.OPENCODE_BASE_URL }}
+          OPENCODE_MODEL: ${{ secrets.OPENCODE_MODEL }}
+          OMNIROUTE_API_KEY: ${{ secrets.OMNIROUTE_API_KEY }}
+          OMNIROUTE_BASE_URL: ${{ secrets.OMNIROUTE_BASE_URL }}
+          OMNIROUTE_MODEL: ${{ secrets.OMNIROUTE_MODEL }}
+          HERMES_1_API_KEY: ${{ secrets.HERMES_1_API_KEY }}
+          HERMES_1_BASE_URL: ${{ secrets.HERMES_1_BASE_URL }}
+          HERMES_1_MODEL: ${{ secrets.HERMES_1_MODEL }}
+          HERMES_1_CHAT_PATH: ${{ secrets.HERMES_1_CHAT_PATH }}
+          HERMES_1_SPECIALIZATION: ${{ secrets.HERMES_1_SPECIALIZATION }}
+          HERMES_2_API_KEY: ${{ secrets.HERMES_2_API_KEY }}
+          HERMES_2_BASE_URL: ${{ secrets.HERMES_2_BASE_URL }}
+          HERMES_2_MODEL: ${{ secrets.HERMES_2_MODEL }}
+          HERMES_2_CHAT_PATH: ${{ secrets.HERMES_2_CHAT_PATH }}
+          HERMES_2_SPECIALIZATION: ${{ secrets.HERMES_2_SPECIALIZATION }}
+          HERMES_3_API_KEY: ${{ secrets.HERMES_3_API_KEY }}
+          HERMES_3_BASE_URL: ${{ secrets.HERMES_3_BASE_URL }}
+          HERMES_3_MODEL: ${{ secrets.HERMES_3_MODEL }}
+          HERMES_3_CHAT_PATH: ${{ secrets.HERMES_3_CHAT_PATH }}
+          HERMES_3_SPECIALIZATION: ${{ secrets.HERMES_3_SPECIALIZATION }}
+          FREEBUFF_API_KEY: ${{ secrets.FREEBUFF_API_KEY }}
+          CUSTOM_1_API_KEY: ${{ secrets.CUSTOM_1_API_KEY }}
+          CUSTOM_1_BASE_URL: ${{ secrets.CUSTOM_1_BASE_URL }}
+          CUSTOM_1_MODEL: ${{ secrets.CUSTOM_1_MODEL }}
+          CUSTOM_1_LABEL: ${{ secrets.CUSTOM_1_LABEL }}
+          CUSTOM_2_API_KEY: ${{ secrets.CUSTOM_2_API_KEY }}
+          CUSTOM_2_BASE_URL: ${{ secrets.CUSTOM_2_BASE_URL }}
+          CUSTOM_2_MODEL: ${{ secrets.CUSTOM_2_MODEL }}
+          CUSTOM_2_LABEL: ${{ secrets.CUSTOM_2_LABEL }}
+          CUSTOM_3_API_KEY: ${{ secrets.CUSTOM_3_API_KEY }}
+          CUSTOM_3_BASE_URL: ${{ secrets.CUSTOM_3_BASE_URL }}
+          CUSTOM_3_MODEL: ${{ secrets.CUSTOM_3_MODEL }}
+          CUSTOM_3_LABEL: ${{ secrets.CUSTOM_3_LABEL }}
+          # END provider secrets
 
       - name: Run the sub-agent task
         id: run_task
@@ -88,13 +133,15 @@ jobs:
           # secret to keep in sync.
           TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
           TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          # The callback token is for workflows only (Wave 12, K8). The script sends the
+          # admin token only when this one is empty.
+          TITAN_CALLBACK_TOKEN: ${{ secrets.TITAN_CALLBACK_TOKEN }}
           TITAN_SUBAGENT_ID: ${{ github.event.client_payload.id }}
           TITAN_SUBAGENT_TASK_TYPE: ${{ github.event.client_payload.task_type }}
           TITAN_SUBAGENT_BRIEF: ${{ github.event.client_payload.brief }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          # The exact same five provider secrets titan-pulse.yml already
-          # injects — reusing this repo's existing adapters (task brief,
-          # section 3: never write a new one).
+          # Every provider secret in the catalog. The block below is generated.
+          # BEGIN provider secrets (generated from config/providers.catalog.json, run npm run sync:providers)
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
@@ -105,6 +152,41 @@ jobs:
           GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
           HF_API_KEY: ${{ secrets.HF_API_KEY }}
           HF_MODEL: ${{ secrets.HF_MODEL }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_BASE_URL: ${{ secrets.OPENCODE_BASE_URL }}
+          OPENCODE_MODEL: ${{ secrets.OPENCODE_MODEL }}
+          OMNIROUTE_API_KEY: ${{ secrets.OMNIROUTE_API_KEY }}
+          OMNIROUTE_BASE_URL: ${{ secrets.OMNIROUTE_BASE_URL }}
+          OMNIROUTE_MODEL: ${{ secrets.OMNIROUTE_MODEL }}
+          HERMES_1_API_KEY: ${{ secrets.HERMES_1_API_KEY }}
+          HERMES_1_BASE_URL: ${{ secrets.HERMES_1_BASE_URL }}
+          HERMES_1_MODEL: ${{ secrets.HERMES_1_MODEL }}
+          HERMES_1_CHAT_PATH: ${{ secrets.HERMES_1_CHAT_PATH }}
+          HERMES_1_SPECIALIZATION: ${{ secrets.HERMES_1_SPECIALIZATION }}
+          HERMES_2_API_KEY: ${{ secrets.HERMES_2_API_KEY }}
+          HERMES_2_BASE_URL: ${{ secrets.HERMES_2_BASE_URL }}
+          HERMES_2_MODEL: ${{ secrets.HERMES_2_MODEL }}
+          HERMES_2_CHAT_PATH: ${{ secrets.HERMES_2_CHAT_PATH }}
+          HERMES_2_SPECIALIZATION: ${{ secrets.HERMES_2_SPECIALIZATION }}
+          HERMES_3_API_KEY: ${{ secrets.HERMES_3_API_KEY }}
+          HERMES_3_BASE_URL: ${{ secrets.HERMES_3_BASE_URL }}
+          HERMES_3_MODEL: ${{ secrets.HERMES_3_MODEL }}
+          HERMES_3_CHAT_PATH: ${{ secrets.HERMES_3_CHAT_PATH }}
+          HERMES_3_SPECIALIZATION: ${{ secrets.HERMES_3_SPECIALIZATION }}
+          FREEBUFF_API_KEY: ${{ secrets.FREEBUFF_API_KEY }}
+          CUSTOM_1_API_KEY: ${{ secrets.CUSTOM_1_API_KEY }}
+          CUSTOM_1_BASE_URL: ${{ secrets.CUSTOM_1_BASE_URL }}
+          CUSTOM_1_MODEL: ${{ secrets.CUSTOM_1_MODEL }}
+          CUSTOM_1_LABEL: ${{ secrets.CUSTOM_1_LABEL }}
+          CUSTOM_2_API_KEY: ${{ secrets.CUSTOM_2_API_KEY }}
+          CUSTOM_2_BASE_URL: ${{ secrets.CUSTOM_2_BASE_URL }}
+          CUSTOM_2_MODEL: ${{ secrets.CUSTOM_2_MODEL }}
+          CUSTOM_2_LABEL: ${{ secrets.CUSTOM_2_LABEL }}
+          CUSTOM_3_API_KEY: ${{ secrets.CUSTOM_3_API_KEY }}
+          CUSTOM_3_BASE_URL: ${{ secrets.CUSTOM_3_BASE_URL }}
+          CUSTOM_3_MODEL: ${{ secrets.CUSTOM_3_MODEL }}
+          CUSTOM_3_LABEL: ${{ secrets.CUSTOM_3_LABEL }}
+          # END provider secrets
           # Reviewer Gate: `config.js` already defaults this to enabled
           # with no env var set at all — left unset here on purpose, same
           # as titan-pulse.yml, rather than re-declaring a default that

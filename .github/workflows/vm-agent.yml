@@ -53,8 +53,10 @@ jobs:
       - name: Mask secret-derived values before anything can log them
         run: |
           if [ -n "$TITAN_ADMIN_TOKEN" ]; then echo "::add-mask::$TITAN_ADMIN_TOKEN"; fi
+          if [ -n "$TITAN_CALLBACK_TOKEN" ]; then echo "::add-mask::$TITAN_CALLBACK_TOKEN"; fi
         env:
           TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          TITAN_CALLBACK_TOKEN: ${{ secrets.TITAN_CALLBACK_TOKEN }}
 
       - name: Provision a Railway free VM
         env:
@@ -63,6 +65,8 @@ jobs:
           # VARIABLE (not sensitive on its own — the admin token gates the
           # Worker), the same one spawn-subagent.yml and pages-deploy.yml read.
           TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
+          # The callback token is for workflows (Wave 12, K8). The script sends the admin token only when it is empty.
+          TITAN_CALLBACK_TOKEN: ${{ secrets.TITAN_CALLBACK_TOKEN }}
           TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
           # Untrusted dispatch/input fields reach the script ONLY through env,
           # never interpolated into a run: line (the workflow linter enforces
@@ -71,9 +75,8 @@ jobs:
           TITAN_VM_ID: ${{ github.event.client_payload.id || format('manual-{0}', github.run_id) }}
           TITAN_VM_BRIEF: ${{ github.event.client_payload.brief || inputs.brief }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          # The five provider secrets the rest of the repo already injects —
-          # available for a VM brief that needs a model call via the existing
-          # registry, never a new adapter.
+          # Every provider secret in the catalog. The block below is generated.
+          # BEGIN provider secrets (generated from config/providers.catalog.json, run npm run sync:providers)
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
@@ -84,4 +87,39 @@ jobs:
           GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
           HF_API_KEY: ${{ secrets.HF_API_KEY }}
           HF_MODEL: ${{ secrets.HF_MODEL }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_BASE_URL: ${{ secrets.OPENCODE_BASE_URL }}
+          OPENCODE_MODEL: ${{ secrets.OPENCODE_MODEL }}
+          OMNIROUTE_API_KEY: ${{ secrets.OMNIROUTE_API_KEY }}
+          OMNIROUTE_BASE_URL: ${{ secrets.OMNIROUTE_BASE_URL }}
+          OMNIROUTE_MODEL: ${{ secrets.OMNIROUTE_MODEL }}
+          HERMES_1_API_KEY: ${{ secrets.HERMES_1_API_KEY }}
+          HERMES_1_BASE_URL: ${{ secrets.HERMES_1_BASE_URL }}
+          HERMES_1_MODEL: ${{ secrets.HERMES_1_MODEL }}
+          HERMES_1_CHAT_PATH: ${{ secrets.HERMES_1_CHAT_PATH }}
+          HERMES_1_SPECIALIZATION: ${{ secrets.HERMES_1_SPECIALIZATION }}
+          HERMES_2_API_KEY: ${{ secrets.HERMES_2_API_KEY }}
+          HERMES_2_BASE_URL: ${{ secrets.HERMES_2_BASE_URL }}
+          HERMES_2_MODEL: ${{ secrets.HERMES_2_MODEL }}
+          HERMES_2_CHAT_PATH: ${{ secrets.HERMES_2_CHAT_PATH }}
+          HERMES_2_SPECIALIZATION: ${{ secrets.HERMES_2_SPECIALIZATION }}
+          HERMES_3_API_KEY: ${{ secrets.HERMES_3_API_KEY }}
+          HERMES_3_BASE_URL: ${{ secrets.HERMES_3_BASE_URL }}
+          HERMES_3_MODEL: ${{ secrets.HERMES_3_MODEL }}
+          HERMES_3_CHAT_PATH: ${{ secrets.HERMES_3_CHAT_PATH }}
+          HERMES_3_SPECIALIZATION: ${{ secrets.HERMES_3_SPECIALIZATION }}
+          FREEBUFF_API_KEY: ${{ secrets.FREEBUFF_API_KEY }}
+          CUSTOM_1_API_KEY: ${{ secrets.CUSTOM_1_API_KEY }}
+          CUSTOM_1_BASE_URL: ${{ secrets.CUSTOM_1_BASE_URL }}
+          CUSTOM_1_MODEL: ${{ secrets.CUSTOM_1_MODEL }}
+          CUSTOM_1_LABEL: ${{ secrets.CUSTOM_1_LABEL }}
+          CUSTOM_2_API_KEY: ${{ secrets.CUSTOM_2_API_KEY }}
+          CUSTOM_2_BASE_URL: ${{ secrets.CUSTOM_2_BASE_URL }}
+          CUSTOM_2_MODEL: ${{ secrets.CUSTOM_2_MODEL }}
+          CUSTOM_2_LABEL: ${{ secrets.CUSTOM_2_LABEL }}
+          CUSTOM_3_API_KEY: ${{ secrets.CUSTOM_3_API_KEY }}
+          CUSTOM_3_BASE_URL: ${{ secrets.CUSTOM_3_BASE_URL }}
+          CUSTOM_3_MODEL: ${{ secrets.CUSTOM_3_MODEL }}
+          CUSTOM_3_LABEL: ${{ secrets.CUSTOM_3_LABEL }}
+          # END provider secrets
         run: node scripts/provision-railway-vm.mjs

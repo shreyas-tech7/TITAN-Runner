@@ -1,0 +1,844 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-10-08",
+  "about": "The one source of truth for model providers. The Worker, the dashboard, the pulse, .env.example, and the workflow env maps must agree with this file. scripts/check-provider-catalog.mjs checks that. The order of this list is the failover order for chat.",
+  "providers": [
+    {
+      "id": "groq",
+      "label": "Groq",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [
+        "pulse",
+        "subagent",
+        "chat"
+      ],
+      "failover": "direct",
+      "secrets": {
+        "key": "GROQ_API_KEY",
+        "model": "GROQ_MODEL"
+      },
+      "inputs": {
+        "model": {
+          "required": false,
+          "help": "Leave empty to use the model that the self-test found."
+        }
+      },
+      "keyHint": {
+        "prefixes": [
+          "gsk_"
+        ],
+        "text": "A Groq key starts with gsk_."
+      },
+      "validate": {
+        "method": "GET",
+        "url": "https://api.groq.com/openai/v1/models",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "source": "https://console.groq.com/docs/api-reference",
+        "checkedOn": "2026-10-08",
+        "note": "A fake key returned 401 invalid_api_key in a live probe on 2026-10-08."
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "https://api.groq.com/openai/v1",
+        "path": "/chat/completions",
+        "defaultModel": "llama-3.3-70b-versatile"
+      },
+      "getKeyUrl": "https://console.groq.com/keys",
+      "noCard": true,
+      "freeTierNote": {
+        "text": "Groq has a free plan. The limits are in the Groq console. The docs page does not state the numbers for each model.",
+        "source": "https://console.groq.com/docs/rate-limits",
+        "checkedOn": "2026-10-08"
+      }
+    },
+    {
+      "id": "together",
+      "label": "Together AI",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [
+        "pulse",
+        "subagent",
+        "chat"
+      ],
+      "failover": "direct",
+      "secrets": {
+        "key": "TOGETHER_API_KEY",
+        "model": "TOGETHER_MODEL"
+      },
+      "inputs": {
+        "model": {
+          "required": false,
+          "help": "Leave empty to use the model that the self-test found."
+        }
+      },
+      "keyHint": {
+        "prefixes": [
+          "tgp_v1_"
+        ],
+        "pattern": "^[0-9a-f]{64}$",
+        "text": "A Together key starts with tgp_v1_ or has 64 hex characters."
+      },
+      "validate": {
+        "method": "GET",
+        "url": "https://api.together.xyz/v1/models",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "source": "https://docs.together.ai/reference/models-1",
+        "checkedOn": "2026-10-08",
+        "note": "A fake key returned 401 in a live probe on 2026-10-08."
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "https://api.together.xyz/v1",
+        "path": "/chat/completions",
+        "defaultModel": "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
+      },
+      "getKeyUrl": "https://api.together.ai/settings/api-keys",
+      "noCard": false,
+      "freeTierNote": {
+        "text": "Together AI has no free trial now. Its support page says a purchase of at least 5 dollars is required. This does not fit the zero cost rule. Add a key only if you already have credit.",
+        "source": "https://support.together.ai/articles/1862638756-changes-to-free-tier-and-billing-july-2025",
+        "checkedOn": "2026-10-08"
+      }
+    },
+    {
+      "id": "openrouter",
+      "label": "OpenRouter",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [
+        "pulse",
+        "subagent",
+        "chat"
+      ],
+      "failover": "direct",
+      "secrets": {
+        "key": "OPENROUTER_API_KEY",
+        "model": "OPENROUTER_MODEL"
+      },
+      "inputs": {
+        "model": {
+          "required": false,
+          "help": "Leave empty to use the model that the self-test found."
+        }
+      },
+      "keyHint": {
+        "prefixes": [
+          "sk-or-v1-",
+          "sk-or-"
+        ],
+        "text": "An OpenRouter key starts with sk-or-."
+      },
+      "validate": {
+        "method": "GET",
+        "url": "https://openrouter.ai/api/v1/key",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "source": "https://openrouter.ai/docs/api-reference/limits",
+        "checkedOn": "2026-10-08",
+        "note": "The model list route is public, so it cannot check a key. The key info route needs a valid key and costs no tokens."
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "path": "/chat/completions",
+        "defaultModel": "openai/gpt-oss-20b:free"
+      },
+      "getKeyUrl": "https://openrouter.ai/settings/keys",
+      "noCard": true,
+      "freeTierNote": {
+        "text": "Free models (names that end in :free) allow 20 requests each minute. They allow 50 requests each day if you bought less than 10 credits, and 1,000 each day if you bought 10 or more.",
+        "source": "https://openrouter.ai/docs/api-reference/limits",
+        "checkedOn": "2026-10-08"
+      }
+    },
+    {
+      "id": "gemini",
+      "label": "Google Gemini",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [
+        "pulse",
+        "subagent",
+        "chat"
+      ],
+      "failover": "direct",
+      "secrets": {
+        "key": "GEMINI_API_KEY",
+        "model": "GEMINI_MODEL"
+      },
+      "inputs": {
+        "model": {
+          "required": false,
+          "help": "Leave empty to use the model that the self-test found."
+        }
+      },
+      "keyHint": {
+        "prefixes": [
+          "AIza"
+        ],
+        "text": "A Gemini key starts with AIza."
+      },
+      "validate": {
+        "method": "GET",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "auth": {
+          "style": "header",
+          "name": "x-goog-api-key"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "rejectedWhen": [
+          {
+            "status": 400,
+            "bodyIncludes": "API_KEY_INVALID"
+          }
+        ],
+        "source": "https://ai.google.dev/api/models",
+        "checkedOn": "2026-10-08",
+        "note": "Gemini answers 400 INVALID_ARGUMENT, not 401, for a bad key. A live probe on 2026-10-08 showed this. The key goes in a header and not in the query string."
+      },
+      "chat": {
+        "style": "gemini",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+        "path": "/models/{model}:generateContent",
+        "streamPath": "/models/{model}:streamGenerateContent?alt=sse",
+        "defaultModel": "gemini-2.5-flash"
+      },
+      "getKeyUrl": "https://aistudio.google.com/apikey",
+      "noCard": true,
+      "freeTierNote": {
+        "text": "Gemini has a free tier. The limits for each model are in Google AI Studio. The docs say billing is needed only to move to a paid tier.",
+        "source": "https://ai.google.dev/gemini-api/docs/rate-limits",
+        "checkedOn": "2026-10-08"
+      }
+    },
+    {
+      "id": "huggingface",
+      "label": "Hugging Face",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [
+        "pulse",
+        "subagent",
+        "chat"
+      ],
+      "failover": "direct",
+      "secrets": {
+        "key": "HF_API_KEY",
+        "model": "HF_MODEL"
+      },
+      "inputs": {
+        "model": {
+          "required": false,
+          "help": "Leave empty to use the model that the self-test found."
+        }
+      },
+      "keyHint": {
+        "prefixes": [
+          "hf_"
+        ],
+        "text": "A Hugging Face token starts with hf_."
+      },
+      "validate": {
+        "method": "GET",
+        "url": "https://huggingface.co/api/whoami-v2",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "source": "https://huggingface.co/docs/hub/api",
+        "checkedOn": "2026-10-08",
+        "note": "The router model list is public, so it cannot check a key. whoami-v2 checks that the token is valid. It does not prove that the account has inference credit. The runner proof does that."
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "https://router.huggingface.co/v1",
+        "path": "/chat/completions",
+        "defaultModel": "meta-llama/Llama-3.1-8B-Instruct"
+      },
+      "getKeyUrl": "https://huggingface.co/settings/tokens",
+      "noCard": false,
+      "freeTierNote": {
+        "text": "Free accounts get no monthly credit for Inference Providers. A purchase of credits is required. A valid token alone may not run a completion.",
+        "source": "https://huggingface.co/docs/inference-providers/pricing",
+        "checkedOn": "2026-10-08"
+      },
+      "envNote": "The real environment variable is HF_API_KEY, not HUGGINGFACE_API_KEY."
+    },
+    {
+      "id": "opencode",
+      "label": "OpenCode Zen",
+      "kind": "llm",
+      "verifiable": false,
+      "unverifiableReason": "The model list of OpenCode Zen is public and answers 200 for any key. Only a completion proves the key. The runner test does that.",
+      "usedBy": [
+        "pulse"
+      ],
+      "failover": null,
+      "secrets": {
+        "key": "OPENCODE_API_KEY",
+        "baseUrl": "OPENCODE_BASE_URL",
+        "model": "OPENCODE_MODEL"
+      },
+      "inputs": {
+        "baseUrl": {
+          "required": false,
+          "default": "https://opencode.ai/zen",
+          "help": "Leave empty for OpenCode Zen."
+        },
+        "model": {
+          "required": false,
+          "help": "Leave empty to use the first free model."
+        }
+      },
+      "keyHint": {
+        "prefixes": [],
+        "text": ""
+      },
+      "validate": null,
+      "chat": {
+        "style": "openai",
+        "baseUrl": "{baseUrl}/v1",
+        "path": "/chat/completions",
+        "defaultModel": ""
+      },
+      "getKeyUrl": "https://opencode.ai/auth",
+      "noCard": false,
+      "freeTierNote": {
+        "text": "OpenCode Zen lists some free models. Check the Zen console for the current list. The model list route needs no key.",
+        "source": "https://opencode.ai/docs/zen/",
+        "checkedOn": "2026-10-08"
+      },
+      "envNote": "Optional. The base URL defaults to OpenCode Zen."
+    },
+    {
+      "id": "omniroute",
+      "label": "OmniRoute gateway",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [
+        "pulse",
+        "subagent"
+      ],
+      "failover": null,
+      "secrets": {
+        "key": "OMNIROUTE_API_KEY",
+        "baseUrl": "OMNIROUTE_BASE_URL",
+        "model": "OMNIROUTE_MODEL"
+      },
+      "inputs": {
+        "baseUrl": {
+          "required": true,
+          "help": "The address of your gateway with its /v1 path. The address must use https and a public host."
+        },
+        "model": {
+          "required": false,
+          "default": "auto",
+          "help": "Leave empty for auto."
+        }
+      },
+      "keyHint": {
+        "prefixes": [],
+        "text": "If your gateway needs no key, enter the word local."
+      },
+      "validate": {
+        "method": "GET",
+        "url": "{baseUrl}/models",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "source": "https://github.com/diegosouzapw/OmniRoute",
+        "checkedOn": "2026-10-08"
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "{baseUrl}",
+        "path": "/chat/completions",
+        "defaultModel": "auto"
+      },
+      "getKeyUrl": "https://github.com/diegosouzapw/OmniRoute",
+      "noCard": true,
+      "freeTierNote": {
+        "text": "OmniRoute is software that you host. It has no price. The models that it reaches have their own limits.",
+        "source": "https://github.com/diegosouzapw/OmniRoute",
+        "checkedOn": "2026-10-08"
+      },
+      "envNote": "Optional. When a base URL is set, the registry tries OmniRoute first. Leave all three empty to turn it off."
+    },
+    {
+      "id": "hermes_1",
+      "label": "Hermes agent 1",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [],
+      "failover": null,
+      "note": "The Hermes client is not wired into the pulse yet. A Hermes agent can act on its own host, so work for it passes the policy engine as an external effect.",
+      "secrets": {
+        "key": "HERMES_1_API_KEY",
+        "baseUrl": "HERMES_1_BASE_URL",
+        "model": "HERMES_1_MODEL",
+        "chatPath": "HERMES_1_CHAT_PATH",
+        "specialization": "HERMES_1_SPECIALIZATION"
+      },
+      "inputs": {
+        "baseUrl": {
+          "required": true,
+          "help": "The address of the Hermes agent. It must use https."
+        },
+        "model": {
+          "required": false,
+          "default": "hermes-agent"
+        },
+        "chatPath": {
+          "required": false,
+          "default": "/v1/chat/completions"
+        },
+        "specialization": {
+          "required": false,
+          "help": "Task aspects that this agent handles, separated by commas. Leave empty for a general agent."
+        }
+      },
+      "keyHint": {
+        "prefixes": [],
+        "text": ""
+      },
+      "validate": {
+        "method": "GET",
+        "url": "{baseUrl}/v1/models",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "health": "{baseUrl}/health",
+        "source": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/website/docs/user-guide/features/api-server.md",
+        "checkedOn": "2026-10-08",
+        "note": "The docs list GET /v1/models and GET /health. They do not say whether /v1/models needs the key. A 401 or 403 counts as a rejected key."
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "{baseUrl}",
+        "path": "{chatPath}",
+        "defaultModel": "hermes-agent"
+      },
+      "getKeyUrl": "https://github.com/NousResearch/hermes-agent",
+      "noCard": true,
+      "freeTierNote": {
+        "text": "Hermes Agent is software that you host. It has no price. Its host may have a cost.",
+        "source": "https://github.com/NousResearch/hermes-agent",
+        "checkedOn": "2026-10-08"
+      }
+    },
+    {
+      "id": "hermes_2",
+      "label": "Hermes agent 2",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [],
+      "failover": null,
+      "note": "The Hermes client is not wired into the pulse yet. A Hermes agent can act on its own host, so work for it passes the policy engine as an external effect.",
+      "secrets": {
+        "key": "HERMES_2_API_KEY",
+        "baseUrl": "HERMES_2_BASE_URL",
+        "model": "HERMES_2_MODEL",
+        "chatPath": "HERMES_2_CHAT_PATH",
+        "specialization": "HERMES_2_SPECIALIZATION"
+      },
+      "inputs": {
+        "baseUrl": {
+          "required": true,
+          "help": "The address of the Hermes agent. It must use https."
+        },
+        "model": {
+          "required": false,
+          "default": "hermes-agent"
+        },
+        "chatPath": {
+          "required": false,
+          "default": "/v1/chat/completions"
+        },
+        "specialization": {
+          "required": false,
+          "help": "Task aspects that this agent handles, separated by commas. Leave empty for a general agent."
+        }
+      },
+      "keyHint": {
+        "prefixes": [],
+        "text": ""
+      },
+      "validate": {
+        "method": "GET",
+        "url": "{baseUrl}/v1/models",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "health": "{baseUrl}/health",
+        "source": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/website/docs/user-guide/features/api-server.md",
+        "checkedOn": "2026-10-08"
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "{baseUrl}",
+        "path": "{chatPath}",
+        "defaultModel": "hermes-agent"
+      },
+      "getKeyUrl": "https://github.com/NousResearch/hermes-agent",
+      "noCard": true,
+      "freeTierNote": {
+        "text": "Hermes Agent is software that you host. It has no price. Its host may have a cost.",
+        "source": "https://github.com/NousResearch/hermes-agent",
+        "checkedOn": "2026-10-08"
+      }
+    },
+    {
+      "id": "hermes_3",
+      "label": "Hermes agent 3",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [],
+      "failover": null,
+      "note": "The Hermes client is not wired into the pulse yet. A Hermes agent can act on its own host, so work for it passes the policy engine as an external effect.",
+      "secrets": {
+        "key": "HERMES_3_API_KEY",
+        "baseUrl": "HERMES_3_BASE_URL",
+        "model": "HERMES_3_MODEL",
+        "chatPath": "HERMES_3_CHAT_PATH",
+        "specialization": "HERMES_3_SPECIALIZATION"
+      },
+      "inputs": {
+        "baseUrl": {
+          "required": true,
+          "help": "The address of the Hermes agent. It must use https."
+        },
+        "model": {
+          "required": false,
+          "default": "hermes-agent"
+        },
+        "chatPath": {
+          "required": false,
+          "default": "/v1/chat/completions"
+        },
+        "specialization": {
+          "required": false,
+          "help": "Task aspects that this agent handles, separated by commas. Leave empty for a general agent."
+        }
+      },
+      "keyHint": {
+        "prefixes": [],
+        "text": ""
+      },
+      "validate": {
+        "method": "GET",
+        "url": "{baseUrl}/v1/models",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "health": "{baseUrl}/health",
+        "source": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/website/docs/user-guide/features/api-server.md",
+        "checkedOn": "2026-10-08"
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "{baseUrl}",
+        "path": "{chatPath}",
+        "defaultModel": "hermes-agent"
+      },
+      "getKeyUrl": "https://github.com/NousResearch/hermes-agent",
+      "noCard": true,
+      "freeTierNote": {
+        "text": "Hermes Agent is software that you host. It has no price. Its host may have a cost.",
+        "source": "https://github.com/NousResearch/hermes-agent",
+        "checkedOn": "2026-10-08"
+      }
+    },
+    {
+      "id": "freebuff",
+      "label": "Freebuff",
+      "kind": "llm",
+      "verifiable": false,
+      "unverifiableReason": "Freebuff has no official public API for other tools. TITAN saves the key but never calls Freebuff. See src/agents/freebuffAgent.js.",
+      "usedBy": [
+        "pulse"
+      ],
+      "failover": null,
+      "secrets": {
+        "key": "FREEBUFF_API_KEY"
+      },
+      "inputs": {},
+      "keyHint": {
+        "prefixes": [],
+        "text": ""
+      },
+      "validate": null,
+      "chat": null,
+      "getKeyUrl": "https://freebuff.com",
+      "noCard": true,
+      "freeTierNote": {
+        "text": "Freebuff is a free consumer product. It needs no key for its own use. TITAN reads this key and reports its state as no public API.",
+        "source": "https://freebuff.com",
+        "checkedOn": "2026-10-08"
+      },
+      "envNote": "Freebuff has no public API. TITAN reads this key and never uses it for a live call."
+    },
+    {
+      "id": "custom_1",
+      "label": "Custom provider 1",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [
+        "pulse",
+        "subagent",
+        "chat"
+      ],
+      "failover": "custom",
+      "secrets": {
+        "key": "CUSTOM_1_API_KEY",
+        "baseUrl": "CUSTOM_1_BASE_URL",
+        "model": "CUSTOM_1_MODEL",
+        "label": "CUSTOM_1_LABEL"
+      },
+      "inputs": {
+        "label": {
+          "required": true,
+          "help": "A short name for this provider."
+        },
+        "baseUrl": {
+          "required": true,
+          "help": "The OpenAI compatible address with its /v1 path. The address must use https and a public host."
+        },
+        "model": {
+          "required": true,
+          "help": "The model id that the provider serves."
+        }
+      },
+      "keyHint": {
+        "prefixes": [],
+        "text": ""
+      },
+      "validate": {
+        "method": "GET",
+        "url": "{baseUrl}/models",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "source": "https://platform.openai.com/docs/api-reference/models/list",
+        "checkedOn": "2026-10-08"
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "{baseUrl}",
+        "path": "/chat/completions",
+        "defaultModel": ""
+      },
+      "getKeyUrl": "",
+      "noCard": false,
+      "freeTierNote": {
+        "text": "This depends on the provider that you choose.",
+        "source": "",
+        "checkedOn": "2026-10-08"
+      }
+    },
+    {
+      "id": "custom_2",
+      "label": "Custom provider 2",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [
+        "pulse",
+        "subagent",
+        "chat"
+      ],
+      "failover": "custom",
+      "secrets": {
+        "key": "CUSTOM_2_API_KEY",
+        "baseUrl": "CUSTOM_2_BASE_URL",
+        "model": "CUSTOM_2_MODEL",
+        "label": "CUSTOM_2_LABEL"
+      },
+      "inputs": {
+        "label": {
+          "required": true,
+          "help": "A short name for this provider."
+        },
+        "baseUrl": {
+          "required": true,
+          "help": "The OpenAI compatible address with its /v1 path. The address must use https and a public host."
+        },
+        "model": {
+          "required": true,
+          "help": "The model id that the provider serves."
+        }
+      },
+      "keyHint": {
+        "prefixes": [],
+        "text": ""
+      },
+      "validate": {
+        "method": "GET",
+        "url": "{baseUrl}/models",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "source": "https://platform.openai.com/docs/api-reference/models/list",
+        "checkedOn": "2026-10-08"
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "{baseUrl}",
+        "path": "/chat/completions",
+        "defaultModel": ""
+      },
+      "getKeyUrl": "",
+      "noCard": false,
+      "freeTierNote": {
+        "text": "This depends on the provider that you choose.",
+        "source": "",
+        "checkedOn": "2026-10-08"
+      }
+    },
+    {
+      "id": "custom_3",
+      "label": "Custom provider 3",
+      "kind": "llm",
+      "verifiable": true,
+      "usedBy": [
+        "pulse",
+        "subagent",
+        "chat"
+      ],
+      "failover": "custom",
+      "secrets": {
+        "key": "CUSTOM_3_API_KEY",
+        "baseUrl": "CUSTOM_3_BASE_URL",
+        "model": "CUSTOM_3_MODEL",
+        "label": "CUSTOM_3_LABEL"
+      },
+      "inputs": {
+        "label": {
+          "required": true,
+          "help": "A short name for this provider."
+        },
+        "baseUrl": {
+          "required": true,
+          "help": "The OpenAI compatible address with its /v1 path. The address must use https and a public host."
+        },
+        "model": {
+          "required": true,
+          "help": "The model id that the provider serves."
+        }
+      },
+      "keyHint": {
+        "prefixes": [],
+        "text": ""
+      },
+      "validate": {
+        "method": "GET",
+        "url": "{baseUrl}/models",
+        "auth": {
+          "style": "bearer"
+        },
+        "ok": [
+          200
+        ],
+        "rejected": [
+          401,
+          403
+        ],
+        "source": "https://platform.openai.com/docs/api-reference/models/list",
+        "checkedOn": "2026-10-08"
+      },
+      "chat": {
+        "style": "openai",
+        "baseUrl": "{baseUrl}",
+        "path": "/chat/completions",
+        "defaultModel": ""
+      },
+      "getKeyUrl": "",
+      "noCard": false,
+      "freeTierNote": {
+        "text": "This depends on the provider that you choose.",
+        "source": "",
+        "checkedOn": "2026-10-08"
+      }
+    }
+  ]
+}

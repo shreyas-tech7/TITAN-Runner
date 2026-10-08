@@ -1,26 +1,21 @@
 #!/usr/bin/env node
 /**
- * @file Provider self-test (task instructions, section 6): refreshes each
- * provider's live model catalog, then sends one tiny (5-token) completion
- * to every configured provider and records success/latency/model/the exact
- * (scrubbed) error text to `state/providers.json`. Run by
- * `.github/workflows/provider-selftest.yml`, manual + weekly.
+ * @file Provider self-test. It has three modes (Wave 12, K5 and R3):
  *
- * This is the one place in the repo that deliberately makes real network
- * calls against real upstream APIs — everything else (`npm test`, the
- * pulse's own dry-run) is built to need zero credentials and zero network
- * access. Consistent with that split, this script refuses to run under
- * `TITAN_DRY_RUN` rather than silently doing nothing, since running it in
- * that mode would just be a confusing no-op.
+ *   full    (weekly and by hand): refresh each model catalog, then send one tiny completion to every configured
+ *           provider, and record the result in `state/providers.json`.
+ *   light   (daily): refresh each model catalog only. It sends no completion, so it costs no tokens.
+ *   single  (a `provider-selftest` dispatch with a provider id): prove one provider in this runner. It writes nothing
+ *           to `state/`. It posts the result to the Worker route `/internal/provider-proof` with the callback token.
  *
- * Never throws past its own top-level: one provider's failure is a result
- * to record, not a reason to stop testing the other six. Exit code stays 0
- * even when every provider fails — this is a health report, not a gate;
- * failures are meant to be *visible* (`state/providers.json`, the dashboard's
- * provider strip), not to fail CI or block anything else.
+ * Run by `.github/workflows/provider-selftest.yml`. The provider list comes from `config/providers.catalog.json`.
+ *
+ * This is the one place in the repo that deliberately makes real calls against real provider APIs. It never throws past
+ * its own top level, and the exit code stays 0 even when a provider fails: this is a health report, not a gate.
  */
 import { config, isProviderConfigured } from '../src/config.js';
 import { providerHealth } from '../src/providers/health.js';
+import { DIRECT_PROVIDER_IDS, CUSTOM_PROVIDER_IDS, getCatalogProvider } from '../src/providers/catalog.js';
 import { GroqProvider } from '../src/providers/groq.js';
 import { TogetherProvider } from '../src/providers/together.js';
 import { OpenRouterProvider } from '../src/providers/openrouter.js';
@@ -35,112 +30,125 @@ import {
   discoverHuggingFaceModels,
 } from '../src/providers/modelDiscovery.js';
 import { redactString } from '../src/lib/redact.js';
+import { proveProvider } from '../src/providers/selftest.js';
+import { callWorker } from '../src/lib/workerCallback.js';
 
 if (config.dryRun) {
   console.log(
-    'TITAN_DRY_RUN is set — provider-selftest.mjs exists specifically to make real ' +
-      'network calls against real provider APIs, so it refuses to run under dry-run ' +
-      'rather than silently doing nothing. Unset TITAN_DRY_RUN to test live providers.',
+    'TITAN_DRY_RUN is set. provider-selftest.mjs makes real network calls against real provider APIs, so it refuses to run under dry-run.',
   );
   process.exit(0);
 }
 
-/** A real round trip with a real (tiny) answer — not a full task prompt. */
 const PROBE_PROMPT = 'Reply with exactly one word: OK';
 const PROBE_MAX_TOKENS = 5;
 
-/** @type {Array<{id: string, baseUrl: string, discover: Function, ProviderClass: Function}>} */
-const REGISTRY_PROVIDERS = [
-  { id: 'groq', baseUrl: 'https://api.groq.com/openai/v1', discover: discoverGroqModels, ProviderClass: GroqProvider },
-  { id: 'together', baseUrl: 'https://api.together.xyz/v1', discover: discoverTogetherModels, ProviderClass: TogetherProvider },
-  { id: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1', discover: discoverOpenRouterModels, ProviderClass: OpenRouterProvider },
-  { id: 'gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta', discover: discoverGeminiModels, ProviderClass: GeminiProvider },
-  { id: 'huggingface', baseUrl: 'https://router.huggingface.co/v1', discover: discoverHuggingFaceModels, ProviderClass: HuggingFaceProvider },
-];
+/** The adapter class and the model discovery function of each direct provider. The ids and base URLs come from the catalog. */
+const DIRECT = {
+  groq: { ProviderClass: GroqProvider, discover: discoverGroqModels },
+  together: { ProviderClass: TogetherProvider, discover: discoverTogetherModels },
+  openrouter: { ProviderClass: OpenRouterProvider, discover: discoverOpenRouterModels },
+  gemini: { ProviderClass: GeminiProvider, discover: discoverGeminiModels },
+  huggingface: { ProviderClass: HuggingFaceProvider, discover: discoverHuggingFaceModels },
+};
 
-const results = [];
+const mode = (process.env.TITAN_SELFTEST_PROVIDER ?? '').trim() ? 'single' : (process.env.TITAN_SELFTEST_MODE ?? 'full').trim() === 'light' ? 'light' : 'full';
 
-for (const p of REGISTRY_PROVIDERS) {
-  if (!isProviderConfigured(p.id)) {
-    providerHealth.markNotConfigured(p.id);
-    results.push({ id: p.id, status: 'not_configured' });
-    continue;
-  }
-
-  let discovered = [];
+async function discoverFor(id) {
+  const entry = getCatalogProvider(id);
+  const spec = DIRECT[id];
+  if (!spec) return [];
   try {
-    discovered = await p.discover({
-      apiKey: config[p.id].apiKey,
-      baseUrl: p.baseUrl,
-      preferredModel: config[p.id].model || null,
-    });
+    return await spec.discover({ apiKey: config[id].apiKey, baseUrl: entry.chat.baseUrl, preferredModel: config[id].model || null });
   } catch (err) {
-    console.error(`[${p.id}] model discovery threw unexpectedly (treated as zero candidates): ${redactString(String(err))}`);
-  }
-  if (discovered.length > 0) {
-    providerHealth.setDiscoveredModels(p.id, discovered, discovered[0]);
-  }
-
-  // A fresh instance so its model resolves from the cache just written above.
-  const instance = new p.ProviderClass();
-  try {
-    const res = await instance.chat([{ role: 'user', content: PROBE_PROMPT }], {
-      maxTokens: PROBE_MAX_TOKENS,
-      temperature: 0,
-    });
-    // instance.chat() already recorded this outcome via providers/health.js.
-    results.push({ id: p.id, status: 'ok', model: res.model, latencyMs: res.latencyMs, discoveredModelCount: discovered.length });
-  } catch (err) {
-    results.push({
-      id: p.id,
-      status: 'failed',
-      error: redactString(err instanceof Error ? err.message : String(err)).slice(0, 300),
-      discoveredModelCount: discovered.length,
-    });
+    console.error(`[${id}] model discovery threw (treated as zero candidates): ${redactString(String(err))}`);
+    return [];
   }
 }
 
-if (!isProviderConfigured('opencode')) {
-  providerHealth.markNotConfigured('opencode');
-  results.push({ id: 'opencode', status: 'not_configured' });
-} else {
-  const agent = new OpenCodeAgent();
-  const started = performance.now();
-  try {
-    const res = await agent.selfTestChat(PROBE_PROMPT, { maxTokens: PROBE_MAX_TOKENS });
-    const latencyMs = Math.round(performance.now() - started);
-    providerHealth.recordOutcome('opencode', { ok: true, latencyMs, model: res.model });
-    results.push({ id: 'opencode', status: 'ok', model: res.model, latencyMs });
-  } catch (err) {
-    providerHealth.recordOutcome('opencode', {
-      ok: false,
-      code: err?.code,
-      status: err?.status ?? null,
-      message: err instanceof Error ? err.message : String(err),
-    });
-    results.push({ id: 'opencode', status: 'failed', error: redactString(err instanceof Error ? err.message : String(err)).slice(0, 300) });
+async function runSingle() {
+  const id = process.env.TITAN_SELFTEST_PROVIDER.trim().toLowerCase();
+  const requestId = (process.env.TITAN_SELFTEST_REQUEST_ID ?? '').trim();
+  if (!getCatalogProvider(id)) {
+    console.log(`provider-selftest: "${id.slice(0, 40)}" is not in the catalog. Nothing to do.`);
+    return;
   }
+  const discover = Object.fromEntries(Object.entries(DIRECT).map(([k, v]) => [k, ({ apiKey, baseUrl, preferredModel }) => v.discover({ apiKey, baseUrl, preferredModel })]));
+  const result = await proveProvider(id, { discover });
+  if (result.skipped) {
+    console.log(`provider-selftest: ${id} is skipped. ${result.detail}`);
+    return;
+  }
+  console.log(`provider-selftest: ${id} ${result.ok ? 'OK' : 'FAILED'}${result.model ? ` model ${result.model}` : ''}${result.latencyMs != null ? ` in ${result.latencyMs} ms` : ''}. ${result.detail}`);
+  const safeRequestId = /^[A-Za-z0-9_-]{1,64}$/.test(requestId) ? requestId : undefined;
+  const post = await callWorker('/internal/provider-proof', {
+    body: { provider: id, requestId: safeRequestId, ok: result.ok, model: result.model, latencyMs: result.latencyMs, detail: result.detail },
+  });
+  console.log(post.ok ? `provider-selftest: the Worker took the proof (${post.kind} token).` : `provider-selftest: the Worker did not take the proof (${post.status ?? post.error}).`);
 }
 
-// Freebuff has no legitimate public API — see agents/freebuffAgent.js. Never
-// attempted; recorded so the dashboard's provider strip shows the honest
-// reason rather than silence.
-providerHealth.markNoPublicApi('freebuff', 'Freebuff has no official public API for third-party integration — see src/agents/freebuffAgent.js.');
-results.push({ id: 'freebuff', status: 'no_public_api' });
+async function runBatch(light) {
+  const results = [];
+  for (const id of DIRECT_PROVIDER_IDS) {
+    if (!isProviderConfigured(id)) {
+      providerHealth.markNotConfigured(id);
+      results.push({ id, status: 'not_configured' });
+      continue;
+    }
+    const discovered = await discoverFor(id);
+    if (discovered.length > 0) providerHealth.setDiscoveredModels(id, discovered, discovered[0]);
+    if (light) {
+      results.push({ id, status: 'listed', discoveredModelCount: discovered.length });
+      continue;
+    }
+    const instance = new DIRECT[id].ProviderClass();
+    try {
+      const res = await instance.chat([{ role: 'user', content: PROBE_PROMPT }], { maxTokens: PROBE_MAX_TOKENS, temperature: 0 });
+      results.push({ id, status: 'ok', model: res.model, latencyMs: res.latencyMs, discoveredModelCount: discovered.length });
+    } catch (err) {
+      results.push({ id, status: 'failed', error: redactString(err instanceof Error ? err.message : String(err)).slice(0, 300), discoveredModelCount: discovered.length });
+    }
+  }
 
-providerHealth.save();
+  if (!light) {
+    for (const id of CUSTOM_PROVIDER_IDS) {
+      if (!isProviderConfigured(id)) continue;
+      const res = await proveProvider(id, {});
+      results.push({ id, status: res.ok ? 'ok' : 'failed', model: res.model, latencyMs: res.latencyMs, error: res.ok ? undefined : res.detail });
+    }
+  }
 
-const summary = { selfTest: 'complete', at: new Date().toISOString(), results };
-console.log(JSON.stringify(summary, null, 2));
+  if (!isProviderConfigured('opencode')) {
+    providerHealth.markNotConfigured('opencode');
+    results.push({ id: 'opencode', status: 'not_configured' });
+  } else if (!light) {
+    const agent = new OpenCodeAgent();
+    const started = performance.now();
+    try {
+      const res = await agent.selfTestChat(PROBE_PROMPT, { maxTokens: PROBE_MAX_TOKENS });
+      const latencyMs = Math.round(performance.now() - started);
+      providerHealth.recordOutcome('opencode', { ok: true, latencyMs, model: res.model });
+      results.push({ id: 'opencode', status: 'ok', model: res.model, latencyMs });
+    } catch (err) {
+      providerHealth.recordOutcome('opencode', { ok: false, code: err?.code, status: err?.status ?? null, message: err instanceof Error ? err.message : String(err) });
+      results.push({ id: 'opencode', status: 'failed', error: redactString(err instanceof Error ? err.message : String(err)).slice(0, 300) });
+    }
+  }
 
-const failed = results.filter((r) => r.status === 'failed');
-console.log(
-  `\n${results.length} provider(s) checked — ` +
-    `${results.filter((r) => r.status === 'ok').length} ok, ` +
-    `${failed.length} failed, ` +
-    `${results.filter((r) => r.status === 'not_configured').length} not configured, ` +
-    `${results.filter((r) => r.status === 'no_public_api').length} no public API.`,
-);
-if (failed.length > 0) {
+  // Freebuff has no legitimate public API. It is never called. The dashboard shows the honest reason.
+  providerHealth.markNoPublicApi('freebuff', 'Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.');
+  results.push({ id: 'freebuff', status: 'no_public_api' });
+
+  providerHealth.save();
+  console.log(JSON.stringify({ selfTest: 'complete', mode: light ? 'light' : 'full', at: new Date().toISOString(), results }, null, 2));
+  const failed = results.filter((r) => r.status === 'failed');
+  console.log(`\n${results.length} provider(s) checked. ${results.filter((r) => r.status === 'ok').length} ok, ${failed.length} failed, ${results.filter((r) => r.status === 'not_configured').length} not configured.`);
   for (const f of failed) console.log(`  - ${f.id}: ${f.error}`);
+}
+
+try {
+  if (mode === 'single') await runSingle();
+  else await runBatch(mode === 'light');
+} catch (err) {
+  console.error('provider-selftest: unexpected error:', redactString(err instanceof Error ? err.message : String(err)));
 }
