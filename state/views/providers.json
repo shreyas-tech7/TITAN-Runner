@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-08T08:02:25.396Z",
+  "updatedAt": "2026-10-08T14:57:27.831Z",
   "providers": {
     "groq": {
       "breaker": "disabled",
@@ -33,15 +33,15 @@
       }
     },
     "openrouter": {
-      "breaker": "open",
-      "until": "2026-10-08T09:02:13.549Z",
-      "reason": "rate_limited — cooling down after 6 consecutive failure(s)",
-      "explain": "openrouter: breaker open (rate_limited — cooling down after 6 consecutive failure(s)); p50 22593 ms; error rate 95%; model inclusionai/ling-3.1-flash",
+      "breaker": "half-open",
+      "until": null,
+      "reason": "cooldown over after 6 failure(s); next call is a probe",
+      "explain": "openrouter: breaker half-open (cooldown over after 6 failure(s); next call is a probe); p50 22593 ms; error rate 95%; model inclusionai/ling-3.1-flash",
       "status": "rate_limited",
       "consecutiveFailures": 6,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 1,
+        "usedMinute": 0,
         "usedDay": 2,
         "dayLeft": 178,
         "perDay": 180
@@ -56,7 +56,7 @@
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 1,
+        "usedMinute": 0,
         "usedDay": 2,
         "dayLeft": 1198,
         "perDay": 1200
