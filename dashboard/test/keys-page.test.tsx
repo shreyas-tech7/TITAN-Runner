@@ -220,3 +220,13 @@ test("W12-D10: the page policy gains no new host, and no file calls a host that 
     }
   }
 });
+
+test("R5: an error text from the Worker ends with the request id", async () => {
+  const { readErrorMessage } = await import("../lib/workerApi");
+  const withHeader = new Response(JSON.stringify({ error: "bad_value", message: "The key is too long." }), { status: 400, headers: { "X-Request-Id": "req_abc123abc123" } });
+  assert.equal(await readErrorMessage(withHeader, "fallback"), "The key is too long. (request id req_abc123abc123)");
+  const inBody = new Response(JSON.stringify({ error: "internal_error", requestId: "req_000000000001" }), { status: 500 });
+  assert.equal(await readErrorMessage(inBody, "fallback"), "internal_error (request id req_000000000001)");
+  assert.equal(await readErrorMessage(new Response("not json", { status: 502 }), "The Worker answered 502."), "The Worker answered 502.");
+  assert.equal(await readErrorMessage(new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 }), "x"), "unauthorized");
+});

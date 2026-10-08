@@ -98,4 +98,4 @@ jobs:
 
       - name: Worker tests (fake GitHub, fake providers, SQLite D1)
         working-directory: worker
-        run: node --test test/*.test.mjs
+        run: npm test

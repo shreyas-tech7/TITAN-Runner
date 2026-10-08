@@ -20,7 +20,7 @@
     "check:workflows": "node scripts/check-workflows.mjs",
     "check:schemas": "node scripts/export-schemas.mjs --check",
     "schemas": "node scripts/export-schemas.mjs",
-    "test:worker": "cd worker && node --test test/*.test.mjs",
+    "test:worker": "cd worker && npm test --silent",
     "check:ste": "node scripts/check-ste.mjs --base origin/main",
     "check:providers": "node scripts/check-provider-catalog.mjs",
     "sync:providers": "node scripts/sync-provider-env.mjs",

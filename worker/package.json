@@ -8,7 +8,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test --test-concurrency=1 --test-timeout=120000 test/*.test.mjs"
   },
   "dependencies": {
     "tweetnacl-sealedbox-js": "^1.2.0",

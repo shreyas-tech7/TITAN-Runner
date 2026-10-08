@@ -140,11 +140,16 @@ export async function callWorker(path: string, token: string, init: RequestInit 
 }
 
 export async function readErrorMessage(res: Response, fallback: string): Promise<string> {
+  // The Worker puts a short reason in `message` and a code in `error`. It also sends a request id (Wave 12, R5), so a person
+  // can quote it. The id appears at the end of every error text.
+  const header = res.headers.get("X-Request-Id");
   try {
-    const body = (await res.json()) as { error?: string };
-    return body?.error || fallback;
+    const body = (await res.json()) as { error?: string; message?: string; requestId?: string };
+    const text = body?.message || body?.error || fallback;
+    const id = header || body?.requestId;
+    return id && !text.includes(id) ? `${text} (request id ${id})` : text;
   } catch {
-    return fallback;
+    return header ? `${fallback} (request id ${header})` : fallback;
   }
 }
 
