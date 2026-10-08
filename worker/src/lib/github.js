@@ -103,8 +103,9 @@ export function githubClient(env) {
   return {
     repoPath,
 
-    async getPublicKey() {
-      const res = await call('GitHub public-key fetch', 'GET', `${repoPath}/actions/secrets/public-key`, { permission: PERMISSIONS.secretsRead });
+    /** @param {{ forWrite?: boolean }} [opts] When the key is for a write, a 403 names the write permission. */
+    async getPublicKey(opts = {}) {
+      const res = await call('GitHub public-key fetch', 'GET', `${repoPath}/actions/secrets/public-key`, { permission: opts.forWrite ? PERMISSIONS.secretsWrite : PERMISSIONS.secretsRead });
       return res.json();
     },
 

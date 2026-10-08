@@ -22,6 +22,7 @@
  *
  * Usage:
  *   node scripts/check-ste.mjs --base origin/main     lines that changed against a base
+ *   node scripts/check-ste.mjs --base origin/main --worktree   also lines that are not committed yet
  *   node scripts/check-ste.mjs --staged               lines that are staged
  *   node scripts/check-ste.mjs --all                  every line counts as changed
  *   node scripts/check-ste.mjs [--min 80] [--quiet] [file.md ...]
@@ -259,12 +260,13 @@ function walkMarkdown(dir, out = []) {
 
 function main(argv) {
   const args = argv.slice(2);
-  const opt = { base: null, staged: false, all: false, min: DEFAULT_MIN_SCORE, quiet: false, files: [] };
+  const opt = { base: null, staged: false, all: false, worktree: false, min: DEFAULT_MIN_SCORE, quiet: false, files: [] };
   for (let i = 0; i < args.length; i += 1) {
     const a = args[i];
     if (a === '--base') opt.base = args[++i];
     else if (a === '--staged') opt.staged = true;
     else if (a === '--all') opt.all = true;
+    else if (a === '--worktree') opt.worktree = true;
     else if (a === '--min') opt.min = Number(args[++i]);
     else if (a === '--quiet') opt.quiet = true;
     else opt.files.push(a);
@@ -277,7 +279,7 @@ function main(argv) {
   } else if (opt.all) {
     for (const f of walkMarkdown(process.cwd())) targets.set(relative(process.cwd(), f), null);
   } else if (opt.base || opt.staged) {
-    const gitArgs = opt.staged ? ['diff', '--cached', '-U0', '--no-color', '--', '*.md'] : ['diff', '-U0', '--no-color', `${opt.base}...HEAD`, '--', '*.md'];
+    const gitArgs = opt.staged ? ['diff', '--cached', '-U0', '--no-color', '--', '*.md'] : opt.worktree ? ['diff', '-U0', '--no-color', opt.base, '--', '*.md'] : ['diff', '-U0', '--no-color', `${opt.base}...HEAD`, '--', '*.md'];
     let diff = '';
     try {
       diff = execFileSync('git', gitArgs, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });

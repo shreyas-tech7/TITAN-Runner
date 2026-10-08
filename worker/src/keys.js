@@ -82,7 +82,7 @@ function hostOf(raw) {
 // ---------------------------------------------------------------------
 
 /**
- * @typedef {{ result: 'ok'|'rejected'|'rate_limited'|'timeout'|'unreachable'|'unverifiable'|'error', httpStatus: number|null, httpClass: string, latencyMs: number, detail: string, at: string }} ProviderCheck
+ * @typedef {{ result: 'ok'|'rejected'|'rate_limited'|'timeout'|'unreachable'|'unverifiable'|'bad_url'|'error', httpStatus: number|null, httpClass: string, latencyMs: number, detail: string, at: string }} ProviderCheck
  */
 
 function classOf(status) {
@@ -116,9 +116,11 @@ export async function verifyProviderKey(env, entry, value, inputs = {}) {
   else if (v.auth?.style === 'header' && v.auth.name) headers[v.auth.name] = value;
   else return { result: 'error', httpStatus: null, httpClass: 'none', latencyMs: 0, detail: 'The catalog has an unsupported auth style.', at };
 
+  // Only a test can change the time limit (TITAN_TEST_MODE). The live limit is 8 seconds.
+  const timeoutMs = env.TITAN_TEST_MODE === '1' && Number(env.TITAN_PROVIDER_CHECK_TIMEOUT_MS) > 0 ? Number(env.TITAN_PROVIDER_CHECK_TIMEOUT_MS) : PROVIDER_CHECK_TIMEOUT_MS;
   const started = Date.now();
   try {
-    const res = await safeFetch(env, url, { method: v.method ?? 'GET', headers }, { allow: [host], timeoutMs: PROVIDER_CHECK_TIMEOUT_MS, maxBytes: 300_000, checkDns: needsBase });
+    const res = await safeFetch(env, url, { method: v.method ?? 'GET', headers }, { allow: [host], timeoutMs, maxBytes: 300_000, checkDns: needsBase });
     const latencyMs = Date.now() - started;
     const status = res.status;
     const base = { httpStatus: status, httpClass: classOf(status), latencyMs, at };
@@ -144,6 +146,7 @@ export async function verifyProviderKey(env, entry, value, inputs = {}) {
   } catch (err) {
     const latencyMs = Date.now() - started;
     if (err instanceof SafeFetchError) {
+      if (err.code === 'not_public' || err.code === 'bad_url' || err.code === 'not_https') return { result: 'bad_url', httpStatus: null, httpClass: 'none', latencyMs, detail: err.message, at };
       if (err.code === 'timeout') return { result: 'timeout', httpStatus: null, httpClass: 'timeout', latencyMs, detail: 'The provider did not answer in 8 seconds.', at };
       return { result: 'unreachable', httpStatus: null, httpClass: 'network', latencyMs, detail: err.message, at };
     }
@@ -194,8 +197,7 @@ export function computeKeyState({ entry, secretPresent, secretUpdatedAt, row, pu
   if (pulseFresh && pulse.status === 'rate_limited') return { state: 'rate_limited', reason: 'The pulse hit a rate limit with this key.', proof, check };
   if (check?.result === 'ok') return { state: 'provider_ok', reason: 'The provider accepted this key. No runner has used it yet.', proof, check };
   if (check?.result === 'rejected') return { state: 'invalid', reason: 'The provider rejected this key.', proof, check };
-  if (check?.result === 'rate_limited') return { state: 'rate_limited', reason: 'The provider is limiting requests.', proof, check };
-  if (check && ['timeout', 'unreachable', 'error'].includes(check.result)) return { state: 'error', reason: 'The last check did not finish.', proof, check };
+  // A check that did not finish (429, timeout, no route) is not evidence. The key stays "Saved, not verified".
   if (!entry.verifiable) return { state: 'unverifiable', reason: entry.unverifiableReason ?? 'TITAN cannot check this provider.', proof, check };
   return { state: 'saved_unverified', reason: 'Saved, not verified.', proof, check };
 }
@@ -384,6 +386,7 @@ export async function handleSaveKey(c) {
     await recordKeyEvent(env, { action: 'save_rejected', provider: entry.id, result: 'rejected', requestId, detail: providerCheck.detail }).catch(() => null);
     return json({ ok: false, error: 'provider_rejected', reason: providerCheck.detail, provider: entry.id, providerCheck, requestId }, 422);
   }
+  if (providerCheck.result === 'bad_url') return jsonError(400, 'bad_base_url', providerCheck.detail, { requestId });
   const verified = providerCheck.result === 'ok';
   if (!verified && body.saveIfUnverified !== true) {
     return json({ ok: false, needsConfirm: true, provider: entry.id, reason: providerCheck.detail, providerCheck, warnings, requestId }, 202);
@@ -394,7 +397,7 @@ export async function handleSaveKey(c) {
   const toWrite = [[entry.secrets.key, value]];
   for (const [role, text] of Object.entries(inputs)) if (entry.secrets[role]) toWrite.push([entry.secrets[role], text]);
   try {
-    const { key: publicKey, key_id: keyId } = await gh.getPublicKey();
+    const { key: publicKey, key_id: keyId } = await gh.getPublicKey({ forWrite: true });
     for (const [name, plain] of toWrite) await gh.putSecret(name, await sealForGithub(plain, publicKey), keyId);
   } catch (err) {
     // The raw value never reaches this message. Only the sealed form and the answer of GitHub left this function.
@@ -427,7 +430,7 @@ export async function handleSaveKey(c) {
   if (chat === 'vault_not_ready') warnings.push(VAULT_FIX);
 
   // Step 12: the metadata. A new key clears the old proof. The key itself is never written.
-  const checkSaved = verified || providerCheck.result !== 'unverifiable' ? providerCheck : providerCheck;
+  const checkSaved = providerCheck;
   const metaWarnings = [];
   try {
     await env.DB.prepare(
@@ -583,7 +586,7 @@ export async function secretRoundTrip(env) {
   const mark = (step, ok, detail) => steps.push({ step, ok, detail: detail ?? null });
   let wrote = false;
   try {
-    const { key, key_id: keyId } = await gh.getPublicKey();
+    const { key, key_id: keyId } = await gh.getPublicKey({ forWrite: true });
     mark('read public key', true);
     const probe = crypto.randomUUID().replace(/-/g, '');
     await gh.putSecret(name, await sealForGithub(probe, key), keyId);

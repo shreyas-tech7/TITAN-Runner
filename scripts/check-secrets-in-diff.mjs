@@ -10,7 +10,7 @@
  *
  * Deliberate exclusions, each a place that must contain key-shaped strings:
  *   - src/lib/redact.js and scripts/check-secrets-*.mjs (the patterns themselves)
- *   - test/ and bench/ (canary secrets that prove redaction works — every
+ *   - test/, worker/test/ and bench/ (canary secrets that prove redaction works — every
  *     canary is built by string concatenation in source so the literal never
  *     appears, but the exclusion keeps the gate from arguing with the tests)
  *   - package-lock.json integrity hashes (sha512 base64 runs)
@@ -18,7 +18,7 @@
 import { execFileSync } from 'node:child_process';
 import { SECRET_PATTERNS } from '../src/lib/redact.js';
 
-const EXCLUDED_PATHS = [/^src\/lib\/redact\.js$/, /^scripts\/check-secrets-in-(diff|state)\.mjs$/, /^test\//, /^bench\//, /package-lock\.json$/];
+const EXCLUDED_PATHS = [/^src\/lib\/redact\.js$/, /^scripts\/check-secrets-in-(diff|state)\.mjs$/, /^test\//, /^worker\/test\//, /^bench\//, /package-lock\.json$/];
 // The generic base64/hex catch-alls (the last two patterns) fire on every
 // lockfile hash and SHA-pinned action; a real key of an unknown provider
 // still trips the issuer-specific and header/URL patterns above them.

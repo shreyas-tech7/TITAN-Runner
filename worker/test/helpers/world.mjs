@@ -128,7 +128,7 @@ export class FakeProviders {
     if (!spec) return json({ error: 'unknown host' }, 404);
     const auth = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? request.headers.get('x-goog-api-key') ?? '';
     if (url.search.includes('key=')) return json({ error: 'a key in the query string is not allowed' }, 400);
-    if (spec.slow.has(auth)) await new Promise((r) => setTimeout(r, 12_000));
+    if (spec.slow.has(auth)) await new Promise((r) => setTimeout(r, spec.slowMs ?? 12_000));
     if (spec.serverError.has(auth)) return json({ error: { message: 'oops' } }, 500);
     if (spec.rateLimited.has(auth)) return json({ error: { message: 'slow down' } }, 429, { 'retry-after': '30' });
     if (!spec.valid.has(auth)) {
@@ -175,7 +175,21 @@ export class FakeWorld {
     this.extraHosts.set(host, handler);
   }
 
+  /** Like a real fetch: a call that is aborted, for example by a timeout, rejects at once. */
   async handle(request) {
+    const work = this.#route(request);
+    if (!request.signal) return work;
+    return Promise.race([
+      work,
+      new Promise((_, reject) => {
+        const fail = () => reject(request.signal.reason ?? new DOMException('This operation was aborted', 'AbortError'));
+        if (request.signal.aborted) fail();
+        else request.signal.addEventListener('abort', fail, { once: true });
+      }),
+    ]);
+  }
+
+  async #route(request) {
     const url = new URL(request.url);
     this.log.push({ host: url.hostname, method: request.method, path: url.pathname });
     if (url.hostname === 'api.github.com') return this.github.handle(request);

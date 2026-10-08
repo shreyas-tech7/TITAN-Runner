@@ -73,7 +73,7 @@ export async function issueCallbackToken(env, now = new Date(), { reason = 'miss
   await env.DB.prepare("INSERT INTO worker_tokens (kind, token_hash, status, created_at) VALUES ('callback', ?, 'pending', ?)").bind(hash, created).run();
   try {
     const gh = githubClient(env);
-    const { key, key_id: keyId } = await gh.getPublicKey();
+    const { key, key_id: keyId } = await gh.getPublicKey({ forWrite: true });
     await gh.putSecret(CALLBACK_SECRET_NAME, await sealForGithub(plain, key), keyId);
   } catch (err) {
     await env.DB.prepare("UPDATE worker_tokens SET status = 'retired', revoked_at = ? WHERE token_hash = ?").bind(created, hash).run();

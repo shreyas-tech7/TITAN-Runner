@@ -93,7 +93,8 @@ function testHostMap(env) {
   try {
     return JSON.parse(env.TITAN_TEST_HOST_MAP);
   } catch {
-    return null;
+    // Fail closed. A broken map must never let a test reach a real host.
+    throw new SafeFetchError('test_map_invalid', 'TITAN_TEST_HOST_MAP is not valid JSON.');
   }
 }
 

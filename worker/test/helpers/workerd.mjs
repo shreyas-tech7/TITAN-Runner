@@ -17,7 +17,9 @@ export async function startWorkerd(opts = {}) {
   const port = opts.port ?? 8780 + Math.floor(Math.random() * 100);
   const persist = mkdtempSync(join(tmpdir(), 'titan-workerd-'));
   const devVars = join(persist, '.dev.vars');
-  const lines = Object.entries(opts.vars ?? {}).map(([k, v]) => `${k}=${JSON.stringify(String(v))}`);
+  // dotenv keeps a single quoted value as it is. A JSON value has double quotes and no single quote.
+  const quote = (v) => (String(v).includes('"') && !String(v).includes("'") ? `'${v}'` : JSON.stringify(String(v)));
+  const lines = Object.entries(opts.vars ?? {}).map(([k, v]) => `${k}=${quote(v)}`);
   writeFileSync(devVars, `${lines.join('\n')}\n`);
   const args = ['wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', persist, '--env-file', devVars, '--log-level', 'info'];
   const child = spawn('npx', args, { cwd: WORKER_DIR, detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, NO_COLOR: '1', WRANGLER_SEND_METRICS: 'false', CI: '1' } });

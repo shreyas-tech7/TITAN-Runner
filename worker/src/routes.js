@@ -75,6 +75,26 @@ export const ROUTES = [
   { method: 'POST', path: '/internal/ping', group: 'internal', handler: handleInternalPing },
 ];
 
+// A route that exists only when TITAN_TEST_MODE is set. It measures the sealed box inside the real Workers runtime (K12).
+// The deployed Worker never sets the flag, so the route answers 404 there.
+ROUTES.push({
+  method: 'POST', path: '/admin/_bench/seal', group: 'admin',
+  handler: async (c) => {
+    if (c.env.TITAN_TEST_MODE !== '1') return json({ error: 'not found' }, 404);
+    const { sealWithNacl, sealWithWebCrypto } = await import('./lib/sealedbox.js');
+    const body = await c.request.json().catch(() => ({}));
+    const n = Math.min(Math.max(Number(body.iterations) || 1, 1), 300);
+    const recipient = crypto.getRandomValues(new Uint8Array(32));
+    const message = new TextEncoder().encode('x'.repeat(40));
+    // Timers stand still inside a Worker request, so the caller times the whole request from outside.
+    for (let i = 0; i < n; i += 1) {
+      if (body.path === 'nacl') sealWithNacl(message, recipient);
+      else await sealWithWebCrypto(message, recipient);
+    }
+    return json({ path: body.path === 'nacl' ? 'nacl' : 'webcrypto', iterations: n });
+  },
+});
+
 const compiled = ROUTES.map((route) => ({ route, parts: route.path.split('/').filter(Boolean) }));
 
 /** @returns {{ route: Route, params: Record<string,string> } | null} */
