@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-08T23:15:18.829Z",
+  "updatedAt": "2026-10-09T00:03:37.979Z",
   "providers": {
     "groq": {
-      "breaker": "closed",
-      "until": null,
-      "reason": "never attempted",
-      "explain": "groq: breaker closed (never attempted)",
-      "status": "unknown",
-      "consecutiveFailures": 0,
+      "breaker": "open",
+      "until": "2026-10-09T00:13:19.583Z",
+      "reason": "model_invalid — cooling down after 1 consecutive failure(s)",
+      "explain": "groq: breaker open (model_invalid — cooling down after 1 consecutive failure(s)); error rate 30%",
+      "status": "model_invalid",
+      "consecutiveFailures": 1,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
-        "usedDay": 0,
-        "dayLeft": 12000,
+        "usedMinute": 1,
+        "usedDay": 1,
+        "dayLeft": 11999,
         "perDay": 12000
       }
     },
@@ -33,17 +33,17 @@
       }
     },
     "openrouter": {
-      "breaker": "half-open",
+      "breaker": "closed",
       "until": null,
-      "reason": "cooldown over after 7 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 7 failure(s); next call is a probe); p50 22593 ms; error rate 96%; model inclusionai/ling-3.1-flash",
-      "status": "error",
-      "consecutiveFailures": 7,
+      "reason": "healthy",
+      "explain": "openrouter: breaker closed (healthy); p50 20490 ms; error rate 67%; model inclusionai/ling-3.1-flash",
+      "status": "ok",
+      "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
-        "usedDay": 2,
-        "dayLeft": 178,
+        "usedMinute": 1,
+        "usedDay": 1,
+        "dayLeft": 179,
         "perDay": 180
       }
     },
@@ -57,8 +57,8 @@
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
-        "usedDay": 2,
-        "dayLeft": 1198,
+        "usedDay": 0,
+        "dayLeft": 1200,
         "perDay": 1200
       }
     },

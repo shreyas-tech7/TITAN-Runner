@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-10-08T08:02:13.131Z",
+  "lastAttemptAt": "2026-10-09T00:03:19.371Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-10-08",
-  "lastDigestFile": "state/digests/2026-10-08-research.md",
-  "provider": "gemini",
-  "model": "gemini-2.5-flash",
+  "lastDigestDate": "2026-10-09",
+  "lastDigestFile": "state/digests/2026-10-09-research.md",
+  "provider": "openrouter",
+  "model": "inclusionai/ling-3.1-flash",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "Date: 2026-10-08\n\nAs an AI without real-time web access or tools, this digest is based solely on my training data up to its last update. I cannot provide current, real-time information on recent changes, version numbers, or specific prices.\n\n## free-tier-llm-landscape\n*   **What matters:** Free-tier",
+  "preview": "Note: no web access; I cannot confirm changes after my training cutoff, so treat all “recent” claims as unverified.\n\n## free-tier-llm-landscape\n- What matters: free tiers at Groq, Together, OpenRouter, Google Gemini and Hugging Face have historically shifted limits, model availability and terms with little notice; I don’t know current specifics.\n- Why it matters: an agent that runs only on free tiers can fail silently when a model is deprecated, rate limits tighten, or a “free” route gains quotas or attribution requirements.\n- Verify: check each provider’s current docs and terms for rate limits, model deprecations, commercial-use clauses and whether OpenRouter’s free models still route to the expected providers.\n\n## agent-safety-practice\n- What matters: good practice is tiered approval (auto for read-only, human approval for writes, network and destructive actions), strong sandboxing, and treating all fetched content as untrusted.\n- Why it matters: autonomous coding agents can be steered by prompt injection in issues, repos or tool output; least privilege and auditability limit blast radius and make incidents reconstructable.\n- Verify: confirm sandbox egress allowlists, that creden",
   "lastDetail": null
 }
