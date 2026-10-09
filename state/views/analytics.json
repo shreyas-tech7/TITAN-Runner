@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-09T21:26:16.572Z",
+  "updatedAt": "2026-10-09T21:42:18.022Z",
   "window": {
-    "events": 573,
+    "events": 576,
     "from": "2026-09-26T00:06:59.263Z",
-    "to": "2026-10-09T21:26:16.253Z",
+    "to": "2026-10-09T21:42:17.714Z",
     "archived": {
       "days": 8,
       "events": 146,
@@ -53,7 +53,7 @@
     "callsPerPulse": 0
   },
   "pulses": {
-    "count": 180,
+    "count": 181,
     "p50Ms": 367,
     "p95Ms": 12607,
     "maxMs": 40134
