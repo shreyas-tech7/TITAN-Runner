@@ -1,18 +1,18 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-09T00:03:37.975Z",
+  "updatedAt": "2026-10-10T00:12:38.260Z",
   "reserveFraction": 0.15,
   "providers": {
     "openrouter": {
       "minute": {
-        "start": "2026-10-09T00:03:00.000Z",
+        "start": "2026-10-10T00:12:00.000Z",
         "count": 1
       },
       "day": {
-        "start": "2026-10-09T00:00:00.000Z",
+        "start": "2026-10-10T00:00:00.000Z",
         "count": 1
       },
-      "tokens": 2259,
+      "tokens": 2146,
       "last429At": "2026-10-08T08:02:13.549Z"
     },
     "gemini": {
@@ -29,11 +29,11 @@
     },
     "groq": {
       "minute": {
-        "start": "2026-10-09T00:03:00.000Z",
+        "start": "2026-10-10T00:12:00.000Z",
         "count": 1
       },
       "day": {
-        "start": "2026-10-09T00:00:00.000Z",
+        "start": "2026-10-10T00:00:00.000Z",
         "count": 1
       },
       "tokens": 0,

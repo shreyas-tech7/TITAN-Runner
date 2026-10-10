@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-09T00:03:19.371Z",
-  "lastAttemptAt": "2026-10-09T00:03:19.371Z",
+  "updatedAt": "2026-10-10T00:12:16.639Z",
+  "lastAttemptAt": "2026-10-10T00:12:16.639Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-09",
-    "file": "state/digests/2026-10-09-research.md",
+    "date": "2026-10-10",
+    "file": "state/digests/2026-10-10-research.md",
     "provider": "openrouter",
     "model": "inclusionai/ling-3.1-flash",
     "topics": [
@@ -14,6 +14,6 @@
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "Note: no web access; I cannot confirm changes after my training cutoff, so treat all “recent” claims as unverified.\n\n## free-tier-llm-landscape\n- What matters: free tiers at Groq, Together, OpenRouter, Google Gemini and Hugging Face have historically shifted limits, model availability and terms with little notice; I don’t know current specifics.\n- Why it matters: an agent that runs only on free tiers can fail silently when a model is deprecated, rate limits tighten, or a “free” route gains quotas or attribution requirements.\n- Verify: check each provider’s current docs and terms for rate limits, model deprecations, commercial-use clauses and whether OpenRouter’s free models still route to the expected providers.\n\n## agent-safety-practice\n- What matters: good practice is tiered approval (auto for read-only, human approval for writes, network and destructive actions), strong sandboxing, and treating all fetched content as untrusted.\n- Why it matters: autonomous coding agents can be steered by prompt injection in issues, repos or tool output; least privilege and auditability limit blast radius and make incidents reconstructable.\n- Verify: confirm sandbox egress allowlists, that creden"
+    "preview": "Note: no web access; my knowledge predates 2026-10-10, so I cannot report post-cutoff changes. Treat all of this as baseline to re-check, not news.\n\n## free-tier-llm-landscape\n- What matters: Groq, Together, OpenRouter, Gemini and Hugging Face all run free tiers with per-minute/per-day rate limits that change without notice; free model lists rotate, and OpenRouter's free models inherit the underlying provider's terms.\n- Why it matters: an agent with no paid fallback can hard-fail on a limit change, a delisted model, or a ToS clause (attribution, no resale, no automated scraping) it never explicitly accepted.\n- Verify: each provider's current limits and terms today, and whether your most-used model is still flagged free on OpenRouter.\n\n## agent-safety-practice\n- What matters: tiered approvals (auto-read, confirm-write, deny-destructive), sandboxing with network egress controls, treating all tool output as untrusted, and immutable audit logs of prompts, tool calls and diffs.\n- Why it matters: autonomous coding agents touch secrets and repos; injection via issues, PRs and READMEs is the main breach path, and logs are the only way to reconstruct an incident.\n- Verify: that no shell ste"
   }
 }
