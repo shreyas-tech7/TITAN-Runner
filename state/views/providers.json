@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-10T00:28:18.411Z",
+  "updatedAt": "2026-10-10T13:00:18.612Z",
   "providers": {
     "groq": {
       "breaker": "half-open",
       "until": null,
       "reason": "cooldown over after 2 failure(s); next call is a probe",
-      "explain": "groq: breaker half-open (cooldown over after 2 failure(s); next call is a probe); error rate 51%; model canopylabs/orpheus-arabic-saudi",
+      "explain": "groq: breaker half-open (cooldown over after 2 failure(s); next call is a probe); error rate 51%; model allam-2-7b",
       "status": "error",
       "consecutiveFailures": 2,
       "lastFailureClass": null,
