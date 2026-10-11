@@ -10,7 +10,7 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 
 ## Phase 1: close the trust gaps
 
-- [ ] RT1 Secret scanning (gitleaks workflow, `.gitleaks.toml`, pre-commit hook, history scan, Issue and PR scan)
+- [~] RT1 Secret scanning. Done: `.gitleaks.toml`, hook, Issue scan script, history scan clean, tests, docs. Waiting: `gitleaks.yml` is committed on the wf branch (push needs the `workflow` scope).
 - [ ] RT2 Workflow and Issue hardening
 - [ ] RT3 Reviewer Gate coverage for every GitHub write and every VM command
 - [ ] RT4 Tool argument validation (every bad field named, table tests)
@@ -62,4 +62,5 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 - D2 `CLAUDE.md` forbids changes to repository settings. Settings changes go to the Cowork handoff, not to the API.
 - D3 PR 22 is the owner's draft. This run does not merge it and does not edit `uses:` lines, to avoid conflicts. New workflows use the same pins as `ci.yml`.
 - D4 Tests run with `--test-concurrency=2` and `NODE_OPTIONS=--max-old-space-size=3072`.
-- D5 The `gh` token has no `workflow` scope. If GitHub rejects a push that edits a workflow, workflow commits stay local and the fix goes to the Cowork handoff.
+- D5 The `gh` token has no `workflow` scope. GitHub rejected a push that adds a workflow file (checked 2026-10-11). The fix needs a browser approval, so it goes to the Cowork handoff.
+- D6 Two branches. `claude/daily-assistant` holds all code, tests, and docs and is pushed. `claude/daily-assistant-wf` holds only workflow file commits, stays local, and sits on top of the first branch. Workflow files live untracked in `/workspaces/TITAN-Runner/.github/workflows/` while I work. A helper copies them into the worktree `/workspaces/TITAN-Runner-wf` and commits there. After the scope fix, one push sends the wf branch.
