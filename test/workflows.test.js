@@ -139,3 +139,21 @@ test('RT6: the VM workflow holds the Reviewer Gate key and no other provider key
   const secrets = [...text.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((m) => m[1]).sort();
   assert.deepEqual([...new Set(secrets)], ['GROQ_API_KEY', 'GROQ_MODEL', 'TITAN_ADMIN_TOKEN', 'TITAN_CALLBACK_TOKEN']);
 });
+
+test('RO6: the doorbell workflow has the five crons of the table, holds no write permission, and rings only with both secrets', async () => {
+  const { CRONS } = await import('../src/ops/doorbell.js');
+  const text = readFileSync(join(REPO_ROOT, '.github', 'workflows', 'doorbell.yml'), 'utf8');
+  const crons = [...text.matchAll(/^\s*-\s+cron:\s*"([^"]+)"/gm)].map((m) => m[1]).sort();
+  assert.deepEqual(crons, Object.keys(CRONS).sort());
+  assert.match(text, /^permissions:\n\s+contents: read$/m);
+  assert.ok(!/\bwrite\b/.test(text.replace(/^\s*#.*$/gm, '')), 'the doorbell holds no write permission');
+  assert.ok(!/publish-state|titan-state/.test(text.replace(/^\s*#.*$/gm, '')), 'the doorbell does not touch state');
+  // The secrets are checked before the code is checked out, so an unset secret costs a few seconds.
+  const checkAt = text.indexOf('Check the secrets');
+  assert.ok(checkAt > 0 && checkAt < text.indexOf('actions/checkout'));
+  assert.match(text, /if: steps\.secrets\.outputs\.ring == 'true'/);
+  // The event fields reach the script through env, never inline in a run: block.
+  for (const block of text.matchAll(/run: \|\n((?:\s{10}.*\n?)+)/g)) assert.ok(!/\$\{\{/.test(block[1]), block[1]);
+  assert.match(text, /::add-mask::\$TITAN_BACKEND_URL/);
+  assert.match(text, /::add-mask::\$DOORBELL_TOKEN/);
+});
