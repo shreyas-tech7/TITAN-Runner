@@ -1,0 +1,80 @@
+name: Secret scan
+
+# Scans the full git history for secrets on every push and pull request, and once a week.
+# The weekly run (and a manual run) also scans the text of open Issues, pull requests, and comments.
+# The job runs the gitleaks CLI directly, so it needs no license key.
+# The job prints the rule, the file, and the line. It never prints a matched value.
+#
+# A match fails the run. A real key counts as leaked even if it sits in old history.
+# Rotate the key. Do not rewrite history. See docs/SECURITY.md.
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 5 * * 1" # Monday, 05:17 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitleaks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    env:
+      GITLEAKS_VERSION: "8.30.1"
+      # SHA-256 of gitleaks_8.30.1_linux_x64.tar.gz from the official release checksums file.
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install gitleaks (checksum verified)
+        run: |
+          set -euo pipefail
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          mkdir -p "$RUNNER_TEMP/gitleaks"
+          curl -fsSL -o "$RUNNER_TEMP/$archive" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$archive" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/gitleaks" gitleaks
+          echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
+
+      - name: Scan the full git history
+        run: |
+          set -uo pipefail
+          report="$RUNNER_TEMP/gitleaks-history.json"
+          gitleaks git . --config .gitleaks.toml --log-opts="--all" --redact=100 --no-banner \
+            --report-format json --report-path "$report" --exit-code 0
+          count="$(jq 'length' "$report")"
+          {
+            echo "### Secret scan of the git history"
+            echo "Findings: $count"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$count" != "0" ]; then
+            echo "::error::gitleaks found $count possible secret(s). The rule, file, and line follow. The values are not printed."
+            jq -r '.[] | "rule=\(.RuleID) file=\(.File):\(.StartLine) commit=\(.Commit[0:8])"' "$report" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "No findings."
+
+      - name: Scan the working tree
+        run: |
+          set -euo pipefail
+          gitleaks dir . --config .gitleaks.toml --redact=100 --no-banner --max-archive-depth 2
+
+      - name: Scan Issues, pull requests, and comments (weekly and manual)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/scan-issues.mjs --config .gitleaks.toml
