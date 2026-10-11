@@ -138,6 +138,7 @@ export async function generateDailyBrief(env, { now = new Date(), send = false }
 
   // 1. Weather (Open-Meteo if connected)
   let weatherLine = 'Weather: Open-Meteo is not connected.';
+  let weather = null; // structured value for the dashboard's DailyBriefRecord.weather
   const meteo = connections.find((c) => c.connectorId === 'open_meteo' && c.status === 'connected');
   if (meteo) {
     try {
@@ -145,7 +146,8 @@ export async function generateDailyBrief(env, { now = new Date(), send = false }
       const lon = Number(meteo.config?.longitude ?? -87.63);
       const r = await invokeAction(env, { connectionId: meteo.id, actionId: 'forecast', input: { latitude: lat, longitude: lon, days: 1 }, caller: { kind: 'admin' } });
       if (r.state === 'done' && r.data?.current) {
-        weatherLine = `Weather: ${r.data.current.temperature_2m}°C, wind ${r.data.current.wind_speed_10m ?? 0} km/h (${r.data.timezone ?? 'local'}).`;
+        weather = `${r.data.current.temperature_2m}°C, wind ${r.data.current.wind_speed_10m ?? 0} km/h (${r.data.timezone ?? 'local'})`;
+        weatherLine = `Weather: ${weather}.`;
       }
     } catch {
       weatherLine = 'Weather: Open-Meteo check did not answer.';
@@ -154,6 +156,7 @@ export async function generateDailyBrief(env, { now = new Date(), send = false }
 
   // 2. Calendar for today (if connected; stays in Worker D1 because it is personal)
   let calendarLine = 'Calendar: Google Calendar is not connected.';
+  let calendar = []; // structured value for the dashboard's DailyBriefRecord.calendar
   const cal = connections.find((c) => c.connectorId === 'google_calendar' && c.status === 'connected');
   if (cal) {
     try {
@@ -167,9 +170,10 @@ export async function generateDailyBrief(env, { now = new Date(), send = false }
         caller: { kind: 'admin' },
       });
       const items = r.data?.items ?? [];
+      calendar = items.map((e) => e.summary || 'Busy');
       calendarLine = items.length === 0
         ? 'Calendar: No events on the primary calendar today.'
-        : `Calendar: ${items.length} event(s) today (${items.map((e) => e.summary || 'Busy').slice(0, 3).join(', ')}).`;
+        : `Calendar: ${items.length} event(s) today (${calendar.slice(0, 3).join(', ')}).`;
     } catch {
       calendarLine = 'Calendar: Could not read today events.';
     }
@@ -184,38 +188,33 @@ export async function generateDailyBrief(env, { now = new Date(), send = false }
 
   // 4. Key states
   let keysLine = 'Keys: status not checked.';
+  let keysNeedingCare = []; // structured value for the dashboard's DailyBriefRecord.keysNeedingCare
   try {
     const keysRes = await (await handleListKeys({ env, requestId: 'brief' })).json();
     const list = keysRes.providers ?? [];
     const proven = list.filter((p) => p.state === 'proven').length;
     const ok = list.filter((p) => p.state === 'provider_ok').length;
-    const bad = list.filter((p) => p.state === 'invalid' || p.state === 'error').length;
-    keysLine = `Keys: ${proven} proven, ${ok} checked, ${bad} needing attention.`;
+    const needsCare = list.filter((p) => p.state === 'invalid' || p.state === 'error');
+    keysNeedingCare = needsCare.map((p) => p.id);
+    keysLine = `Keys: ${proven} proven, ${ok} checked, ${needsCare.length} needing attention.`;
   } catch {
-    // keep default
+    // keep defaults
   }
 
   // 5. Latest research digest title & health line
   const latestLearning = await env.DB.prepare('SELECT topic, created_at FROM learning_paths ORDER BY id DESC LIMIT 1').first().catch(() => null);
-  const researchLine = latestLearning?.topic
-    ? `Research digest: ${String(latestLearning.topic).slice(0, 100)}.`
+  const researchDigest = latestLearning?.topic ? String(latestLearning.topic).slice(0, 100) : null;
+  const researchLine = researchDigest
+    ? `Research digest: ${researchDigest}.`
     : 'Research digest: See state/research-digest.json on the dashboard.';
 
   const pulseSettings = await getSettings(env, ['pulse.lastHeartbeatAt', 'pulse.lastKeeperError']);
   const hb = pulseSettings['pulse.lastHeartbeatAt'];
   const ageMin = hb ? Math.round((now.getTime() - Date.parse(hb)) / 60_000) : null;
-  const healthLine = pulseSettings['pulse.lastKeeperError']
-    ? `Health: Keeper warning (${pulseSettings['pulse.lastKeeperError']}).`
-    : `Health: Worker and D1 ok. Last pulse ${ageMin === null ? 'not recorded yet' : `${ageMin}m ago`}.`;
-
-  const sections = {
-    weather: weatherLine,
-    calendar: calendarLine,
-    tasks: tasksLine,
-    keys: keysLine,
-    research: researchLine,
-    health: healthLine,
-  };
+  const healthOk = !pulseSettings['pulse.lastKeeperError'];
+  const healthLine = healthOk
+    ? `Health: Worker and D1 ok. Last pulse ${ageMin === null ? 'not recorded yet' : `${ageMin}m ago`}.`
+    : `Health: Keeper warning (${pulseSettings['pulse.lastKeeperError']}).`;
 
   const baseText = [
     `TITAN daily brief for ${dateStr}`,
@@ -236,10 +235,22 @@ export async function generateDailyBrief(env, { now = new Date(), send = false }
     aiSummary = chatAttempt.text.trim();
   }
 
+  // The dashboard's BriefCard (dashboard/lib/workerApi.ts's DailyBriefRecord) reads these as structured
+  // fields, not the formatted text lines above — `bag`/`waiting` were already computed for `tasksLine`.
   const brief = {
     generatedAt: nowIso(now),
     date: dateStr,
-    sections,
+    weather,
+    calendar,
+    tasks: {
+      done: bag.done ?? 0,
+      failed: bag.failed ?? 0,
+      running: (bag.queued ?? 0) + (bag.dispatched ?? 0) + (bag.running ?? 0),
+    },
+    pendingApprovals: waiting?.n ?? 0,
+    keysNeedingCare,
+    researchDigest,
+    healthOk,
     aiSummary,
     text: aiSummary ? `${baseText}\n\nSummary: ${aiSummary}` : baseText,
   };
