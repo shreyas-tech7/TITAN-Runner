@@ -206,3 +206,13 @@ This section covers the parts that Wave 12 adds. It uses the STRIDE method: Spoo
 | I: the chat key leaks | The key is in the vault, encrypted, and off by default. |
 | D: a long stream uses the CPU budget | The work for each chunk is small. A provider that goes over the limit falls back to a non stream call. |
 | I: chat history stays forever | The history lives 30 days by default. A person deletes one thread or all history. |
+
+### Schedules, daily brief, and MCP OAuth 2.1 (release 3)
+
+| Threat | Control |
+|---|---|
+| D: many schedules fire at once and exhaust the Worker | The 1-minute tick fires at most 3 due schedules per tick and advances `next_run_at` before dispatch. |
+| S: an open redirect or rogue client in MCP OAuth (`M5`) | Dynamic client registration (`POST /oauth/mcp/register`) allows only Claude callback URLs and loopback (`localhost` / `127.0.0.1`). |
+| T: authorization code interception on `/oauth/mcp/token` | PKCE (`S256`) is mandatory, authorization codes live 10 minutes and work once, and refresh tokens rotate on every exchange. |
+| I: MCP OAuth tokens leak from D1 | `mcp_tokens` and `mcp_oauth_codes` store only SHA-256 hashes of codes, access tokens, and refresh tokens. |
+

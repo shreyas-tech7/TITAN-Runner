@@ -17,6 +17,7 @@
  */
 import { useEffect, useState } from "react";
 import { getAdminToken, setAdminToken, clearAdminToken } from "@/lib/adminAuth";
+import { exitDemoMode, isDemoMode } from "@/lib/demoFixtures";
 import { fetchStatus, isWorkerConfigured, WorkerApiError } from "@/lib/workerApi";
 
 export default function AdminGate({
@@ -35,7 +36,15 @@ export default function AdminGate({
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [demo, setDemo] = useState(false);
+
   useEffect(() => {
+    if (isDemoMode()) {
+      setDemo(true);
+      setTokenState("demo-token");
+      setReady(true);
+      return;
+    }
     setTokenState(getAdminToken());
     setReady(true);
   }, []);
@@ -118,10 +127,21 @@ export default function AdminGate({
 
   return (
     <div className="admin-unlocked">
+      {demo ? (
+        <div className="banner" role="status" data-testid="demo-banner" style={{ marginBottom: 12 }}>
+          <span>
+            <strong>Demo mode (read-only). </strong>Sample data is loaded in your browser so you can explore every page
+            without an admin token or a live Worker.
+          </span>
+          <button className="btn btn-quiet" onClick={() => exitDemoMode()}>
+            Exit demo
+          </button>
+        </div>
+      ) : null}
       {children(token, handleLock)}
       <aside className="admin-lock-row" aria-label="Dashboard lock">
-        <button className="btn btn-quiet admin-lock-btn" onClick={handleLock} title="Forget the admin token and lock this dashboard again">
-          Lock dashboard
+        <button className="btn btn-quiet admin-lock-btn" onClick={demo ? exitDemoMode : handleLock} title="Forget the admin token and lock this dashboard again">
+          {demo ? "Exit demo" : "Lock dashboard"}
         </button>
       </aside>
     </div>

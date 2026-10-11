@@ -33,6 +33,9 @@ import QuotaPanel from "@/components/QuotaPanel";
 import LastPulsePanel from "@/components/LastPulsePanel";
 import SetupChecklist from "@/components/SetupChecklist";
 import VersionFooter from "@/components/VersionFooter";
+import BriefCard from "@/components/BriefCard";
+import SchedulesPanel from "@/components/SchedulesPanel";
+import ActivityPanel from "@/components/ActivityPanel";
 import { THEMES, THEME_LABEL, applyTheme } from "@/lib/theme";
 import { quotaRows, type QuotaRow, type QuotaState } from "@/lib/quota";
 
@@ -98,6 +101,13 @@ function WorkerScopedPanels({
       <div className="bento-grid">
         <RunningTasksPanel tasks={tasks} subagents={subagents} workerConfigured={isWorkerConfigured()} />
         <AgentsPanel providers={providers} agents={agents} subagents={subagents} quota={quota} />
+      </div>
+
+      <BriefCard token={token} onUnauthorized={onUnauthorized} />
+
+      <div className="bento-grid">
+        <SchedulesPanel token={token} onUnauthorized={onUnauthorized} />
+        <ActivityPanel token={token} onUnauthorized={onUnauthorized} />
       </div>
 
       <ClusterPanels token={token} status={workerStatus} onUnauthorized={onUnauthorized} />
@@ -191,6 +201,7 @@ export default function DashboardPage() {
       },
       { id: "open-repo", label: "Open repo", run: () => window.open(`https://github.com/${OWNER}/${REPO}`, "_blank") },
       { id: "toggle-settings", label: "Settings", run: () => setSettingsOpen(true) },
+      { id: "open-chat", label: "Open Instant Chat", run: () => window.location.assign(`${BASE_PATH}/chat/`) },
       { id: "add-key", label: "Add a key", run: () => window.location.assign(`${BASE_PATH}/keys/`) },
       { id: "connect-tool", label: "Connect a tool", run: () => window.location.assign(`${BASE_PATH}/connectors/?focus=search`) },
       { id: "test-connectors", label: "Test all connectors", run: () => window.location.assign(`${BASE_PATH}/connectors/?testAll=1`) },
@@ -219,6 +230,9 @@ export default function DashboardPage() {
     <AdminGate>
       {(adminToken, lockDashboard) => (
     <div className="shell">
+      <a className="sr-only" href="#main">
+        Skip to main content
+      </a>
       <header className="topbar">
         <div>
           <h1 className="brand">TITAN-Runner</h1>

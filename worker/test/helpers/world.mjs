@@ -151,7 +151,23 @@ export class FakeProviders {
       }
       return json({ model: body.model ?? 'fake-model', choices: [{ message: { content: 'OK' } }], usage: { total_tokens: 7 } });
     }
-    if (request.method === 'POST' && /:generateContent$/.test(url.pathname)) return json({ candidates: [{ content: { parts: [{ text: 'OK' }] } }], usageMetadata: { totalTokenCount: 7 } });
+    if (request.method === 'POST' && /:streamGenerateContent$/.test(url.pathname)) {
+      if (spec.chatStatus) return json({ error: { message: 'chat failed' } }, spec.chatStatus);
+      const enc = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          for (const piece of ['Gem', 'ini ', 'stream']) {
+            controller.enqueue(enc.encode(`data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: piece }] } }], usageMetadata: { totalTokenCount: 6 } })}\n\n`));
+          }
+          controller.close();
+        },
+      });
+      return new Response(stream, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    }
+    if (request.method === 'POST' && /:generateContent$/.test(url.pathname)) {
+      if (spec.chatStatus) return json({ error: { message: 'chat failed' } }, spec.chatStatus);
+      return json({ candidates: [{ content: { parts: [{ text: 'OK' }] } }], usageMetadata: { totalTokenCount: 7 } });
+    }
     return json({ object: 'list', data: [{ id: 'fake-model-a' }, { id: 'fake-model-b' }] });
   }
 }

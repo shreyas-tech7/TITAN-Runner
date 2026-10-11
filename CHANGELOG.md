@@ -17,3 +17,25 @@
 - Add the vault key step to `worker-deploy.yml` and the workflow `vault-provision.yml`.
 - Add the STE documentation standard and its check.
 - Fix: the Worker entry module exported values that the current workerd refuses.
+
+## Wave 12, release 2
+
+- Add the AES-256-GCM vault in `worker/src/lib/vault.js` with per-record IVs and additional authenticated data.
+- Add the connector broker in `worker/src/connectors/` with 15 manifests, risk policies, rate limits, and approvals.
+- Add OAuth 2.0 with PKCE for Google Calendar, Gmail, and Google Drive.
+- Add inbound webhooks with Bearer and HMAC-SHA256 verification and replay protection.
+- Add the two-way Telegram bot with one-time pairing codes and HMAC inline approval buttons.
+- Add the notification router with wildcard rules, severity filters, quiet hours, and deduplication.
+- Add the dual-era MCP server (`2024-11-05` and `2025-11-25`) at `POST /mcp` and the MCP client connector.
+- Add the Health Center on `/health` and the Setup Checklist on the home page.
+- Add the sub-agent `connector_call` tool, the 3-call tool loop, and the `connectors:new` and `connectors:check` scripts.
+
+## Wave 12, release 3
+
+- Add instant chat (`POST /chat` SSE and `/chat`) with OpenAI and Gemini streams and automatic failover across `alsoForChat` keys.
+- Add the 5-field cron schedule engine (`worker/src/schedules.js`) with time zone and DST support and the Schedules panel.
+- Add the daily brief (`GET /brief`, `POST /brief/generate`, and `BriefCard`) with browser speech synthesis.
+- Add unified pulse issue approvals (`POST /approvals/pulse`) and the unified Activity Timeline (`GET /activity`).
+- Add OAuth 2.1 with S256 PKCE for the MCP server (`/.well-known/*`, `/oauth/mcp/register`, `/oauth/mcp/authorize`, `/oauth/mcp/token`).
+- Add read-only demo mode (`?demo=1`) with deterministic sample data and the `/how-it-works` architecture page.
+

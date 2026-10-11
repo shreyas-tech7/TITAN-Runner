@@ -15,6 +15,8 @@ import { equalConstantTime, hmacHex } from '../lib/hmac.js';
 import { SafeFetchError, safeFetch } from '../lib/safeFetch.js';
 import { json, jsonError, nowIso, randomHex, sha256Hex } from '../lib/util.js';
 import { handleListKeys } from '../keys.js';
+import { listChatCandidates, runInstantChat } from '../chat.js';
+import { postPulseApprovalComment } from '../schedules.js';
 import { queueTask } from '../tasks.js';
 import { decideApproval } from './broker.js';
 import { getConnection, listConnections, loadSecrets, saveSecrets, updateConnection } from './store.js';
@@ -197,6 +199,15 @@ export async function runCommand(env, connection, secrets, text, origin) {
     case '/approve':
     case '/deny': {
       if (!arg) return { text: `Write the key after the command. Example: ${cmd} 1a2b3c4d` };
+      const pulseMatch = arg.match(/^#(\d+)\s+(\S+)$/);
+      if (pulseMatch) {
+        const p = await postPulseApprovalComment(env, {
+          issueNumber: Number.parseInt(pulseMatch[1], 10),
+          key: pulseMatch[2],
+          decision: cmd === '/approve' ? 'approve' : 'deny',
+        });
+        return { text: p.ok ? `Posted /titan ${p.decision} ${p.key} on issue #${p.issueNumber}.` : p.message };
+      }
       try {
         const r = await decideApproval(env, arg, cmd === '/approve' ? 'approve' : 'deny', 'telegram:owner', origin);
         return { text: cmd === '/approve' ? (r.status === 'executed' ? 'Approved and done.' : `Approved. The call ended as ${r.status}.`) : 'Denied.' };
@@ -204,12 +215,33 @@ export async function runCommand(env, connection, secrets, text, origin) {
         return { text: err instanceof Error ? err.message : 'That did not work.' };
       }
     }
-    case '/brief':
+    case '/brief': {
+      const rawBrief = await getSetting(env, 'brief.latest');
+      if (rawBrief) {
+        try {
+          const parsed = JSON.parse(rawBrief);
+          if (parsed?.text) return { text: parsed.text };
+        } catch {
+          // fall through
+        }
+      }
       return { text: 'The daily brief is not set up yet. Use /status for a short summary.' };
+    }
     case '/keys':
       return { text: await keysText(env) };
-    case '/chat':
-      return { text: 'Chat is not ready yet. Use /task <text> to start a task.' };
+    case '/chat': {
+      const candidates = await listChatCandidates(env);
+      if (candidates.length === 0) return { text: 'Chat is not ready yet. Use /task <text> to start a task.' };
+      if (!arg) return { text: 'Write your message after /chat. Example: /chat Summarize today tasks.' };
+      const out = await runInstantChat(env, { prompt: arg });
+      return { text: out.ok ? `${out.text}\n(${out.provider}/${out.model})` : out.message };
+    }
+    case '/pause':
+    case '/resume': {
+      const paused = cmd === '/pause';
+      await setSetting(env, 'pulse.pausedByOwner', paused ? '1' : '');
+      return { text: paused ? 'Paused the pulse keeper from Telegram. Send /resume to start it again.' : 'Resumed the pulse keeper.' };
+    }
     default:
       return { text: HELP };
   }
@@ -236,7 +268,15 @@ async function handleMessage(env, connection, secrets, message, origin) {
     await reply({ text: out.text.slice(0, 4000), ...(out.markup ? { reply_markup: out.markup } : {}) });
     return;
   }
-  // Plain text: offer a task. The text waits for 10 minutes under a short key.
+  const candidates = await listChatCandidates(env);
+  if (candidates.length > 0) {
+    const out = await runInstantChat(env, { prompt: text });
+    if (out.ok) {
+      await reply({ text: `${out.text.slice(0, 3900)}\n(${out.provider}/${out.model})` });
+      return;
+    }
+  }
+  // Plain text when chat is not ready: offer a task. The text waits for 10 minutes under a short key.
   const short = randomHex(4);
   await setSetting(env, `tg.pending.${connection.id}.${short}`, JSON.stringify({ text: text.slice(0, 2000), until: Date.now() + 10 * 60_000 }));
   const mac = await macOf(secrets.webhook_secret, `p${short}`, 'y');

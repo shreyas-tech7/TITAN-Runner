@@ -26,6 +26,9 @@ export default function PageShell({
     <AdminGate>
       {(token, lock) => (
         <div className="shell">
+          <a className="sr-only" href="#main">
+            Skip to main content
+          </a>
           <header className="topbar">
             <div>
               <h1 className="brand">{title}</h1>

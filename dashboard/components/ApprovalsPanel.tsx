@@ -9,7 +9,7 @@ import { Badge } from "@/components/kit";
 import { decideApproval, fetchApprovals, type Approval } from "@/lib/connectorsApi";
 import { DATA_CLASS_META, RISK_META } from "@/lib/connectorsView";
 import { relative, until } from "@/lib/time";
-import { WorkerApiError } from "@/lib/workerApi";
+import { decidePulseApproval, WorkerApiError } from "@/lib/workerApi";
 
 const DONE_TONE: Record<Approval["status"], "ok" | "warn" | "danger" | "neutral" | "corona"> = {
   pending: "corona", approved: "neutral", executed: "ok", failed: "danger", denied: "neutral", expired: "warn",
@@ -20,6 +20,8 @@ export default function ApprovalsPanel({ token, onUnauthorized, onChanged }: { t
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pulseIssue, setPulseIssue] = useState("");
+  const [pulseKey, setPulseKey] = useState("");
   const alive = useRef(true);
 
   const load = useCallback(async () => {
@@ -61,6 +63,27 @@ export default function ApprovalsPanel({ token, onUnauthorized, onChanged }: { t
     setNotice(message);
     onChanged?.();
     setBusy(null);
+  }
+
+  async function decidePulse(decision: "approve" | "deny") {
+    const issueNum = Number.parseInt(pulseIssue.trim().replace(/^#/, ""), 10);
+    if (!Number.isFinite(issueNum) || issueNum <= 0 || !pulseKey.trim()) {
+      setError("Enter both the GitHub issue number and the approval key (such as tool:workspace_write:1a2b3c4d).");
+      return;
+    }
+    setBusy("pulse");
+    setError(null);
+    setNotice(null);
+    try {
+      const out = await decidePulseApproval(token, issueNum, pulseKey.trim(), decision);
+      setNotice(`Posted ${out.command} on issue #${out.issueNumber}.`);
+      setPulseKey("");
+    } catch (err) {
+      if (err instanceof WorkerApiError && err.status === 401) onUnauthorized();
+      else setError(err instanceof Error ? err.message : "Could not post the pulse approval comment.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   const pending = (items ?? []).filter((a) => a.status === "pending");
@@ -107,6 +130,38 @@ export default function ApprovalsPanel({ token, onUnauthorized, onChanged }: { t
           </ul>
         </>
       ) : null}
+
+      <section aria-label="Pulse issue approvals" style={{ marginTop: 20 }}>
+        <h3 className="guide-title">Pulse issue approvals</h3>
+        <p className="e-dim">
+          When a pulse task asks for approval on a GitHub issue, paste the issue number and the approval key here (or send{" "}
+          <span className="e-num">/approve #12 tool:workspace_write:1a2b3c4d</span> in Telegram). The Worker posts the{" "}
+          <span className="e-num">/titan approve</span> or <span className="e-num">/titan deny</span> comment for you.
+        </p>
+        <div className="e-pair">
+          <div className="field">
+            <label htmlFor="pulse-issue-num">Issue number</label>
+            <input id="pulse-issue-num" value={pulseIssue} onChange={(e) => setPulseIssue(e.target.value)} placeholder="12" />
+          </div>
+          <div className="field">
+            <label htmlFor="pulse-approval-key">Approval key</label>
+            <input
+              id="pulse-approval-key"
+              value={pulseKey}
+              onChange={(e) => setPulseKey(e.target.value)}
+              placeholder="tool:workspace_write:1a2b3c4d"
+            />
+          </div>
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-primary" disabled={busy !== null} onClick={() => void decidePulse("approve")}>
+            Approve on issue
+          </button>
+          <button className="btn" disabled={busy !== null} onClick={() => void decidePulse("deny")}>
+            Deny on issue
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

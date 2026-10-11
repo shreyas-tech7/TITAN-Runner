@@ -95,6 +95,18 @@ The Worker keeps its own state in D1. These tables never hold a key, a token, or
 | `events` | The event log. It holds titles and short text only. |
 | `vault_records` | Encrypted records: AES-256-GCM, one IV for each record. |
 | `subagents` | Sub-agent tasks. `dispatched_at` and `retry_count` are new. |
+| `connections` | Connected tools and their non-secret config. |
+| `connector_policies` | Per-action policy overrides (`allow`, `ask`, `deny`). |
+| `connector_calls` | Metadata-only log of connector calls. |
+| `connector_rate` | Per-minute rate counters for connectors and hooks. |
+| `approvals` | Pending and decided write calls from sub-agents and MCP tools. |
+| `hooks`, `hook_events`, `hook_nonces` | Inbound webhook definitions, delivery metadata, and HMAC replay nonces. |
+| `oauth_states` | Short-lived PKCE state rows for OAuth 2.0 connector sign-in. |
+| `mcp_tokens`, `mcp_oauth_clients`, `mcp_oauth_codes` | SHA-256 hashes of MCP Bearer tokens, OAuth 2.1 tokens, and single-use authorization codes. |
+| `mcp_remote_tools` | Cached tool lists from remote MCP servers. |
+| `notify_rules`, `notify_deliveries` | Notification router rules and delivery status log. |
+| `chat_threads`, `chat_messages` | Instant chat threads and messages (retained 30 days by default). |
+| `schedules` | Built-in and custom 5-field cron schedules with next run times. |
 
 The schema lives in `worker/migrations/`. Every migration only adds.
 

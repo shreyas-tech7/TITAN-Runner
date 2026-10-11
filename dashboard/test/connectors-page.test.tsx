@@ -146,7 +146,7 @@ test("the Claude Code command holds a placeholder and never a token", () => {
   const html = renderToStaticMarkup(<ClaudeCard />);
   assert.match(html, /&lt;YOUR_MCP_TOKEN&gt;/);
   assert.match(html, /The Claude app/);
-  assert.match(html, /does not support that sign in yet/, "the card does not promise the Claude app path before it exists");
+  assert.match(html, /OAuth 2\.1 using PKCE/, "the card describes the OAuth 2.1 + PKCE path shipped in Release 3 (M5)");
   assert.ok(!html.includes("titan_mcp_"));
 });
 

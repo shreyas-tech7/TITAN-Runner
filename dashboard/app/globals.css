@@ -51,8 +51,8 @@
 
   --focus-ring: var(--ion);
 
-  --font-sans: var(--font-body-loaded), "Inter Tight", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-data-loaded), "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: var(--font-body-loaded, "Inter Tight", ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-data-loaded, "JetBrains Mono", ui-monospace, SFMono-Regular, monospace);
 
   --radius: 3px;
   --radius-lg: 14px;

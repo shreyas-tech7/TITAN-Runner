@@ -9,7 +9,7 @@
 import { useState } from "react";
 import { relative } from "@/lib/time";
 import { Badge, Panel, StatusDot, type Tone } from "@/components/kit";
-import { queueTask, retryTask, KNOWN_PROVIDERS, WorkerApiError, type SubagentRow, type SubagentStatus, type LearningPathRow } from "@/lib/workerApi";
+import { queueTask, retryTask, cancelTask, KNOWN_PROVIDERS, WorkerApiError, type SubagentRow, type SubagentStatus, type LearningPathRow } from "@/lib/workerApi";
 
 const STATUS_META: Record<SubagentStatus, { label: string; tone: Tone; pulse: boolean }> = {
   queued: { label: "Queued", tone: "neutral", pulse: false },
@@ -52,9 +52,24 @@ function LearningPathView({ path }: { path: LearningPathRow }) {
   );
 }
 
-function SubagentRowView({ row, learningPath, onRetry, retrying }: { row: SubagentRow; learningPath: LearningPathRow | undefined; onRetry: () => void; retrying: boolean }) {
+function SubagentRowView({
+  row,
+  learningPath,
+  onRetry,
+  retrying,
+  onCancel,
+  cancelling,
+}: {
+  row: SubagentRow;
+  learningPath: LearningPathRow | undefined;
+  onRetry: () => void;
+  retrying: boolean;
+  onCancel: () => void;
+  cancelling: boolean;
+}) {
   const meta = STATUS_META[row.status] ?? STATUS_META.queued;
   const stuck = row.status === "failed" || ((row.status === "dispatched" || row.status === "running") && Date.now() - Date.parse(row.started_at ?? row.dispatched_at ?? row.queued_at) > 25 * 60_000);
+  const cancellable = row.status === "queued" || row.status === "dispatched" || row.status === "running";
   return (
     <li className="e-item">
       <div className="e-item-head">
@@ -85,11 +100,18 @@ function SubagentRowView({ row, learningPath, onRetry, retrying }: { row: Subage
           <p className="e-dim">If the callback was rejected, open Settings and click Repair runner callbacks. Then retry the task.</p>
         </details>
       )}
-      {stuck && (
+      {(stuck || cancellable) && (
         <div className="e-item-links">
-          <button className="btn btn-quiet" onClick={onRetry} disabled={retrying} aria-label={`Retry the task ${row.id}`}>
-            {retrying ? "Retrying" : "Retry"}
-          </button>
+          {stuck && (
+            <button className="btn btn-quiet" onClick={onRetry} disabled={retrying} aria-label={`Retry the task ${row.id}`}>
+              {retrying ? "Retrying" : "Retry"}
+            </button>
+          )}
+          {cancellable && (
+            <button className="btn btn-quiet" onClick={onCancel} disabled={cancelling} aria-label={`Cancel the task ${row.id}`}>
+              {cancelling ? "Cancelling" : "Cancel"}
+            </button>
+          )}
         </div>
       )}
       {learningPath && <LearningPathView path={learningPath} />}
@@ -114,6 +136,7 @@ export default function SubagentsSection({
   const [error, setError] = useState<string | null>(null);
   const [justQueuedId, setJustQueuedId] = useState<string | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   async function handleRetry(id: string) {
     setRetryingId(id);
@@ -125,6 +148,19 @@ export default function SubagentsSection({
       setError(err instanceof WorkerApiError ? err.message : "Could not reach the Worker.");
     } finally {
       setRetryingId(null);
+    }
+  }
+
+  async function handleCancel(id: string) {
+    setCancellingId(id);
+    setError(null);
+    try {
+      await cancelTask(token, id);
+      onQueued();
+    } catch (err) {
+      setError(err instanceof WorkerApiError ? err.message : "Could not cancel the task.");
+    } finally {
+      setCancellingId(null);
     }
   }
 
@@ -176,7 +212,15 @@ export default function SubagentsSection({
       ) : (
         <ul className="e-list" aria-label="Recent sub-agent tasks">
           {subagents.map((row) => (
-            <SubagentRowView key={row.id} row={row} learningPath={learningPaths.find((p) => p.subagent_id === row.id)} onRetry={() => void handleRetry(row.id)} retrying={retryingId === row.id} />
+            <SubagentRowView
+              key={row.id}
+              row={row}
+              learningPath={learningPaths.find((p) => p.subagent_id === row.id)}
+              onRetry={() => void handleRetry(row.id)}
+              retrying={retryingId === row.id}
+              onCancel={() => void handleCancel(row.id)}
+              cancelling={cancellingId === row.id}
+            />
           ))}
         </ul>
       )}

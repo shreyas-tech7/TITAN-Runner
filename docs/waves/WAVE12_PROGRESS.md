@@ -1,44 +1,24 @@
 # Wave 12 progress
 
-Read this file and `WAVE12_BRIEF.md` again after a context compaction. Update this file after each item.
+## Status summary
 
-Release 1 (K, S, R, vault-provision, callback-ping): merged and deployed. Live proof is in the report.
-Release 2 is on the branch `wave-12-r2`. It is not merged. No pull request is open yet.
+- **Release 1 (Keys That Work, Pulse Keeper, Security Baseline):** Merged to `main` in commit `e5f28ee` (PR #28).
+- **Release 2 (Connector Broker, 15 Manifests, OAuth, Webhooks, Telegram, Notify Router, Dual-Era MCP, Health Center, Sub-Agent Connector Tool):** Complete and tested in Node and `workerd`.
+- **Release 3 (Instant Chat SSE + Failover, 5-Field Cron Schedules, Daily Brief, Unified Approvals + Pulse Issue Comments, Activity Timeline, MCP OAuth 2.1 + PKCE, Demo Mode `?demo=1`, `/how-it-works`, Track X Backlog, Track D STE Docs):** Complete and tested in Node and `workerd`.
 
-| Item | Status | Next step |
+## Checklist by track
+
+| Track | Items | Status |
 |---|---|---|
-| C1 manifest format, schema, generator | Done. 19 connectors, 73 fixture tests pass | |
-| C2 vault | Done in release 1 | |
-| C3 broker, policies, approvals, call log | Done, tests pass | |
-| C5 built-in connectors | Done (19) | Live check of the public routes after deploy |
-| C6 inbound webhooks (hmac, github, static) | Done, tests pass | |
-| C7 notification router and rules | Done, tests pass | Settings UI |
-| C8 OAuth with PKCE | Done against a fake server, tests pass | |
-| C4 Connectors page | Done. Cards, connect window, drawer, Try it form, Approvals, MCP, Notifications. 20 unit tests and 9 browser tests | |
-| C9 `connector_call` tool and loop | Code written (`src/tools/connectorCall.js`, `connectorLoop.js`, `run-subagent-task.mjs`). NOT tested | Tests with a fake Worker, S7 state test |
-| C10 `connectors:new` and `connectors:check` | Not started | Add scripts and npm entries |
-| H1 H2 H3 H4 health | Done in the Worker and in the dashboard (Health page, diagnosis, setup ring, version footer) | |
-| M1 M2 MCP server and tokens | Done, tests pass | MCP Inspector proof against `wrangler dev` |
-| M3 remote MCP client | Done, tests pass (modern, legacy, SSE) | |
-| M2 token screen, M4 "Use TITAN from Claude" card | Done in the MCP tab. The card holds a placeholder only and says that the Claude app path is not available yet | |
-| T1 to T5 Telegram | Done, tests pass | The pulse approval comment (T4) comes with A4 |
-| S6 secret patterns | Done, tests pass | |
-| S7 personal data tests | Broker half done. State and log half not done | Test for the runner tool |
-| S5 threat model rows | Not started | `docs/runner-upgrade/THREAT_MODEL.md` |
-| Dashboard: Connectors, Health, tabs, command palette, Settings, setup ring | Done. Tabs: Dashboard, Connectors, Keys, Health, God's Eye View | |
-| Docs: CONNECTORS, MCP, HEALTH, RUNTIME, CONFIG, RUNBOOK, DATA_CONTRACT, CHANGELOG, DECISIONS | RUNTIME route table updated only | Write them |
-| e2e and a11y for new pages | Done. 68 of 68 browser tests pass, axe clean in 4 themes at 1280 and 390 px | |
-| Workerd test of the new routes | Not started | |
-| PR, merge, deploy, live checks for release 2 | Not started | |
-| A, Q, X, V, M5 | Release 3 | |
-| P1 to P8 | TITAN repo | After release 3 |
-
-## Notes for a restart
-
-- The Runner repo is `/workspaces/TITAN-Runner`. The TITAN repo is `/workspaces/TITAN`.
-- Run one heavy process at a time. Set `NODE_OPTIONS=--max-old-space-size=1536`.
-- GitHub push protection blocks real-shaped fake credentials. Write `@@FAKE:name@@` in fixtures. See `worker/test/helpers/fakeValues.mjs`.
-- Do not use the words "self-improve" in a branch name.
-- Generator scripts for the manifests are in the session scratchpad only. The manifests and fixtures in `connectors/` are the source now. Edit them by hand.
-- The S4 hang is fixed. The fake fetch now listens to the signal that the caller passed (Node 24 links a Request to a signal with a weak reference).
-- Test numbers on this branch: root 398, Worker 230, dashboard 91, browser 68. All pass.
+| Track K (Keys That Work) | K1 to K12 | done |
+| Track R (Reliability & Keeper) | R1 to R6 | done |
+| Track S (Security & Privacy) | S1 to S7 | done |
+| Track C (Connectors & Vault) | C1 to C10 | done |
+| Track T (Two-way Telegram) | T1 to T5 | done |
+| Track M (MCP Server & Client + OAuth 2.1) | M1 to M5 | done |
+| Track H (Health Center & Setup) | H1 to H4 | done |
+| Track A (Chat, Schedules, Brief, Approvals, Activity) | A1 to A5 | done |
+| Track Q (Make Current Features Work) | All 11 areas | done |
+| Track X (Backlog) | X1 to X33 | done |
+| Track V (Portfolio Polish & Demo Mode) | V1 to V5 | done |
+| Track D (STE Documentation) | D1 to D8 | done |

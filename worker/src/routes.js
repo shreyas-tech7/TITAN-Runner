@@ -30,7 +30,16 @@ import { handlePulseBadge, handlePulseHeartbeat, handlePulseState, handleRunPuls
 import { SCHEMA_VERSION } from './lib/migrate.js';
 import { json } from './lib/util.js';
 import { handleDeleteArea, handleExport } from './retention.js';
-import { handleCreateTask, handleInternalStatus, handleRetryTask, handleStatus } from './tasks.js';
+import { handleCancelTask, handleCreateTask, handleInternalStatus, handleRetryTask, handleStatus } from './tasks.js';
+import { handleChat, handleClearChatThreads, handleDeleteChatThread, handleGetChatThread, handleListChatThreads, handleSetChatOrder } from './chat.js';
+import {
+  handleActivity, handleDeleteSchedule, handleGenerateBrief, handleGetBrief, handleListSchedules, handlePulseApproval,
+  handleRunScheduleNow, handleSaveSchedule, handleToggleSchedule, handleVaultRotate,
+} from './schedules.js';
+import {
+  handleAuthServerMeta, handleMcpAuthorizeApprove, handleMcpAuthorizeGet, handleMcpRegister, handleMcpTokenExchange,
+  handleProtectedResourceMeta,
+} from './mcpOauth.js';
 
 /** @typedef {{ method: string, path: string, group: 'public'|'admin'|'internal'|'mcp'|'hook'|'oauth', handler: (c: any) => Response|Promise<Response> }} Route */
 
@@ -44,11 +53,17 @@ export const ROUTES = [
   },
   { method: 'GET', path: '/gev/jwks', group: 'public', handler: (c) => handleGevJwks(c.env) },
   { method: 'GET', path: '/badge/pulse', group: 'public', handler: (c) => handlePulseBadge(c.env) },
+  { method: 'GET', path: '/.well-known/oauth-protected-resource', group: 'public', handler: handleProtectedResourceMeta },
+  { method: 'GET', path: '/.well-known/oauth-authorization-server', group: 'public', handler: handleAuthServerMeta },
+  { method: 'POST', path: '/oauth/mcp/register', group: 'public', handler: handleMcpRegister },
+  { method: 'GET', path: '/oauth/mcp/authorize', group: 'public', handler: handleMcpAuthorizeGet },
+  { method: 'POST', path: '/oauth/mcp/token', group: 'public', handler: handleMcpTokenExchange },
 
   // admin: people, through the dashboard
   { method: 'GET', path: '/status', group: 'admin', handler: (c) => handleStatus(c.env) },
   { method: 'POST', path: '/tasks', group: 'admin', handler: (c) => handleCreateTask(c.request, c.env) },
   { method: 'POST', path: '/tasks/:id/retry', group: 'admin', handler: (c) => handleRetryTask(c, c.params.id) },
+  { method: 'POST', path: '/tasks/:id/cancel', group: 'admin', handler: (c) => handleCancelTask(c, c.params.id) },
   { method: 'GET', path: '/admin/keys', group: 'admin', handler: handleListKeys },
   { method: 'POST', path: '/admin/keys', group: 'admin', handler: handleSaveKey },
   { method: 'GET', path: '/admin/keys/events', group: 'admin', handler: handleKeyEvents },
@@ -106,6 +121,25 @@ export const ROUTES = [
   { method: 'GET', path: '/admin/setup', group: 'admin', handler: handleSetup },
   { method: 'GET', path: '/admin/health/urls', group: 'admin', handler: handleGetUrls },
   { method: 'POST', path: '/admin/health/urls', group: 'admin', handler: handleSetUrls },
+
+  // admin: assistant features, schedules, daily brief, activity, and MCP OAuth consent (Wave 12, Track A and M5)
+  { method: 'POST', path: '/chat', group: 'admin', handler: handleChat },
+  { method: 'GET', path: '/chat/threads', group: 'admin', handler: handleListChatThreads },
+  { method: 'GET', path: '/chat/threads/:id', group: 'admin', handler: handleGetChatThread },
+  { method: 'DELETE', path: '/chat/threads/:id', group: 'admin', handler: handleDeleteChatThread },
+  { method: 'DELETE', path: '/chat/threads', group: 'admin', handler: handleClearChatThreads },
+  { method: 'POST', path: '/chat/order', group: 'admin', handler: handleSetChatOrder },
+  { method: 'GET', path: '/schedules', group: 'admin', handler: handleListSchedules },
+  { method: 'POST', path: '/schedules', group: 'admin', handler: handleSaveSchedule },
+  { method: 'POST', path: '/schedules/:id/toggle', group: 'admin', handler: handleToggleSchedule },
+  { method: 'POST', path: '/schedules/:id/run', group: 'admin', handler: handleRunScheduleNow },
+  { method: 'DELETE', path: '/schedules/:id', group: 'admin', handler: handleDeleteSchedule },
+  { method: 'GET', path: '/brief', group: 'admin', handler: handleGetBrief },
+  { method: 'POST', path: '/brief/generate', group: 'admin', handler: handleGenerateBrief },
+  { method: 'POST', path: '/approvals/pulse', group: 'admin', handler: handlePulseApproval },
+  { method: 'GET', path: '/activity', group: 'admin', handler: handleActivity },
+  { method: 'POST', path: '/admin/vault/rotate', group: 'admin', handler: handleVaultRotate },
+  { method: 'POST', path: '/oauth/mcp/authorize', group: 'admin', handler: handleMcpAuthorizeApprove },
 
   // mcp: tools with an MCP token. The handler checks the token itself.
   { method: 'POST', path: '/mcp', group: 'mcp', handler: handleMcp },

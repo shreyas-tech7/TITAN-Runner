@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import { startWorkerd } from './helpers/workerd.mjs';
 import { startFakeServer } from './helpers/fakeServer.mjs';
 import { ADMIN, FAKE_GROQ_KEY, FakeWorld } from './helpers/world.mjs';
+import { KEK } from './helpers/hub.mjs';
 
 const sodium = createRequire(import.meta.url)('libsodium-wrappers');
 const world = new FakeWorld();
@@ -22,6 +23,7 @@ before(async () => {
     vars: {
       TITAN_ADMIN_TOKEN: ADMIN,
       GITHUB_PAT: 'fake-pat-for-workerd-tests',
+      CONNECTOR_KEK: KEK,
       TITAN_TEST_MODE: '1',
       TITAN_TEST_HOST_MAP: JSON.stringify(fake.hostMap),
       TITAN_COMMIT: 'workerd-test-commit',
@@ -113,3 +115,58 @@ test('workerd: the callback token is made, written as a sealed box, and then ope
   assert.equal(hb.status, 200);
   assert.equal((await call('/internal/pulse-heartbeat', { method: 'POST', headers: { 'X-Titan-Callback': '0'.repeat(64) }, body: '{}' })).status, 401);
 });
+
+test('workerd: Release 2 and Release 3 routes (connectors, MCP server, instant chat SSE, schedules, and MCP OAuth) work in the real runtime', async () => {
+  // Save Groq key with alsoForChat: true so it goes into the AES-GCM vault in real D1.
+  const saveKey = await call('/admin/keys', { method: 'POST', headers: H, body: JSON.stringify({ provider: 'groq', value: FAKE_GROQ_KEY, alsoForChat: true }) });
+  assert.equal(saveKey.status, 200);
+
+  // Instant chat SSE stream in real workerd.
+  const chatRes = await call('/chat', { method: 'POST', headers: H, body: JSON.stringify({ message: 'Ping from workerd' }) });
+  assert.equal(chatRes.status, 200);
+  const sseText = await chatRes.text();
+  assert.match(sseText, /event: meta/);
+  assert.match(sseText, /Hello there/);
+
+  // Create a schedule and run it now in real D1.
+  const schedRes = await call('/schedules', {
+    method: 'POST',
+    headers: H,
+    body: JSON.stringify({ label: 'Workerd check', cron: '0 9 * * *', tz: 'America/Chicago', brief: 'Run check', taskType: 'research' }),
+  });
+  assert.equal(schedRes.status, 201);
+
+  // Issue an MCP token and call the MCP server in both legacy and modern forms.
+  const tokRes = await call('/admin/mcp/tokens', {
+    method: 'POST',
+    headers: H,
+    body: JSON.stringify({ label: 'workerd-mcp', scopes: ['status:read', 'tasks:write'] }),
+  });
+  assert.equal(tokRes.status, 201);
+  const { token } = await tokRes.json();
+
+  const mcpInit = await call('/mcp', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25' } }),
+  });
+  assert.equal(mcpInit.status, 200);
+  const initJson = await mcpInit.json();
+  assert.equal(initJson.result.protocolVersion, '2025-11-25');
+
+  const mcpCall = await call('/mcp', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json', 'MCP-Protocol-Version': '2025-11-25' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'titan_status', arguments: {} } }),
+  });
+  assert.equal(mcpCall.status, 200);
+  const callJson = await mcpCall.json();
+  assert.ok(!callJson.result.isError && Array.isArray(callJson.result.content));
+
+  // MCP OAuth 2.1 metadata discovery in real workerd.
+  const wellKnown = await call('/.well-known/oauth-authorization-server');
+  assert.equal(wellKnown.status, 200);
+  const wkJson = await wellKnown.json();
+  assert.deepEqual(wkJson.code_challenge_methods_supported, ['S256']);
+});
+

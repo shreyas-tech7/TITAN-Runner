@@ -1,17 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./tokens.css";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import { buildRunnerCsp } from "@/lib/csp";
 import { parseGevUrl } from "@/lib/gev";
-
-// Two type roles only, per the redesign brief: JetBrains Mono for every
-// number/id/timing, Inter Tight for prose and labels. The previous third
-// face (Archivo, an uppercase display face) is gone — real hierarchy here
-// comes from size/weight contrast within these two, not a third family.
-const body = Inter_Tight({ subsets: ["latin"], variable: "--font-body-loaded", weight: ["400", "500", "600", "700"] });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-data-loaded", weight: ["400", "500", "600"] });
 
 // GitHub Pages serves this site under /<repo>/, so every link that points at a file in public/ needs that
 // prefix. Without it the manifest and the icons pointed at the site root, where they do not exist, and the
@@ -57,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta httpEquiv="Content-Security-Policy" content={csp} />
         <script src={`${BASE}/theme-boot.js`} />
       </head>
-      <body className={`${body.variable} ${mono.variable}`}>
+      <body>
         {children}
         <ServiceWorkerRegistration />
       </body>

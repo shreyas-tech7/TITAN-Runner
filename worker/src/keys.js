@@ -419,6 +419,9 @@ export async function handleSaveKey(c) {
     else {
       try {
         await putVaultRecord(env, { id: `provider-key:${entry.id}`, scope: 'provider_key', ownerId: entry.id, connectionId: `providerkey:${entry.id}`, connectorId: 'provider-key', plaintext: value });
+        await env.DB.prepare('INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at')
+          .bind(`chat.inputs.${entry.id}`, JSON.stringify(inputs), now)
+          .run();
         chat = 'stored';
       } catch {
         chat = 'vault_failed';

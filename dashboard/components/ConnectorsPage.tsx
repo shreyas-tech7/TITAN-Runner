@@ -52,7 +52,9 @@ export default function ConnectorsPage({ token, onUnauthorized }: { token: strin
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>(() => {
-    const t = readParams().get("tab");
+    const p = readParams();
+    if (p.get("mcp_authorize") === "1") return "mcp";
+    const t = p.get("tab");
     return TABS.some((x) => x.id === t) ? (t as Tab) : "tools";
   });
   const [query, setQuery] = useState("");

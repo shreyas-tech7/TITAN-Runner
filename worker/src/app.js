@@ -7,6 +7,7 @@ import {
 } from './lib/auth.js';
 import { ensureMigrations } from './lib/migrate.js';
 import { json, jsonError, newRequestId } from './lib/util.js';
+import { authenticateMcp } from './mcpServer.js';
 import { groupForPath, matchRoute } from './routes.js';
 
 const LOCKABLE = new Set(['admin', 'internal', 'mcp', 'hook']);
@@ -79,12 +80,24 @@ async function route(request, env, ctx, { url, matched, group, requestId, log })
 
   if (matched.route.group === 'admin') {
     const result = checkAdminToken(request, env);
-    if (result !== 'ok') {
+    if (result === 'ok') {
+      auth = { kind: 'admin' };
+      log.token = 'admin';
+    } else if (result === 'missing' && matched.route.path === '/chat' && request.headers.get('authorization')) {
+      const mcp = await authenticateMcp(request, env);
+      if (!mcp) {
+        await recordAuthFailure(request, env, 'admin').catch(() => null);
+        return json({ error: 'unauthorized' }, 401);
+      }
+      if (!mcp.scopes.includes('chat:write')) {
+        return jsonError(403, 'scope_missing', 'This MCP token lacks the chat:write scope.', { requestId });
+      }
+      auth = { kind: 'mcp', id: mcp.id, scopes: mcp.scopes };
+      log.token = 'mcp';
+    } else {
       if (result === 'wrong') await recordAuthFailure(request, env, 'admin').catch(() => null);
       return json({ error: 'unauthorized' }, 401);
     }
-    auth = { kind: 'admin' };
-    log.token = 'admin';
   } else if (matched.route.group === 'internal') {
     const result = await authenticateInternal(request, env);
     if (result.status !== 'ok') {

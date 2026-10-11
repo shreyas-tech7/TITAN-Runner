@@ -169,4 +169,9 @@ The decisions W12-D1 to W12-D10 come from the brief. They are final. W12-D11 and
 - **W12-D19** Replacing the vault key makes old records unreadable. A runner cannot read the old key, so a re-encrypt is not possible there. The workflow refuses a replacement unless the input says "yes", and it warns in the summary. Re-encryption stays on the list as a P2 item.
 - **W12-D20** `GET /admin/keys` marks a secret as `outside` when it exists without a D1 record, and as `changed outside` when its date is later than the dashboard save. The dashboard then hides the fingerprint, because it would describe an older key.
 - **W12-D21** The test mode flag `TITAN_TEST_MODE` is never set in `wrangler.toml`. A broken host map fails closed. `scripts/check-test-mode.mjs` checks the config in CI.
+- **W12-D22** Instant chat (`POST /chat`) streams SSE from OpenAI-compatible providers and Gemini (`:streamGenerateContent?alt=sse`), and fails over across `alsoForChat` keys before the first token when a provider returns 429 or 5xx.
+- **W12-D23** The 5-field cron engine in `worker/src/schedules.js` uses `Intl.DateTimeFormat` in the schedule's IANA time zone so DST transitions in `America/Chicago` are exact. Each 1-minute tick fires at most 3 due schedules.
+- **W12-D24** MCP OAuth 2.1 (`M5`) requires S256 PKCE, restricts dynamic client registration to Claude callback URLs and loopback, and stores only SHA-256 hashes of authorization codes, access tokens, and refresh tokens.
+- **W12-D25** Demo mode (`?demo=1`, `V1`) serves deterministic fixture data in the browser and refuses every write call with HTTP 403 (`demo_read_only`), so visitors can explore every dashboard view without an admin token or a live Worker.
+
 

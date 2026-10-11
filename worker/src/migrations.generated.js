@@ -70,7 +70,22 @@ export const MIGRATIONS = [
       "CREATE TABLE IF NOT EXISTS notify_deliveries (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  event_id INTEGER NOT NULL,\n  rule_id TEXT NOT NULL,\n  connection_id TEXT NOT NULL,\n  at TEXT NOT NULL,\n  ok INTEGER NOT NULL,\n  error TEXT\n)",
       "CREATE INDEX IF NOT EXISTS idx_notify_deliveries_at ON notify_deliveries(at)"
     ]
+  },
+  {
+    "name": "0004_assistant_schedules_mcp_oauth.sql",
+    "statements": [
+      "CREATE TABLE IF NOT EXISTS chat_threads (\n  id TEXT PRIMARY KEY,\n  title TEXT NOT NULL,\n  provider TEXT,\n  model TEXT,\n  created_at TEXT NOT NULL,\n  updated_at TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_chat_threads_updated ON chat_threads(updated_at)",
+      "CREATE TABLE IF NOT EXISTS chat_messages (\n  id TEXT PRIMARY KEY,\n  thread_id TEXT NOT NULL,\n  role TEXT NOT NULL,\n  content TEXT NOT NULL,\n  provider TEXT,\n  model TEXT,\n  tokens_used INTEGER,\n  at TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id, at)",
+      "CREATE TABLE IF NOT EXISTS schedules (\n  id TEXT PRIMARY KEY,\n  label TEXT NOT NULL,\n  cron TEXT NOT NULL,\n  tz TEXT NOT NULL DEFAULT 'America/Chicago',\n  brief TEXT NOT NULL,\n  task_type TEXT NOT NULL DEFAULT 'general',\n  kind TEXT NOT NULL DEFAULT 'task',\n  enabled INTEGER NOT NULL DEFAULT 1,\n  last_run_at TEXT,\n  next_run_at TEXT,\n  created_at TEXT NOT NULL,\n  updated_at TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_schedules_enabled_next ON schedules(enabled, next_run_at)",
+      "INSERT OR IGNORE INTO schedules (id, label, cron, tz, brief, task_type, kind, enabled, last_run_at, next_run_at, created_at, updated_at)\nVALUES ('sched_daily_brief', 'Daily brief', '30 7 * * *', 'America/Chicago', 'Build the daily brief from weather, calendar, tasks, approvals, keys, research, and health.', 'brief', 'daily_brief', 0, NULL, NULL, '2026-10-08T00:00:00.000Z', '2026-10-08T00:00:00.000Z')",
+      "CREATE TABLE IF NOT EXISTS mcp_oauth_clients (\n  client_id TEXT PRIMARY KEY,\n  client_name TEXT NOT NULL,\n  redirect_uris TEXT NOT NULL,\n  grant_types TEXT NOT NULL DEFAULT '[\"authorization_code\",\"refresh_token\"]',\n  created_at TEXT NOT NULL\n)",
+      "CREATE TABLE IF NOT EXISTS mcp_oauth_codes (\n  code_hash TEXT PRIMARY KEY,\n  client_id TEXT NOT NULL,\n  client_name TEXT NOT NULL,\n  redirect_uri TEXT NOT NULL,\n  scopes TEXT NOT NULL,\n  code_challenge TEXT NOT NULL,\n  code_challenge_method TEXT NOT NULL DEFAULT 'S256',\n  created_at TEXT NOT NULL,\n  expires_at TEXT NOT NULL,\n  used_at TEXT\n)",
+      "ALTER TABLE mcp_tokens ADD COLUMN refresh_token_hash TEXT"
+    ]
   }
 ];
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;

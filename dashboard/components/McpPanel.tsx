@@ -11,7 +11,7 @@ import { Badge } from "@/components/kit";
 import { createMcpToken, fetchMcpTokens, revokeMcpToken, type McpToken } from "@/lib/connectorsApi";
 import { SCOPE_HELP, SENSITIVE_SCOPES, claudeCodeCommand, describeExpiry } from "@/lib/connectorsView";
 import { relative } from "@/lib/time";
-import { WorkerApiError, workerUrl } from "@/lib/workerApi";
+import { approveMcpOauth, WorkerApiError, workerUrl } from "@/lib/workerApi";
 
 const EXPIRY_CHOICES = [
   { value: "30", label: "30 days" },
@@ -34,7 +34,7 @@ export function ClaudeCard() {
       <pre className="result-box" tabIndex={0} aria-label="Claude Code command">{command}</pre>
       <CopyButton text={command} what="the Claude Code command" label="Copy command" />
       <p className="e-dim">This command holds a placeholder. TITAN never puts a real token in it.</p>
-      <p className="e-hint"><strong>The Claude app. </strong>The Claude app adds a remote server as a custom connector, and it signs in with OAuth. TITAN does not support that sign in yet. Use Claude Code for now.</p>
+      <p className="e-hint"><strong>The Claude app (OAuth 2.1 + PKCE). </strong>The Claude app can also sign in with OAuth 2.1 using PKCE (<span className="e-num">S256</span>) at <span className="e-num">{workerUrl() || "<WORKER_URL>"}/mcp</span>. When it redirects here, choose the scopes you want to grant and approve the connection.</p>
     </section>
   );
 }
@@ -50,7 +50,33 @@ export default function McpPanel({ token, scopes: allScopes, onUnauthorized }: {
   const [fresh, setFresh] = useState<{ label: string; token: string } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [oauthReq, setOauthReq] = useState<{
+    clientId: string;
+    clientName: string;
+    redirectUri: string;
+    codeChallenge: string;
+    codeChallengeMethod: string;
+    state: string;
+    scopes: string[];
+  } | null>(null);
   const alive = useRef(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("mcp_authorize") === "1") {
+      const requestedScopes = (p.get("scope") || "status:read connectors:read").split(/\s+/).filter(Boolean);
+      setOauthReq({
+        clientId: p.get("client_id") || "",
+        clientName: p.get("client_name") || "MCP Client",
+        redirectUri: p.get("redirect_uri") || "",
+        codeChallenge: p.get("code_challenge") || "",
+        codeChallengeMethod: p.get("code_challenge_method") || "S256",
+        state: p.get("state") || "",
+        scopes: requestedScopes,
+      });
+    }
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -104,8 +130,47 @@ export default function McpPanel({ token, scopes: allScopes, onUnauthorized }: {
 
   const toggle = (scope: string) => setChosen((prev) => (prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope]));
 
+  async function handleOauthApprove() {
+    if (!oauthReq) return;
+    setBusy(true);
+    setProblem(null);
+    try {
+      const out = await approveMcpOauth(token, {
+        client_id: oauthReq.clientId,
+        redirect_uri: oauthReq.redirectUri,
+        code_challenge: oauthReq.codeChallenge,
+        code_challenge_method: oauthReq.codeChallengeMethod,
+        state: oauthReq.state,
+        scopes: oauthReq.scopes,
+      });
+      window.location.assign(out.redirectTo);
+    } catch (err) {
+      setProblem(err instanceof Error ? err.message : "Could not approve OAuth request.");
+      setBusy(false);
+    }
+  }
+
   return (
     <>
+      {oauthReq ? (
+        <div className="guide" role="region" aria-label="Approve MCP OAuth client" data-testid="mcp-oauth-consent">
+          <h3 className="guide-title">Authorize {oauthReq.clientName}</h3>
+          <p className="e-dim">
+            Client <span className="e-num">{oauthReq.clientId}</span> wants to connect to TITAN MCP and redirect to{" "}
+            <span className="e-num">{oauthReq.redirectUri}</span>.
+          </p>
+          <p className="e-dim">Requested scopes: {oauthReq.scopes.join(", ")}</p>
+          <div className="modal-actions">
+            <button className="btn btn-primary" disabled={busy} onClick={() => void handleOauthApprove()}>
+              {busy ? "Authorizing…" : "Approve access"}
+            </button>
+            <button className="btn" onClick={() => setOauthReq(null)}>
+              Deny
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <ClaudeCard />
 
       {fresh ? (

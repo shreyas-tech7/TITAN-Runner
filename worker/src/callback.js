@@ -39,6 +39,7 @@ async function findCallbackRow(env, plain, now) {
 
 /** @returns {Promise<boolean>} True while the admin token still opens `/internal/*`. */
 export async function isLegacyMode(env, now = new Date()) {
+  if (env?.TITAN_STRICT_CALLBACK_AUTH === '1') return false;
   const row = await env.DB.prepare("SELECT MIN(activated_at) AS first FROM worker_tokens WHERE kind = 'callback' AND activated_at IS NOT NULL").first();
   if (!row?.first) return true;
   return now.getTime() < Date.parse(row.first) + LEGACY_WINDOW_MS;
