@@ -740,6 +740,7 @@ Each token type has one job. A token that opens one group of routes never opens 
 | Callback token | `X-Titan-Callback` | Workflows | The `internal` routes only |
 | MCP token | `Authorization: Bearer` | Tools, such as Claude Code | `/mcp` only, within its scopes |
 | Hook secret | One header for each check mode | Inbound webhooks and the Telegram webhook | One `/hooks/...` route only |
+| Ops token `OPS_TOKEN` | `Authorization: Bearer` | TITAN and the workflows of this repo | The `ops` routes only (contract v1, `docs/CONTRACT.md`) |
 | OAuth state | The `state` value in the address | The redirect of an OAuth provider | `/oauth/:connectorId/callback` only |
 
 The route table is in `worker/src/routes.js`. A test fails if a route has no group or if this table misses a route.
@@ -838,6 +839,16 @@ The route table is in `worker/src/routes.js`. A test fails if a route has no gro
 | POST | `/hooks/:hookId` | hook |
 | POST | `/hooks/telegram/:connectionId` | hook |
 | GET | `/oauth/:connectorId/callback` | oauth |
+| POST | `/ops/usage` | ops |
+| GET | `/ops/usage` | ops |
+| GET | `/ops/quota` | ops |
+| GET | `/ops/health` | ops |
+| POST | `/ops/health` | ops |
+| GET | `/ops/eval` | ops |
+| POST | `/ops/eval` | ops |
+| GET | `/ops/hosts` | ops |
+| POST | `/ops/hosts` | ops |
+| POST | `/ops/doorbell` | ops |
 | POST | `/internal/status` | internal |
 | POST | `/internal/vm-status` | internal |
 | POST | `/internal/geospatial-event` | internal |

@@ -6,6 +6,7 @@ import { pruneLoginLimits } from './lib/loginGuard.js';
 import { pruneRateLimits } from './lib/rateLimit.js';
 import { pruneSessions } from './lib/sessions.js';
 import { pruneSignins } from './lib/signinLog.js';
+import { pruneOps } from './ops.js';
 import { getSetting } from './lib/db.js';
 import { json, jsonError, nowIso, readJson } from './lib/util.js';
 import { emitEvent } from './notify.js';
@@ -62,6 +63,11 @@ export async function pruneOldRows(env, now = new Date()) {
     } catch (err) {
       out[label] = /no such table/i.test(err instanceof Error ? err.message : '') ? 'no table' : 'error';
     }
+  }
+  try {
+    Object.assign(out, Object.fromEntries(Object.entries(await pruneOps(env, now)).map(([k, v]) => [`ops_${k}`, v])));
+  } catch (err) {
+    out.ops = /no such table/i.test(err instanceof Error ? err.message : '') ? 'no table' : 'error';
   }
   await tryRun(env, 'unused_mcp_clients', 'DELETE FROM mcp_oauth_clients WHERE created_at < ? AND client_id NOT IN (SELECT client_id FROM mcp_tokens WHERE client_id IS NOT NULL)', [iso(RETENTION_DAYS.unused_mcp_clients)], out);
   await tryRun(env, 'connector_calls', 'DELETE FROM connector_calls WHERE at < ?', [iso(RETENTION_DAYS.connector_calls)], out);

@@ -52,6 +52,9 @@ export const DENYLIST = Object.freeze([
   'scripts/check-state.mjs',
   'scripts/publish-state.mjs',
   'scripts/state-maintenance.mjs',
+  // The ops routing rules and the quota limits (RO1).
+  'src/ops/',
+  'config/quotas.json',
 ]);
 
 /**

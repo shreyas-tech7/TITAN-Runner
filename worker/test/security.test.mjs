@@ -18,7 +18,7 @@ const withIp = (ip, headers = {}) => ({ 'CF-Connecting-IP': ip, ...headers });
 test('S1: every route has exactly one known group, and no method and path appear twice', () => {
   const seen = new Set();
   for (const r of ROUTES) {
-    assert.ok(['public', 'admin', 'internal', 'mcp', 'hook', 'oauth'].includes(r.group), `${r.method} ${r.path}`);
+    assert.ok(['public', 'admin', 'internal', 'mcp', 'hook', 'oauth', 'ops'].includes(r.group), `${r.method} ${r.path}`);
     const key = `${r.method} ${r.path}`;
     assert.ok(!seen.has(key), `duplicate ${key}`);
     seen.add(key);

@@ -55,6 +55,8 @@ import { runOrchestration, newCheckpoint, usageOf } from './orchestrate.js';
 import { QuotaLedger } from '../reliability/quota.js';
 import { QUOTA_SCHEMA } from '../state/schema.js';
 import { registry as defaultRegistry, FAILOVER_ORDER } from '../providers/registry.js';
+import { OpsGate } from '../ops/gate.js';
+import { UsageReporter } from '../ops/usageReporter.js';
 import { onAdapterCall } from '../agents/AgentAdapter.js';
 import { now as clockNow } from '../lib/clock.js';
 import { ToolRegistry } from '../tools/registry.js';
@@ -274,9 +276,14 @@ export async function runPulse(deps = {}) {
       tried: d.tried, skipped: d.skipped.map((x) => x.id), failureClass: d.failureClass ?? null, durationMs: Math.round(d.ms),
     });
   };
+  // RO1 and RO2: report every call to the Worker in one batch, and follow the routing rules of contract v1.
+  const usageReporter = deps.ops?.usage ?? new UsageReporter({ events, now });
+  const opsGate = deps.ops?.gate ?? OpsGate.fromState(store.paths.stateDir, { now, modelOf: (id) => providerHealth.get(id)?.model ?? null, failureRecord: (id) => providerHealth.get(id) });
   for (const r of registries) {
     r.useQuota(quota);
     r.useDecisionSink(decisionSink);
+    r.useOps(opsGate);
+    r.useUsage(usageReporter);
   }
   const offAdapterCalls = onAdapterCall((call) => {
     usage.modelCalls += 1;
@@ -288,6 +295,8 @@ export async function runPulse(deps = {}) {
     for (const r of registries) {
       r.useQuota(null);
       r.useDecisionSink(null);
+      r.useOps(null);
+      r.useUsage(null);
     }
   };
 
@@ -413,6 +422,7 @@ export async function runPulse(deps = {}) {
       if (typeof pool.flush === 'function') pool.flush();
     }
     quota.save();
+    await usageReporter.flush();
 
     const pruneResult = pruneRuns({ maxFiles: config.retention.maxRunFiles, keepDays: config.retention.keepRunDays, runsDir: store.paths.runs, archiveDir: store.archiveDir });
     if (pruneResult.prunedCount > 0) log.info('rolled old run records into the monthly archive', pruneResult);

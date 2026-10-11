@@ -6,6 +6,7 @@
  *   internal  the callback token, header X-Titan-Callback (workflows). The admin token works only in legacy mode.
  *   mcp       an MCP token, header Authorization: Bearer (tools).
  *   hook      the secret of one hook (inbound webhooks and the Telegram webhook).
+ *   ops       the ops token OPS_TOKEN, header Authorization: Bearer (TITAN and the workflows). Contract v1.
  *   oauth     the redirect of an OAuth provider, checked by its `state` value.
  *
  * docs/RUNTIME.md holds the same table in words. `test/routes.test.mjs` fails if a route has no group.
@@ -25,6 +26,10 @@ import { handleInboundHook } from './connectors/hooks.js';
 import { handleTelegramUpdate } from './connectors/telegram.js';
 import { handleDiagnoseFull, handleGetUrls, handleHealthFull, handleSetUrls, handleSetup } from './health.js';
 import { handleMcp, handleMcpGet } from './mcpServer.js';
+import {
+  handleOpsDoorbellPost, handleOpsEval, handleOpsEvalPost, handleOpsHealth, handleOpsHealthPost, handleOpsHosts, handleOpsHostsPost,
+  handleOpsQuota, handleOpsUsageGet, handleOpsUsagePost,
+} from './ops.js';
 import { handleLogin, handleLogout, handleSessionInfo, handleSigninLog } from './session.js';
 import { handleKeyEvents, handleListKeys, handleProviderProof, handleRemoveKey, handleSaveKey, handleSecretRoundTrip, handleTestKey } from './keys.js';
 import { handlePulseBadge, handlePulseHeartbeat, handlePulseState, handleRunPulseNow } from './keeper.js';
@@ -42,7 +47,7 @@ import {
   handleProtectedResourceMeta,
 } from './mcpOauth.js';
 
-/** @typedef {{ method: string, path: string, group: 'public'|'admin'|'internal'|'mcp'|'hook'|'oauth', handler: (c: any) => Response|Promise<Response> }} Route */
+/** @typedef {{ method: string, path: string, group: 'public'|'admin'|'internal'|'mcp'|'hook'|'oauth'|'ops', handler: (c: any) => Response|Promise<Response> }} Route */
 
 /** @type {Route[]} */
 export const ROUTES = [
@@ -156,6 +161,18 @@ export const ROUTES = [
 
   // oauth: the redirect of an OAuth provider, checked by its state value
   { method: 'GET', path: '/oauth/:connectorId/callback', group: 'oauth', handler: handleOAuthCallback },
+
+  // ops: the shared ops services of contract v1 (docs/CONTRACT.md). The token is OPS_TOKEN.
+  { method: 'POST', path: '/ops/usage', group: 'ops', handler: handleOpsUsagePost },
+  { method: 'GET', path: '/ops/usage', group: 'ops', handler: handleOpsUsageGet },
+  { method: 'GET', path: '/ops/quota', group: 'ops', handler: handleOpsQuota },
+  { method: 'GET', path: '/ops/health', group: 'ops', handler: handleOpsHealth },
+  { method: 'POST', path: '/ops/health', group: 'ops', handler: handleOpsHealthPost },
+  { method: 'GET', path: '/ops/eval', group: 'ops', handler: handleOpsEval },
+  { method: 'POST', path: '/ops/eval', group: 'ops', handler: handleOpsEvalPost },
+  { method: 'GET', path: '/ops/hosts', group: 'ops', handler: handleOpsHosts },
+  { method: 'POST', path: '/ops/hosts', group: 'ops', handler: handleOpsHostsPost },
+  { method: 'POST', path: '/ops/doorbell', group: 'ops', handler: handleOpsDoorbellPost },
 
   // internal: workflows, with the callback token
   { method: 'POST', path: '/internal/status', group: 'internal', handler: (c) => handleInternalStatus(c.request, c.env) },

@@ -40,7 +40,7 @@ export function allowedOrigins(env) {
  */
 export function corsHeaders(request, env, group) {
   const headers = { Vary: 'Origin' };
-  if (group === 'hook' || group === 'oauth') return headers;
+  if (group === 'hook' || group === 'oauth' || group === 'ops') return headers;
   const origin = request.headers.get('Origin');
   if (origin && allowedOrigins(env).includes(origin)) {
     headers['Access-Control-Allow-Origin'] = origin;

@@ -9,9 +9,10 @@ import { logSignin } from './lib/signinLog.js';
 import { ensureMigrations } from './lib/migrate.js';
 import { json, jsonError, newRequestId } from './lib/util.js';
 import { authenticateMcp } from './mcpServer.js';
+import { authenticateOps } from './ops.js';
 import { groupForPath, matchRoute } from './routes.js';
 
-const LOCKABLE = new Set(['admin', 'internal', 'mcp', 'hook']);
+const LOCKABLE = new Set(['admin', 'internal', 'mcp', 'hook', 'ops']);
 
 /** The largest body that any route reads (RT5). A larger Content-Length is refused before a handler runs. */
 export const MAX_BODY_BYTES = 262_144;
@@ -51,8 +52,8 @@ export async function handleRequest(request, env, ctx) {
     response = jsonError(500, 'internal_error', `The Worker hit an error. Quote the request id ${requestId}.`, { requestId });
   }
 
-  const noCors = group === 'hook' || group === 'oauth';
-  const out = withHeaders(response, { ...corsHeaders(request, env, group), 'X-Request-Id': requestId, ...(noCors || group === 'public' ? {} : { 'Cache-Control': 'no-store' }) });
+  const noCors = group === 'hook' || group === 'oauth' || group === 'ops';
+  const out = withHeaders(response, { ...corsHeaders(request, env, group), 'X-Request-Id': requestId, ...(group === 'hook' || group === 'oauth' || group === 'public' ? {} : { 'Cache-Control': 'no-store' }) });
   console.log(JSON.stringify({ t: new Date().toISOString(), ...log, status: out.status, ms: Date.now() - started }));
   return out;
 }
@@ -68,6 +69,11 @@ async function route(request, env, ctx, { url, matched, group, requestId, log })
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     const length = Number.parseInt(request.headers.get('Content-Length') ?? '', 10);
     if (Number.isFinite(length) && length > MAX_BODY_BYTES) return jsonError(413, 'body_too_large', `The body is larger than ${MAX_BODY_BYTES} bytes.`);
+  }
+
+  // The ops routes serve TITAN and the workflows, never a browser. A request with an Origin header is refused.
+  if (matched.route.group === 'ops' && request.headers.get('Origin')) {
+    return jsonError(403, 'origin_not_allowed', 'The ops routes are not for browsers.');
   }
 
   // A browser sends Origin. An origin that is not on the list never reaches a handler (S3).
@@ -90,7 +96,7 @@ async function route(request, env, ctx, { url, matched, group, requestId, log })
     const lock = await checkLockout(request, env, matched.route.group);
     if (lock.locked) {
       log.token = 'locked';
-      if (matched.route.group === 'admin' || matched.route.group === 'internal') {
+      if (matched.route.group === 'admin' || matched.route.group === 'internal' || matched.route.group === 'ops') {
         await logSignin(env, request, { route: matched.route.group, result: 'blocked', reason: 'locked_out' });
       }
       const res = jsonError(429, 'locked_out', 'Too many wrong tokens. Try again later.', { retryAfterSeconds: lock.retryAfterSeconds, requestId });
@@ -127,6 +133,19 @@ async function route(request, env, ctx, { url, matched, group, requestId, log })
       }
       return json({ error: 'unauthorized' }, 401);
     }
+  } else if (matched.route.group === 'ops') {
+    const result = authenticateOps(request, env);
+    if (result !== 'ok') {
+      if (result === 'wrong') {
+        await recordAuthFailure(request, env, 'ops').catch(() => null);
+        await logSignin(env, request, { route: 'ops', result: 'failure', reason: 'wrong_token' });
+      }
+      const res = json({ error: 'unauthorized' }, 401);
+      res.headers.set('WWW-Authenticate', 'Bearer');
+      return res;
+    }
+    auth = { kind: 'ops' };
+    log.token = 'ops';
   } else if (matched.route.group === 'internal') {
     const result = await authenticateInternal(request, env);
     if (result.status !== 'ok') {

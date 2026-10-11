@@ -97,7 +97,21 @@ export const MIGRATIONS = [
       "CREATE TABLE IF NOT EXISTS rate_limits (\n  key TEXT PRIMARY KEY,\n  window_start TEXT NOT NULL,\n  count INTEGER NOT NULL,\n  updated_at TEXT NOT NULL\n)",
       "ALTER TABLE auth_failures ADD COLUMN strikes INTEGER NOT NULL DEFAULT 0"
     ]
+  },
+  {
+    "name": "0006_ops_services.sql",
+    "statements": [
+      "CREATE TABLE IF NOT EXISTS usage_log (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  dedupe TEXT NOT NULL UNIQUE,\n  source TEXT NOT NULL,\n  provider TEXT NOT NULL,\n  model TEXT NOT NULL,\n  requests INTEGER NOT NULL,\n  tokens_in INTEGER NOT NULL,\n  tokens_out INTEGER NOT NULL,\n  status TEXT NOT NULL,\n  ts TEXT NOT NULL,\n  remaining_requests INTEGER,\n  remaining_tokens INTEGER,\n  received_at TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_usage_log_pm_ts ON usage_log(provider, model, ts)",
+      "CREATE INDEX IF NOT EXISTS idx_usage_log_ts ON usage_log(ts)",
+      "CREATE TABLE IF NOT EXISTS quota_state (\n  provider TEXT NOT NULL,\n  model TEXT NOT NULL,\n  blocked_until TEXT,\n  last_429_at TEXT,\n  observed_remaining_requests INTEGER,\n  observed_remaining_tokens INTEGER,\n  observed_at TEXT,\n  used_day_at_observation INTEGER,\n  PRIMARY KEY (provider, model)\n)",
+      "CREATE TABLE IF NOT EXISTS ops_health (\n  provider TEXT NOT NULL,\n  model TEXT NOT NULL,\n  status TEXT NOT NULL,\n  latency_ms INTEGER,\n  checked_at TEXT NOT NULL,\n  error_class TEXT,\n  PRIMARY KEY (provider, model)\n)",
+      "CREATE TABLE IF NOT EXISTS ops_eval (\n  model TEXT NOT NULL,\n  category TEXT NOT NULL,\n  score REAL NOT NULL,\n  tasks_run INTEGER NOT NULL,\n  run_at TEXT NOT NULL,\n  eval_version TEXT NOT NULL,\n  PRIMARY KEY (model, category)\n)",
+      "CREATE TABLE IF NOT EXISTS ops_hosts (\n  host TEXT PRIMARY KEY,\n  status TEXT NOT NULL,\n  last_check TEXT NOT NULL,\n  uptime_24h REAL,\n  uptime_7d REAL,\n  uptime_30d REAL,\n  last_pulse_at TEXT,\n  updated_at TEXT NOT NULL\n)",
+      "CREATE TABLE IF NOT EXISTS doorbell_log (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  job TEXT NOT NULL,\n  status_code INTEGER,\n  at TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_doorbell_log_at ON doorbell_log(at)"
+    ]
   }
 ];
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;

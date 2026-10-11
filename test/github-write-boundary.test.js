@@ -18,6 +18,9 @@ const GATE_FILES = new Set([
   'src/reviewer/githubGatePolicy.js',
   'worker/src/lib/githubGate.js',
 ]);
+/** Files that only NAME a git verb in a message or a pattern. They never run it. The test below checks that. */
+const TEXT_ONLY = new Set(['scripts/check-workflows.mjs']);
+
 /** Generated or data files. They hold manifests, not code that sends a request. */
 const SKIP = new Set(['worker/src/connectors.generated.js', 'worker/src/migrations.generated.js']);
 
@@ -49,10 +52,15 @@ test('the scan sees the source tree', () => {
   assert.ok(FILES.length > 100, `scanned ${FILES.length} files`);
 });
 
+test('a text-only file never starts a process', () => {
+  for (const rel of TEXT_ONLY) assert.ok(!/child_process|execFile|spawn\(|exec\(/.test(code(join(ROOT, rel))), `${rel} must not run a command`);
+});
+
 test('no file outside the gate runs git push, git commit, git commit-tree, or git tag', () => {
   const bad = [];
   for (const f of FILES) {
     const text = code(f.abs);
+    if (TEXT_ONLY.has(f.rel)) continue;
     // Plain shell text.
     if (/\bgit\s+(push|commit|tag)\b/.test(text)) bad.push(`${f.rel}: shell text`);
     // An argument vector that holds a write verb. Only arrays that go to git count: the first argument of

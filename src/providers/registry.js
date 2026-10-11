@@ -57,6 +57,8 @@ export class Registry {
   #omniroute;
   #quota = null;
   #onDecision = null;
+  #ops = null;
+  #usage = null;
 
   /**
    * @param {{providers?: Map<string, object>, omniroute?: object, healthStore?: import('./health.js').ProviderHealthStore, quota?: import('../reliability/quota.js').QuotaLedger|null, onDecision?: ((d: object) => void)|null}} [deps]
@@ -101,6 +103,16 @@ export class Registry {
   /** Attach (or replace) the quota ledger — the engine does this per pulse. */
   useQuota(ledger) {
     this.#quota = ledger ?? null;
+  }
+
+  /** Attach the ops routing rules (RO1, RO2): skip down and exhausted providers, rank degraded ones last, and the breaker. */
+  useOps(gate) {
+    this.#ops = gate ?? null;
+  }
+
+  /** Attach the usage reporter (RO1). It receives one record for each call. */
+  useUsage(reporter) {
+    this.#usage = reporter ?? null;
   }
 
   /** Attach a routing-decision sink, e.g. the event log. */
@@ -148,6 +160,8 @@ export class Registry {
       const q = this.#quota.canSpend(id, { priority: ctx.priority });
       if (!q.ok) return { reason: `quota: ${q.reason}`, class: 'budget_exhausted' };
     }
+    const ops = this.#ops?.skipReason(id, { explicit: ctx.explicit });
+    if (ops) return { reason: `ops: ${ops.reason}`, class: ops.class };
     return null;
   }
 
@@ -166,7 +180,8 @@ export class Registry {
     const base = explicitId
       ? (failover ? [explicitId, ...ALL_CHAT_IDS.filter((id) => id !== explicitId)] : [explicitId])
       : [...ALL_CHAT_IDS];
-    const order = explicitId ? base : this.#preferGemini(base);
+    const preferred = explicitId ? base : this.#preferGemini(base);
+    const order = this.#ops && !explicitId ? this.#ops.rank(preferred) : preferred;
 
     const tried = [];
     const skipped = [];
@@ -182,6 +197,7 @@ export class Registry {
       try {
         const result = await this.#omniroute.chat(messages, { temperature, maxTokens, signal });
         this.#quota?.record('omniroute', { tokens: result.tokensUsed });
+        this.#usage?.record({ provider: 'omniroute', model: result.model, status: 'ok', tokensIn: result.tokensIn, tokensOut: result.tokensOut });
         this.#decide({ service, tried, skipped, failures, chosen: 'omniroute', ms: performance.now() - started });
         return result;
       } catch (err) {
@@ -209,6 +225,7 @@ export class Registry {
       try {
         const result = await provider.chat(messages, { temperature, maxTokens, signal });
         this.#quota?.record(id, { tokens: result.tokensUsed });
+        this.#usage?.record({ provider: id, model: result.model, status: 'ok', tokensIn: result.tokensIn, tokensOut: result.tokensOut, remainingRequests: result.rate?.remainingRequests, remainingTokens: result.rate?.remainingTokens });
         this.#decide({ service, tried, skipped, failures, chosen: id, ms: performance.now() - started });
         return result;
       } catch (err) {
@@ -216,6 +233,7 @@ export class Registry {
         const f = classifyFailure(err);
         failures.push({ id, class: f.class, code: f.code, status: f.status, retryAfterMs: f.retryAfterMs });
         if (f.status != null) this.#quota?.record(id, { status: f.status });
+        this.#usage?.record({ provider: id, model: provider.model, status: f.class === 'rate_limited' || f.status === 429 ? 'rate_limited' : 'error' });
         log.debug('provider attempt failed during failover', { service: id, class: f.class, error: err instanceof Error ? err.message : String(err) });
       }
     }

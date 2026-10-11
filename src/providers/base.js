@@ -143,7 +143,29 @@ export function parseOpenAiChat(json, ctx) {
     });
   }
   const tokens = json?.usage?.total_tokens;
-  return { text, model: typeof json?.model === 'string' ? json.model : ctx.model, tokensUsed: Number.isFinite(tokens) ? Number(tokens) : null };
+  const tokensIn = json?.usage?.prompt_tokens;
+  const tokensOut = json?.usage?.completion_tokens;
+  return {
+    text,
+    model: typeof json?.model === 'string' ? json.model : ctx.model,
+    tokensUsed: Number.isFinite(tokens) ? Number(tokens) : null,
+    tokensIn: Number.isFinite(tokensIn) ? Number(tokensIn) : null,
+    tokensOut: Number.isFinite(tokensOut) ? Number(tokensOut) : null,
+  };
+}
+
+/**
+ * The rate-limit numbers that a provider sends in its response headers (RO1). Groq counts requests in a day here.
+ * @param {Headers|undefined} headers
+ * @returns {{ remainingRequests: number|null, remainingTokens: number|null }}
+ */
+export function rateLimitFrom(headers) {
+  const num = (name) => {
+    const v = headers?.get?.(name);
+    const n = v == null ? NaN : Number(v);
+    return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+  };
+  return { remainingRequests: num('x-ratelimit-remaining-requests'), remainingTokens: num('x-ratelimit-remaining-tokens') };
 }
 
 export class BaseProvider {
@@ -171,7 +193,7 @@ export class BaseProvider {
   /**
    * @param {{role:string,content:string}[]} messages
    * @param {{temperature?:number,maxTokens?:number,signal?:AbortSignal}} [opts]
-   * @returns {Promise<{text:string,service:string,model:string,latencyMs:number,tokensUsed:number|null,attempts:number}>}
+   * @returns {Promise<{text:string,service:string,model:string,latencyMs:number,tokensUsed:number|null,tokensIn:number|null,tokensOut:number|null,rate:{remainingRequests:number|null,remainingTokens:number|null}|null,attempts:number}>}
    */
   async chat(messages, opts = {}) {
     if (!this.isConfigured()) {
@@ -222,6 +244,9 @@ export class BaseProvider {
         model,
         latencyMs,
         tokensUsed: raw.tokensUsed ?? null,
+        tokensIn: raw.tokensIn ?? null,
+        tokensOut: raw.tokensOut ?? null,
+        rate: raw.rate ?? null,
         attempts,
       };
     } catch (err) {

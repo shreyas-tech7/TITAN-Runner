@@ -19,6 +19,8 @@
 #                      repository_dispatch steps no-op rather than error —
 #                      see docs/RUNTIME.md. Verify it works with
 #                      GET /admin/diagnose before trusting a real key paste.
+#   OPS_TOKEN          one random secret of 32 characters or more. It opens the /ops routes (contract v1,
+#                      docs/CONTRACT.md). TITAN holds the same value. Without it, every /ops route answers 401.
 #   CONNECTOR_KEK      the vault key (32 random bytes as hex) for AES-256-GCM. Do not set it by hand. worker-deploy.yml
 #                      or the vault-provision workflow makes it inside a GitHub runner and sends it over stdin.
 #                      Without it, vault routes answer 503 vault_not_ready.

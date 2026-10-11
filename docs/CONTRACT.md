@@ -31,7 +31,7 @@ Each `GET /ops/*` route answers one JSON object. The object carries `contract` (
 | `GET /ops/eval` | `models` | `{ <model>: { <taxonomy category>: { score, tasks_run, run_at, eval_version } } }` |
 | `GET /ops/hosts` | `hosts` | `{ <host name>: { status, last_check, uptime_24h, uptime_7d, uptime_30d } }`. The entry `github_actions` also holds `last_pulse_at`. |
 
-A limit that the docs do not state is `null` and its `limit_confidence` is `"unknown"`. Runner never guesses a limit.
+A limit that the docs do not state is `null` and its `limit_confidence` is `"unknown"`. Runner never guesses a limit. If no official page exists for a provider, such as a gateway or a server that the owner runs, `limit_source` is `null`.
 
 The four public mirrors (`state/ops/health.json`, `quota.json`, `eval.json`, `hosts.json`) hold the same objects. `POST /ops/usage` answers `{ accepted, duplicates }`.
 
