@@ -67,3 +67,36 @@ A Hermes agent can act on its own host. The canary sends it no prompt. It lists 
 The result holds a provider name, a model name, a status, a latency, a time, and an error class. The canary posts it to `POST /ops/health` and writes the public mirror `state/ops/health.json`. Its calls count in the usage ledger like any other call. The router reads the mirror: see the routing rules above.
 
 Run it by hand: `node scripts/ops-canary.mjs --only groq,gemini --no-post`.
+
+## Golden task eval (RO3)
+
+The workflow `ops-eval.yml` runs every Sunday, and by hand. It sends 15 small tasks to every configured model. The tasks cover all 12 categories of the shared taxonomy (`src/orchestrator/taxonomy.js`): architecture, code generation (2 tasks), refactoring, testing, debugging (2), documentation, security review, performance, data modeling, devops, UI implementation, and research (2).
+
+Each task has a deterministic checker. No model judges another model:
+
+| Checker | What it does |
+|---|---|
+| `exact` | The answer equals a fixed text after cleaning (fences, quotes, a final period, case). |
+| `regex` | The answer matches a pattern. |
+| `json` | The answer holds JSON that fits a schema and holds the required values. |
+| `code` | The answer is JavaScript. A unit test calls its function with fixed inputs and compares the results. |
+
+Each task in `src/ops/goldenTasks.js` has a `reference` answer that must pass and a `wrong` answer that must fail. The tests run both. A change to a task needs a new `EVAL_VERSION`. The tests pin a fingerprint of the list.
+
+### Code from a model is untrusted
+
+The unit test never runs model code in the process that holds the keys. It runs in a child process with an empty environment, a temporary working folder, a time limit, and Node's permission model. The permission model denies files, child processes, and workers. A test proves that the child sees no environment variable and cannot read a file or start a process. If the permission model is missing, no model code runs, and the task is left out of the score.
+
+### The budget
+
+The run is held to 280 calls a week. If the models times the tasks is more, the run uses fewer tasks. It goes around the categories, so each one stays covered as long as the budget allows. Every model gets the same tasks, so the scores compare.
+
+A provider error is not a wrong answer. A rate limit, a rejected key, or a spent quota stops that model, and its tasks that did not run are left out of `tasks_run`. Hermes agents are not tested, because an agent can act on its own host.
+
+### Where the scores go
+
+- `POST /ops/eval` and `GET /ops/eval` (contract v1).
+- The public mirror `state/ops/eval.json`.
+- The capability cache `state/agents.json`, in the field `measured` of each record. The router reads it: a measured score beats an assumed strength. A score of 1.0 counts like a strength, 0.0 like a weakness, and 0.5 counts zero. If a category has no measured score, the assumed lists decide, as before.
+
+The workflow has two jobs. The first job has the keys, runs the tasks, and uploads a small file of scores. It cannot write to the repo. The second job has no key. It writes the files under `state/` and commits them. So the long run never holds the shared state group.

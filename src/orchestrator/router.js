@@ -67,7 +67,14 @@ function normalizeHint(hint) {
 function scoreCandidate(task, record, available) {
   const isStrength = record.strengths.includes(task.aspect);
   const isWeakness = record.weaknesses.includes(task.aspect);
-  const categoryScore = isStrength ? CATEGORY_MATCH_SCORE : isWeakness ? CATEGORY_WEAKNESS_SCORE : 0;
+  // RO3: a score that the weekly eval measured beats an assumed strength. 1.0 scores like a strength, 0.0 like a
+  // weakness, and 0.5 scores zero. Without a measured score for this category, the assumed lists decide, as before.
+  const measured = record.measured?.[task.aspect];
+  const hasMeasured = measured && measured.tasksRun > 0 && Number.isFinite(measured.score);
+  const x = hasMeasured ? 2 * measured.score - 1 : 0;
+  const categoryScore = hasMeasured
+    ? Math.round(x * (x >= 0 ? CATEGORY_MATCH_SCORE : -CATEGORY_WEAKNESS_SCORE))
+    : isStrength ? CATEGORY_MATCH_SCORE : isWeakness ? CATEGORY_WEAKNESS_SCORE : 0;
 
   const hint = normalizeHint(task.routingHint);
   const observed = record.observed?.[task.aspect];
@@ -88,7 +95,8 @@ function scoreCandidate(task, record, available) {
   const score = available ? categoryScore + observedScore + latencyBonus : 0;
 
   const reasonParts = [];
-  if (isStrength) reasonParts.push(`strength match on "${task.aspect}"`);
+  if (hasMeasured) reasonParts.push(`measured ${Math.round(measured.score * 100)}% on the "${task.aspect}" eval, ${measured.tasksRun} task${measured.tasksRun === 1 ? '' : 's'}`);
+  else if (isStrength) reasonParts.push(`strength match on "${task.aspect}"`);
   else if (isWeakness) reasonParts.push(`known weakness in "${task.aspect}"`);
   else reasonParts.push(`no recorded strength/weakness for "${task.aspect}"`);
   if (observed && observed.runs > 0) {

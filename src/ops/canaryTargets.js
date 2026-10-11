@@ -10,7 +10,7 @@ import { makeProviderAdapter } from '../providers/selftest.js';
 
 /**
  * @param {{ env?: Record<string, string|undefined>, only?: string[]|null, makeAdapter?: (id: string) => Promise<any>, fetchImpl?: typeof guardedFetch, opencode?: () => any, isConfigured?: (id: string) => boolean }} [opts]
- * @returns {Promise<import('./canary.js').CanaryTarget[]>}
+ * @returns {Promise<Array<import('./canary.js').CanaryTarget & { ask?: (prompt: string, o?: { maxTokens?: number }) => Promise<{ text?: string, model?: string|null }> }>>}
  */
 export async function buildTargets(opts = {}) {
   const env = opts.env ?? process.env;
@@ -52,6 +52,7 @@ export async function buildTargets(opts = {}) {
       targets.push({
         id, model, kind: 'chat',
         call: async () => agent.selfTestChat(CANARY_PROMPT, { maxTokens: CANARY_MAX_TOKENS }),
+        ask: async (prompt, o = {}) => agent.selfTestChat(prompt, { maxTokens: o.maxTokens ?? 1024 }),
       });
       continue;
     }
@@ -59,6 +60,7 @@ export async function buildTargets(opts = {}) {
     targets.push({
       id, model: adapter.model || model, kind: 'chat',
       call: async () => adapter.chat([{ role: 'user', content: CANARY_PROMPT }], { maxTokens: CANARY_MAX_TOKENS, temperature: 0 }),
+      ask: async (prompt, o = {}) => adapter.chat([{ role: 'user', content: prompt }], { maxTokens: o.maxTokens ?? 1024, temperature: 0 }),
     });
   }
   return targets;
