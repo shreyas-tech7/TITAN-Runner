@@ -20,7 +20,7 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 
 ## Phase 2: shared ops services
 
-- [ ] C0 `docs/CONTRACT.md` (word for word)
+- [x] C0 `docs/CONTRACT.md` (word for word, plus a section on the shapes and the added routes)
 - [ ] RO1 Usage ledger and free quota meter (`/ops/usage`, `/ops/quota`, `quotas.json`)
 - [ ] RO2 Nightly provider canary (`/ops/health`, `state/ops/health.json`)
 - [ ] RO3 Weekly golden task eval (`/ops/eval`, `state/ops/eval.json`)
