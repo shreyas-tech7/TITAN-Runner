@@ -275,13 +275,21 @@ export async function handleMcp(c) {
     }
     case 'tools/call': {
       const tool = TOOLS.find((t) => t.name === msg.params?.name);
-      if (!tool) return reply(rpcError(msg.id, -32602, `The tool "${msg.params?.name}" does not exist.`));
+      if (!tool) return reply(rpcError(msg.id, -32602, `name: The tool "${String(msg.params?.name ?? '').slice(0, 60)}" does not exist. Available tools: ${TOOLS.map((t) => t.name).join(', ')}`));
       if (!mayUse(auth, tool)) {
         return reply(rpcResult(msg.id, complete(textResult({ error: 'scope_missing', message: `This token lacks the scope ${tool.scope}.` }, true))));
       }
-      const args = msg.params?.arguments ?? {};
+      const rawArgs = msg.params?.arguments;
+      if (rawArgs !== undefined && (rawArgs === null || typeof rawArgs !== 'object' || Array.isArray(rawArgs))) {
+        return reply(rpcResult(msg.id, complete(textResult({ error: 'invalid_arguments', problems: ['arguments: must be an object'], fields: ['arguments'] }, true))));
+      }
+      const args = rawArgs ?? {};
       const problems = validate(tool.inputSchema, args);
-      if (problems.length > 0) return reply(rpcResult(msg.id, complete(textResult({ error: 'invalid_arguments', problems: problems.slice(0, 5) }, true))));
+      if (problems.length > 0) {
+        // RT4: every bad field is named, not only the first few.
+        const fields = [...new Set(problems.map((p) => p.split(': ')[0].replace(/^\$\.?/, '') || 'arguments'))];
+        return reply(rpcResult(msg.id, complete(textResult({ error: 'invalid_arguments', problems: problems.slice(0, 20), fields: fields.slice(0, 20) }, true))));
+      }
       try {
         const out = await tool.run(env, args, auth, ctx);
         return reply(rpcResult(msg.id, complete(textResult(out, Boolean(out?.error)))));

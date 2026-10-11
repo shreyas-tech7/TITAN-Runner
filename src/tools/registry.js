@@ -6,7 +6,8 @@
  * `invoke()` is the only way a tool runs, and it does the same things for
  * every tool, in this order:
  *   1. the tool must exist and its arguments must match the schema
- *      (`lib/validate.js`) — a model cannot pass what the tool did not declare;
+ *      (`tools/argCheck.js`) — a model cannot pass what the tool did not
+ *      declare, and the error names EVERY bad field (RT4);
  *   2. the Reviewer Gate's deterministic layer (`reviewer/policy.js`) must not
  *      classify the call as destructive;
  *   3. the policy engine (`policy/engine.js`) must allow it at the current
@@ -17,7 +18,7 @@
  * The result is always a value, never a throw, and every call is one
  * `tool.call` event.
  */
-import { check } from '../lib/validate.js';
+import { checkToolArgs, describeFields } from './argCheck.js';
 import { redactString } from '../lib/redact.js';
 import { classifyAction } from '../reviewer/policy.js';
 import { decide } from '../policy/engine.js';
@@ -76,7 +77,7 @@ export class ToolRegistry {
    *   ledger?: Record<string, object>, events?: { append: Function }|null,
    *   now?: () => Date, signal?: AbortSignal, [k: string]: unknown,
    * }} [ctx]
-   * @returns {Promise<{ ok: boolean, output: string, error: null | { code: string, message: string, class?: string, approvalKey?: string }, effect: string, ms: number, cached?: boolean, decision?: object }>}
+   * @returns {Promise<{ ok: boolean, output: string, error: null | { code: string, message: string, class?: string, approvalKey?: string, fields?: Array<{ field: string, message: string }> }, effect: string, ms: number, cached?: boolean, decision?: object }>}
    */
   async invoke(call, ctx = {}) {
     const started = performance.now();
@@ -93,12 +94,25 @@ export class ToolRegistry {
     };
 
     const def = typeof call?.tool === 'string' ? this.#tools.get(call.tool) : null;
-    if (!def) return finish({ ok: false, output: '', error: { code: 'TOOL_UNKNOWN', message: `no such tool: ${String(call?.tool ?? '').slice(0, 60)}` }, effect: 'read' });
-    const args = call.args && typeof call.args === 'object' ? call.args : {};
+    if (!def) {
+      const asked = String(call?.tool ?? '').slice(0, 60);
+      const available = this.list().map((t) => t.id).slice(0, 12).join(', ');
+      return finish({
+        ok: false, output: '',
+        error: { code: 'TOOL_UNKNOWN', message: `tool: no such tool "${asked}". Available tools: ${available}`, fields: [{ field: 'tool', message: `no such tool "${asked}"` }] },
+        effect: 'read',
+      });
+    }
+    const checked = checkToolArgs(def.schema, call.args);
+    const args = checked.args ?? {};
     const callId = `${def.id}:${createHash('sha1').update(JSON.stringify(args)).digest('hex').slice(0, 12)}`;
-
-    const valid = check(args, def.schema);
-    if (!valid.ok) return finish({ ok: false, callId, output: '', error: { code: 'TOOL_INVALID_ARGS', message: `invalid arguments: ${valid.errors.slice(0, 3).join('; ')}` }, effect: def.effect });
+    if (!checked.ok) {
+      return finish({
+        ok: false, callId, output: '',
+        error: { code: 'TOOL_INVALID_ARGS', message: `invalid arguments: ${describeFields(checked.fields)}`, fields: checked.fields },
+        effect: def.effect,
+      });
+    }
 
     // Reviewer Gate, deterministic layer: a destructive pattern is refused
     // outright, whatever the autonomy level says.
