@@ -25,6 +25,7 @@ import { handleInboundHook } from './connectors/hooks.js';
 import { handleTelegramUpdate } from './connectors/telegram.js';
 import { handleDiagnoseFull, handleGetUrls, handleHealthFull, handleSetUrls, handleSetup } from './health.js';
 import { handleMcp, handleMcpGet } from './mcpServer.js';
+import { handleLogin, handleLogout, handleSessionInfo, handleSigninLog } from './session.js';
 import { handleKeyEvents, handleListKeys, handleProviderProof, handleRemoveKey, handleSaveKey, handleSecretRoundTrip, handleTestKey } from './keys.js';
 import { handlePulseBadge, handlePulseHeartbeat, handlePulseState, handleRunPulseNow } from './keeper.js';
 import { SCHEMA_VERSION } from './lib/migrate.js';
@@ -55,11 +56,15 @@ export const ROUTES = [
   { method: 'GET', path: '/badge/pulse', group: 'public', handler: (c) => handlePulseBadge(c.env) },
   { method: 'GET', path: '/.well-known/oauth-protected-resource', group: 'public', handler: handleProtectedResourceMeta },
   { method: 'GET', path: '/.well-known/oauth-authorization-server', group: 'public', handler: handleAuthServerMeta },
+  { method: 'POST', path: '/auth/login', group: 'public', handler: handleLogin },
   { method: 'POST', path: '/oauth/mcp/register', group: 'public', handler: handleMcpRegister },
   { method: 'GET', path: '/oauth/mcp/authorize', group: 'public', handler: handleMcpAuthorizeGet },
   { method: 'POST', path: '/oauth/mcp/token', group: 'public', handler: handleMcpTokenExchange },
 
   // admin: people, through the dashboard
+  { method: 'POST', path: '/auth/logout', group: 'admin', handler: handleLogout },
+  { method: 'GET', path: '/auth/session', group: 'admin', handler: handleSessionInfo },
+  { method: 'GET', path: '/admin/security/signins', group: 'admin', handler: handleSigninLog },
   { method: 'GET', path: '/status', group: 'admin', handler: (c) => handleStatus(c.env) },
   { method: 'POST', path: '/tasks', group: 'admin', handler: (c) => handleCreateTask(c.request, c.env) },
   { method: 'POST', path: '/tasks/:id/retry', group: 'admin', handler: (c) => handleRetryTask(c, c.params.id) },

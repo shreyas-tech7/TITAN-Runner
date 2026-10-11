@@ -210,3 +210,40 @@ CREATE TABLE IF NOT EXISTS vms (
 );
 CREATE INDEX IF NOT EXISTS idx_vms_status ON vms(status);
 CREATE INDEX IF NOT EXISTS idx_vms_created_at ON vms(created_at);
+
+-- Daily assistant run, RT5 (migration 0005): sessions, the sign-in log, and the rate limits.
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  ip TEXT,
+  user_agent TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+CREATE TABLE IF NOT EXISTS signin_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at TEXT NOT NULL,
+  ip TEXT NOT NULL,
+  user_agent TEXT,
+  route TEXT NOT NULL,
+  result TEXT NOT NULL,
+  reason TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_signin_log_at ON signin_log(at);
+CREATE TABLE IF NOT EXISTS login_limits (
+  key TEXT PRIMARY KEY,
+  window_start TEXT NOT NULL,
+  failures INTEGER NOT NULL,
+  strikes INTEGER NOT NULL DEFAULT 0,
+  locked_until TEXT,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT PRIMARY KEY,
+  window_start TEXT NOT NULL,
+  count INTEGER NOT NULL,
+  updated_at TEXT NOT NULL
+);
+-- auth_failures gains a strikes column through migration 0005. Run this line once if you apply the file by hand:
+-- ALTER TABLE auth_failures ADD COLUMN strikes INTEGER NOT NULL DEFAULT 0;

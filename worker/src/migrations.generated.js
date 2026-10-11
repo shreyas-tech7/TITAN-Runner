@@ -85,7 +85,19 @@ export const MIGRATIONS = [
       "CREATE TABLE IF NOT EXISTS mcp_oauth_codes (\n  code_hash TEXT PRIMARY KEY,\n  client_id TEXT NOT NULL,\n  client_name TEXT NOT NULL,\n  redirect_uri TEXT NOT NULL,\n  scopes TEXT NOT NULL,\n  code_challenge TEXT NOT NULL,\n  code_challenge_method TEXT NOT NULL DEFAULT 'S256',\n  created_at TEXT NOT NULL,\n  expires_at TEXT NOT NULL,\n  used_at TEXT\n)",
       "ALTER TABLE mcp_tokens ADD COLUMN refresh_token_hash TEXT"
     ]
+  },
+  {
+    "name": "0005_sessions_signin_log.sql",
+    "statements": [
+      "CREATE TABLE IF NOT EXISTS sessions (\n  id TEXT PRIMARY KEY,\n  created_at TEXT NOT NULL,\n  last_seen_at TEXT NOT NULL,\n  expires_at TEXT NOT NULL,\n  ip TEXT,\n  user_agent TEXT\n)",
+      "CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)",
+      "CREATE TABLE IF NOT EXISTS signin_log (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  at TEXT NOT NULL,\n  ip TEXT NOT NULL,\n  user_agent TEXT,\n  route TEXT NOT NULL,\n  result TEXT NOT NULL,\n  reason TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_signin_log_at ON signin_log(at)",
+      "CREATE TABLE IF NOT EXISTS login_limits (\n  key TEXT PRIMARY KEY,\n  window_start TEXT NOT NULL,\n  failures INTEGER NOT NULL,\n  strikes INTEGER NOT NULL DEFAULT 0,\n  locked_until TEXT,\n  updated_at TEXT NOT NULL\n)",
+      "CREATE TABLE IF NOT EXISTS rate_limits (\n  key TEXT PRIMARY KEY,\n  window_start TEXT NOT NULL,\n  count INTEGER NOT NULL,\n  updated_at TEXT NOT NULL\n)",
+      "ALTER TABLE auth_failures ADD COLUMN strikes INTEGER NOT NULL DEFAULT 0"
+    ]
   }
 ];
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;

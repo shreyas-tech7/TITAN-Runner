@@ -752,9 +752,13 @@ The route table is in `worker/src/routes.js`. A test fails if a route has no gro
 | GET | `/badge/pulse` | public |
 | GET | `/.well-known/oauth-protected-resource` | public |
 | GET | `/.well-known/oauth-authorization-server` | public |
+| POST | `/auth/login` | public |
 | POST | `/oauth/mcp/register` | public |
 | GET | `/oauth/mcp/authorize` | public |
 | POST | `/oauth/mcp/token` | public |
+| POST | `/auth/logout` | admin |
+| GET | `/auth/session` | admin |
+| GET | `/admin/security/signins` | admin |
 | GET | `/status` | admin |
 | POST | `/tasks` | admin |
 | POST | `/tasks/:id/retry` | admin |
@@ -847,13 +851,38 @@ The route table is in `worker/src/routes.js`. A test fails if a route has no gro
 | GET | `/internal/connectors` | internal |
 | POST | `/internal/connector-call` | internal |
 
+### Sessions and sign-in
+
+The dashboard does not keep the admin token. The person signs in once. `POST /auth/login` takes the admin token in the body `{"token": "..."}`. It gives back a session token that starts with `tsn_`. The dashboard keeps the session token and sends it in the header `X-Titan-Auth`. The admin token still works in that header for scripts and `curl`.
+
+A session ends after an idle time or after an absolute time, whichever comes first. A call with an ended session gets `401 session_expired`, and the dashboard locks itself. An ended session does not count as a wrong token. The Worker stores the SHA-256 hash of the session token, never the token.
+
+| Variable | Default | Range | Meaning |
+|---|---|---|---|
+| `TITAN_SESSION_IDLE_MINUTES` | 30 | 5 to 1440 | Minutes without a request before the session ends. |
+| `TITAN_SESSION_ABSOLUTE_HOURS` | 12 | 1 to 72 | Hours from sign-in until the session ends. |
+| `TITAN_LOGIN_MAX_FAILURES` | 5 | 1 to 50 | Wrong tokens in 15 minutes before one client is locked. |
+| `TITAN_LOGIN_GLOBAL_MAX` | 60 | 5 to 1000 | Wrong tokens from all clients in 10 minutes before the overall throttle starts. |
+
+`POST /auth/logout` ends the session. `GET /auth/session` says when it ends. MCP tokens already carry an `expires_at`. The callback token rotates every 30 days.
+
+### The sign-in log
+
+The Worker writes one row to the D1 table `signin_log` for each sign-in attempt and for each wrong token on an `admin` or `internal` route. A row holds the time, the IP address from `CF-Connecting-IP`, the user agent, the route, the result (`success`, `failure`, or `blocked`), and the reason. `GET /admin/security/signins` shows the rows and a 24 hour summary. The log never goes to `state/` and never goes to the public site. Retention deletes rows after 90 days.
+
 ### Wrong token lockout
 
-The Worker counts wrong tokens for each client and route group. A client is a hash of its address, so the Worker never stores the address. After 10 wrong tokens in 10 minutes, the client gets `429` for 15 minutes on that route group. A request with no token is not counted. The table `auth_failures` keeps rows for one day.
+The Worker counts wrong tokens for each client and route group. A client is a hash of its address, so the lockout table never stores the address. After 10 wrong tokens in 10 minutes, the client gets `429` for 15 minutes on that route group. Each new lock in the same day doubles the time, up to 24 hours. A request with no token is not counted. The table `auth_failures` keeps rows for one day.
+
+The sign-in route has its own limits. After 5 wrong tokens in 15 minutes a client is locked for 2 minutes. Each new lock doubles the time, up to 60 minutes. If all clients together send 60 wrong tokens in 10 minutes, the route enters a 10 minute throttle. During the throttle only a client that signed in well in the last 30 days may try.
+
+The public route `POST /oauth/mcp/register` is limited to 10 calls an hour for each client. The table holds 50 clients at most. Retention deletes a client with no token after 7 days. `POST /oauth/mcp/token` is limited to 60 calls an hour for each client.
+
+A request body larger than 262144 bytes gets `413` before any handler runs.
 
 ### CORS
 
-The Worker allows these origins: `https://shreyas-tech7.github.io`, `http://localhost:3000`, and `http://127.0.0.1:3000`. Set the variable `TITAN_ALLOWED_ORIGINS` to add more. Every response carries `Vary: Origin`. A request from another origin gets `403` before it reaches a handler. Hook routes and OAuth callback routes send no CORS headers, because a browser never calls them. A tool that sends no `Origin` header is allowed.
+The Worker allows the origin `https://shreyas-tech7.github.io` only. Set the variable `TITAN_ALLOWED_ORIGINS` to add more. Set `TITAN_DEV_ORIGINS=1` to also allow `http://localhost:3000` and `http://127.0.0.1:3000`. The deployed Worker never sets it. Every response carries `Vary: Origin`. A request from another origin gets `403` before it reaches a handler. Hook routes and OAuth callback routes send no CORS headers, because a browser never calls them. A tool that sends no `Origin` header is allowed.
 
 ### The callback token
 

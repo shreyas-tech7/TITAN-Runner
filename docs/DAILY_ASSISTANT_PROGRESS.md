@@ -11,11 +11,11 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 ## Phase 1: close the trust gaps
 
 - [~] RT1 Secret scanning. Done: `.gitleaks.toml`, hook, Issue scan script, history scan clean, tests, docs. Waiting: `gitleaks.yml` is committed on the wf branch (push needs the `workflow` scope).
-- [ ] RT2 Workflow and Issue hardening
-- [ ] RT3 Reviewer Gate coverage for every GitHub write and every VM command
-- [ ] RT4 Tool argument validation (every bad field named, table tests)
-- [ ] RT5 Worker auth: sessions, rate limits, sign-in log, CORS, input checks, public route fixes
-- [ ] RT6 VM fleet safety
+- [~] RT2 Workflow and Issue hardening. Done: owner-only intake, label and skip, Worker mirror. Waiting on the wf branch: workflow permissions, shared state group, publish script, linter rules.
+- [x] RT3 Reviewer Gate coverage for every GitHub write and every VM command (runner gate, Worker gate, VM gate, static boundary test). The workflow `git push` steps move to the gate on the wf branch.
+- [x] RT4 Tool argument validation (every bad field named, table tests)
+- [~] RT5 Worker auth. Done: sessions, limits with backoff, sign-in log, CORS, input limits, public route limits, tests. Open: dashboard sign-in uses the session (RD1).
+- [x] RT6 VM fleet safety (bare ssh env, URL cleaning, 120 minute cap on script and Worker, claim code hidden). The vm-agent workflow secret list shrinks on the wf branch.
 - [ ] RT7 State hygiene: schema check, retention, monthly archives, daily commit
 
 ## Phase 2: shared ops services
