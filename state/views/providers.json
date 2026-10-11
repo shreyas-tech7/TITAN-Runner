@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-11T00:01:53.797Z",
+  "updatedAt": "2026-10-11T00:17:17.883Z",
   "providers": {
     "groq": {
       "breaker": "closed",
@@ -11,7 +11,7 @@
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 1,
+        "usedMinute": 0,
         "usedDay": 1,
         "dayLeft": 11999,
         "perDay": 12000
