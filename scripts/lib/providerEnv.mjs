@@ -6,7 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 
-export const WORKFLOWS_WITH_PROVIDER_ENV = ['titan-pulse.yml', 'spawn-subagent.yml', 'provider-selftest.yml'];
+export const WORKFLOWS_WITH_PROVIDER_ENV = ['titan-pulse.yml', 'spawn-subagent.yml', 'provider-selftest.yml', 'ops-canary.yml'];
 
 /**
  * Workflows that may hold only some provider secrets (RT6). A VM job is untrusted, so it holds the key of the
