@@ -22,7 +22,7 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 
 - [x] C0 `docs/CONTRACT.md` (word for word, plus a section on the shapes and the added routes)
 - [ ] RO1 Usage ledger and free quota meter (`/ops/usage`, `/ops/quota`, `quotas.json`)
-- [ ] RO2 Nightly provider canary (`/ops/health`, `state/ops/health.json`)
+- [~] RO2 Nightly provider canary. Done: canary core, targets for every catalog provider, Hermes list only, CLI, mirror, Worker route, tests. Waiting on the wf branch: `ops-canary.yml`. Open: first live run.
 - [ ] RO3 Weekly golden task eval (`/ops/eval`, `state/ops/eval.json`)
 - [ ] RO4 Post-mortems (`state/lessons.jsonl`)
 - [ ] RO5 Host status and alerts (`/ops/hosts`, `state/ops/hosts.json`, `host-alert` Issues)

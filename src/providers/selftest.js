@@ -72,7 +72,7 @@ export async function proveProvider(id, deps = {}) {
       const agent = deps.opencode ? deps.opencode() : new (await import('../agents/opencodeAgent.js')).OpenCodeAgent();
       result = await agent.selfTestChat(PROOF_PROMPT, { maxTokens: PROOF_MAX_TOKENS });
     } else {
-      const provider = deps.makeProvider ? deps.makeProvider(id) : await defaultProvider(id);
+      const provider = deps.makeProvider ? deps.makeProvider(id) : await makeProviderAdapter(id);
       result = await provider.chat([{ role: 'user', content: PROOF_PROMPT }], { maxTokens: PROOF_MAX_TOKENS, temperature: 0 });
     }
     return { ok: true, model: result.model ?? null, latencyMs: Math.round(performance.now() - started), detail: 'The completion worked.', listed };
@@ -81,7 +81,8 @@ export async function proveProvider(id, deps = {}) {
   }
 }
 
-async function defaultProvider(id) {
+/** Build the adapter of one provider id, from the environment. Used by the self-test and the nightly canary. */
+export async function makeProviderAdapter(id) {
   if (id.startsWith('custom_')) {
     const slot = config.custom.find((c) => c.id === id);
     return new OpenAICompatProvider({ id, label: slot.label, baseUrl: slot.baseUrl, apiKey: slot.apiKey, model: slot.model });

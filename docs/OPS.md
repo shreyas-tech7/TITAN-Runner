@@ -46,3 +46,24 @@ The router follows the rules of the contract. The rules are in `src/ops/gate.js`
 - If nothing is left, the registry throws `ALL_PROVIDERS_FAILED` with the reason for each skip. The scheduler then parks the task. The reason shows in the task and in `titan explain`.
 
 The router reads the mirrors `state/ops/health.json` and `state/ops/quota.json` from the checkout. An answer older than 36 hours is ignored. An exhausted flag whose reset time has passed is ignored. A caller that names a provider still gets one try at a `down` verdict. It never gets a try at an exhausted provider, because the call would fail.
+
+## Nightly provider canary (RO2)
+
+The workflow `ops-canary.yml` runs around 03:00 in America/Chicago. GitHub cron uses UTC, so two crons fire each day, and a first step lets only the one at hour 03 in Chicago go on. A manual run always goes on.
+
+The canary sends one fixed task to every provider of the catalog. The task is: add 17 and 25, and reply with only the JSON `{"sum": <the number>}`. The canary checks the JSON and the sum. It marks each provider:
+
+| Status | Meaning |
+|---|---|
+| `healthy` | The answer is right, the JSON is valid, and the call took 8 seconds or less. |
+| `degraded` | The call worked, but it was slow, or the answer or the format was wrong, or it failed once and then worked (`flaky`), or the provider answered `429`. |
+| `down` | The call failed twice, or the key was rejected, or the quota is gone, or the model does not exist. |
+| `not_configured` | No key. Freebuff has no public API, so it always shows this. |
+
+A key that was rejected, a spent quota, and a rate limit are not tried a second time.
+
+A Hermes agent can act on its own host. The canary sends it no prompt. It lists the models of the agent and marks it healthy if the list answers.
+
+The result holds a provider name, a model name, a status, a latency, a time, and an error class. The canary posts it to `POST /ops/health` and writes the public mirror `state/ops/health.json`. Its calls count in the usage ledger like any other call. The router reads the mirror: see the routing rules above.
+
+Run it by hand: `node scripts/ops-canary.mjs --only groq,gemini --no-post`.

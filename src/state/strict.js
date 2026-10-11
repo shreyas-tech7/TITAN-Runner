@@ -188,7 +188,7 @@ const LEASE = obj({ owner: STR(200), acquiredAt: TS, expiresAt: TS });
 const ARCHIVED_TASK = TASKS.properties.tasks.items;
 
 // RO1 to RO6: the public mirrors, the lessons, and the maintenance record.
-const OPS_META = { version: INT, generatedAt: STR(40), contract: STR(20) };
+const OPS_META = { contract: STR(10), generated_at: STR(40) };
 const OPS = {
   health: obj({
     ...OPS_META,
