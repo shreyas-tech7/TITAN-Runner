@@ -112,3 +112,43 @@ This repo is public, so a post-mortem never holds the title, the prompt, an answ
 The lessons go to `state/lessons.jsonl`. A repeat merges by error signature: the class, the code, and the shape of the message. The shape ignores numbers, ids, quoted text, and lists in parentheses. The second failure of one kind raises `count` and moves `last_seen`. It adds no line. The file holds 200 lessons at most and drops the rarest.
 
 Before the decomposer plans, it reads the 5 most relevant lessons. Words that the task and the lesson share, how often the failure happened, and how recent it is decide the order. The lessons go into the planning prompt, before the task.
+
+## Host status and alerts (RO5)
+
+`ops-hosts.yml` checks the hosts that TITAN depends on every 3 hours. It writes `state/ops/hosts.json` (the public mirror), keeps 30 days of checks in `state/ops/hosts-history.json`, and posts the result to the Worker with `POST /ops/hosts`. The dashboard reads the mirror.
+
+Each host gets one of three statuses.
+
+| Status | Meaning |
+| --- | --- |
+| `up` | The host answers. |
+| `asleep` | The host sleeps by design and wakes on a request. This is not an outage. |
+| `down` | The host does not answer, or answers with an error. |
+
+| Host name | How the probe checks it |
+| --- | --- |
+| `github_actions` | The time of the last successful run of `titan-pulse.yml`. A run older than 45 minutes is `down`. |
+| `github_status` | The public GitHub status API. A major or critical incident is `down`. |
+| `hf_space` | The Hugging Face API tells if the Space runs, sleeps, or is broken. The probe never calls the Space, so it never wakes it. |
+| `render_1` to `render_3`, `titan_gev` | One request. It waits up to 75 seconds. An answer that took 15 seconds or more is `asleep`, because the service woke up. |
+| `hermes_1` to `hermes_3` | A request for `/v1/models` with no key. 200, 401, and 403 mean `up`. |
+
+A host whose URL is not set is skipped and has no entry. The URLs are Actions secrets: `HOST_URL_HF_SPACE` (`owner/name` or a huggingface.co/spaces URL), `HOST_URL_RENDER_1` to `3`, and `HOST_URL_HERMES_1` to `3`. A Hermes URL falls back to `HERMES_n_BASE_URL` when its own secret is not set. The God's Eye View host comes from the repository variable `GEV_URL`.
+
+### Rules that protect the free plans
+
+- A Render service is probed at most every 5.5 hours, so the probe does not keep it awake. The free plan shares 750 instance hours a month between all services.
+- A probe that cannot reach its source (GitHub, the Hugging Face Hub) writes no entry. An outage of the checker is not an outage of the host.
+- The probe refuses a URL that is not `https`, or that resolves to a private address, and it does not follow redirects. The refusal text does not hold the URL or its host name.
+- Only host names go to the history, the mirror, the Worker, the Issues, and the logs. A test checks that no result holds the URL.
+
+### Alerts
+
+- A host that fails 2 checks in a row opens an Issue with the label `host-alert` and the title `Host down: <name>`. The pulse workflow alerts at once when its last success is older than 45 minutes.
+- A second failure does not open a second Issue. The open one stays.
+- The Issue closes with one comment when the host is `up` or `asleep` again.
+- When the Actions secret `DISCORD_WEBHOOK_URL` is set, the workflow also sends one short Discord message when an alert opens and when it closes. It holds the host name and no link.
+
+The workflow also copies the quota numbers of the Worker to `state/ops/quota.json` (`scripts/ops-sync.mjs`), so the dashboard can show the meter. It rewrites the file only when the numbers change, or when the file is 6 hours old.
+
+To run it by hand: Actions, Host status, Run workflow. In the Codespace, `node scripts/ops-hosts.mjs --no-post --no-alerts` checks the hosts that have a URL and writes the two files.

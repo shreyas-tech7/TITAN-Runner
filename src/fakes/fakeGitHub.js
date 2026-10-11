@@ -186,6 +186,11 @@ export class FakeGitHub {
     return issue ?? null;
   }
 
+  async getLastSuccessfulRun(workflowFile) {
+    this.#log('getLastSuccessfulRun', { workflowFile });
+    return this.data._control?.lastSuccessfulRun ?? { lastSuccessAt: null };
+  }
+
   async listIssuesByLabel(label, state = 'open') {
     this.#log('listIssuesByLabel', { label, state });
     return this.data.issues.filter((i) => (state === 'all' || i.state === state) && (i.labels ?? []).some((l) => (typeof l === 'string' ? l : l.name) === label));

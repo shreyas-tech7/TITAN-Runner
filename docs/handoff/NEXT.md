@@ -19,4 +19,5 @@ This file is the running list for the Cowork handoff. Claude Code adds a step wh
 ## To add as the run goes on
 
 - Actions secrets and Worker secrets for the ops services: `OPS_TOKEN`, `DOORBELL_TOKEN`, `TITAN_BACKEND_URL`, host URLs, an optional Discord webhook.
+- Host URL secrets for `ops-hosts.yml`: `HOST_URL_HF_SPACE`, `HOST_URL_RENDER_1` to `3`, `HOST_URL_HERMES_1` to `3` (a Hermes host falls back to `HERMES_n_BASE_URL`). The repository variable `GEV_URL` names the God's Eye View host. A host with no URL is skipped.
 - D1 migrations, if the deploy workflow cannot apply them.

@@ -164,6 +164,23 @@ export function createGitHubClient(opts = {}) {
     return call('DELETE', `/repos/${owner}/${repo}/issues/${number}/labels/${encodeURIComponent(name)}`);
   }
 
+  /**
+   * The time of the last successful run of a workflow. A read.
+   * @param {string} workflowFile For example `titan-pulse.yml`.
+   * @returns {Promise<{ lastSuccessAt: string|null }|null>} Null when the call is not possible or fails.
+   */
+  async function getLastSuccessfulRun(workflowFile) {
+    if (!ready()) return null;
+    try {
+      const body = await call('GET', `/repos/${owner}/${repo}/actions/workflows/${encodeURIComponent(workflowFile)}/runs?status=success&per_page=1`);
+      const run = body?.workflow_runs?.[0];
+      return { lastSuccessAt: run ? (run.updated_at ?? run.run_started_at ?? run.created_at ?? null) : null };
+    } catch (err) {
+      log.warn('getLastSuccessfulRun failed', { error: String(err).slice(0, 200) });
+      return null;
+    }
+  }
+
   async function reopenIssue(number) {
     if (!ready()) return null;
     return call('PATCH', `/repos/${owner}/${repo}/issues/${number}`, { state: 'open', state_reason: 'reopened' });
@@ -180,7 +197,7 @@ export function createGitHubClient(opts = {}) {
     repository,
     listOpenTaskIssues, listIssueComments, commentOnIssue, closeIssue, createPullRequest, closePullRequest,
     getPullRequest, getCombinedStatus, createIssue, createIssueForDeadman,
-    addLabels, removeLabel, reopenIssue, listIssuesByLabel,
+    addLabels, removeLabel, reopenIssue, listIssuesByLabel, getLastSuccessfulRun,
   };
 }
 

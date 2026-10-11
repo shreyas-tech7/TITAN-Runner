@@ -211,6 +211,7 @@ const OPS = {
     hosts: map(obj({ status: STR(20), last_check: NSTR(40), uptime_24h: NNUM, uptime_7d: NNUM, uptime_30d: NNUM, last_pulse_at: NSTR(40) }, ['last_pulse_at'])),
   }),
 };
+const HOSTS_HISTORY = obj({ version: INT, hosts: map(arr({ type: 'array', minItems: 2, maxItems: 2, items: { type: 'string', maxLength: 40 } }, 3000)) });
 const LESSON = obj({
   id: STR(80), signature: STR(200), first_seen: STR(40), last_seen: STR(40), count: INT, task_type: NSTR(80), what_failed: STR(2000),
   likely_cause: STR(2000), suggested_fix: STR(2000), source: STR(20), run_ids: ANYSTR(100),
@@ -252,6 +253,7 @@ export const STATE_FILES = [
   { id: 'ops-quota', kind: 'json', match: /^ops\/quota\.json$/, schema: OPS.quota },
   { id: 'ops-eval', kind: 'json', match: /^ops\/eval\.json$/, schema: OPS.eval },
   { id: 'ops-hosts', kind: 'json', match: /^ops\/hosts\.json$/, schema: OPS.hosts },
+  { id: 'ops-hosts-history', kind: 'json', match: /^ops\/hosts-history\.json$/, schema: HOSTS_HISTORY },
   { id: 'lessons', kind: 'jsonl', match: /^lessons\.jsonl$/, schema: LESSON },
   { id: 'digest', kind: 'text', match: /^digests\/[A-Za-z0-9._-]+\.md$/, schema: null },
   { id: 'keep', kind: 'text', match: /(^|\/)\.gitkeep$/, schema: null },

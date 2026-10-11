@@ -21,11 +21,11 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 ## Phase 2: shared ops services
 
 - [x] C0 `docs/CONTRACT.md` (word for word, plus a section on the shapes and the added routes)
-- [ ] RO1 Usage ledger and free quota meter (`/ops/usage`, `/ops/quota`, `quotas.json`)
+- [x] RO1 Usage ledger and free quota meter (`/ops/usage`, `/ops/quota`, `quotas.json`)
 - [~] RO2 Nightly provider canary. Done: canary core, targets for every catalog provider, Hermes list only, CLI, mirror, Worker route, tests. Waiting on the wf branch: `ops-canary.yml`. Open: first live run.
 - [~] RO3 Weekly golden task eval. Done: 15 tasks over 12 categories with deterministic checkers (reference and wrong answers tested), sandboxed code runner (tested under Node 22 and 24), budget, mirror, capability cache and router use, Worker route, tests. Waiting on the wf branch: `ops-eval.yml`. Open: first live run.
 - [~] RO4 Post-mortems. Done: signature merge, template and free-model paths, redaction, gitleaks scan, `state/lessons.jsonl`, decomposer reads 5 lessons, pulse sweep, 12 tests incl. a full pulse. Waiting on the wf branch: the gitleaks install step in `titan-pulse.yml`.
-- [ ] RO5 Host status and alerts (`/ops/hosts`, `state/ops/hosts.json`, `host-alert` Issues)
+- [~] RO5 Host status and alerts. Done: probe library (Space via Hub API, Render cold start = asleep, Hermes 401 = up, SSRF guard, no URL in any result), history and uptime, mirror, alert plan, CLI, quota sync, strict schemas, 25 tests incl. open and close of a host-alert Issue. Waiting on the wf branch: `ops-hosts.yml`. Open: first live run and the host-alert open and close check on GitHub.
 - [ ] RO6 Doorbell workflow
 
 ## Phase 3: dashboard
