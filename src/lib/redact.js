@@ -57,7 +57,7 @@ export const SECRET_PATTERNS = [
   /\bBearer\s+[A-Za-z0-9._~+/=-]{8,}/gi,
   /\bauthorization["']?\s*[:=]\s*["']?[^"'\s,}]{8,}/gi,
   // `?token=…` / `&api_key=…` in a URL.
-  /\b(?:api[_-]?key|access[_-]?token|token|secret)=[^&\s"']{8,}/gi,
+  /\b(?:api[_-]?key|access[_-]?token|token|secret)=[^&\s"'{}]{8,}/gi,
   // Wave 12 (S6): the credentials of the connectors. Each pattern uses a fixed literal prefix and a bounded class.
   // Telegram bot token: the bot id, a colon, and 35 characters.
   /\b\d{8,10}:[A-Za-z0-9_-]{35}\b/g,

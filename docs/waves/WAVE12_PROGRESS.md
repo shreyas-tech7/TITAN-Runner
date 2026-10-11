@@ -42,4 +42,3 @@ Release 2 is on the branch `wave-12-r2`. It is not merged. No pull request is op
 - Generator scripts for the manifests are in the session scratchpad only. The manifests and fixtures in `connectors/` are the source now. Edit them by hand.
 - The S4 hang is fixed. The fake fetch now listens to the signal that the caller passed (Node 24 links a Request to a signal with a weak reference).
 - Test numbers on this branch: root 398, Worker 230, dashboard 91, browser 68. All pass.
-- This VM has no git identity. Commit with `-c user.name=Shreyas -c user.email=shreyas.tech7@gmail.com`.
