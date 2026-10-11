@@ -71,6 +71,8 @@ jobs:
           # shows a clear "not connected" state until then. See
           # docs/GODS-EYE-VIEW.md.
           NEXT_PUBLIC_GEV_URL: ${{ vars.GEV_URL }}
+          # The commit that this build comes from. The footer compares it with the commit of the Worker (Wave 12, H4).
+          NEXT_PUBLIC_COMMIT: ${{ github.sha }}
         run: npm run build
 
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0

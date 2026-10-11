@@ -1,0 +1,41 @@
+{
+  "name": "basic auth",
+  "target": "action:get",
+  "connection": {
+    "config": {
+      "base_url": "https://api.example.org",
+      "auth_style": "basic",
+      "username": "shreyas"
+    },
+    "secrets": {
+      "api_key": "pass-word-123"
+    }
+  },
+  "input": {
+    "path": "/me"
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.example.org/me",
+      "headers": {
+        "Authorization": "Basic c2hyZXlhczpwYXNzLXdvcmQtMTIz",
+        "Accept": "application/json"
+      },
+      "body": null
+    },
+    "hosts": [
+      "api.example.org"
+    ]
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "me": true
+    }
+  },
+  "output": {
+    "me": true
+  }
+}

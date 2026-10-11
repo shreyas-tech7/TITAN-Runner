@@ -9,6 +9,7 @@ import AdminGate from "@/components/AdminGate";
 import ThemeSwitch from "@/components/ThemeSwitch";
 import TopTabs, { type TopTab } from "@/components/TopTabs";
 import OfflineNotice from "@/components/OfflineNotice";
+import VersionFooter from "@/components/VersionFooter";
 
 export default function PageShell({
   active,
@@ -25,6 +26,9 @@ export default function PageShell({
     <AdminGate>
       {(token, lock) => (
         <div className="shell">
+          <a className="sr-only" href="#main">
+            Skip to main content
+          </a>
           <header className="topbar">
             <div>
               <h1 className="brand">{title}</h1>
@@ -39,6 +43,9 @@ export default function PageShell({
             <OfflineNotice />
             {children(token, lock)}
           </main>
+          <footer>
+            <VersionFooter />
+          </footer>
         </div>
       )}
     </AdminGate>

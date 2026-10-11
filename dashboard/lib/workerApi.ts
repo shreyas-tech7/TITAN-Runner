@@ -12,11 +12,17 @@
  */
 
 import { PROVIDER_CATALOG } from "./providers";
+import { handleDemoWorkerCall, isDemoMode } from "./demoFixtures";
 
 const WORKER_URL = (process.env.NEXT_PUBLIC_TITAN_WORKER_URL || "").trim();
 
 export function isWorkerConfigured(): boolean {
-  return WORKER_URL.length > 0;
+  return WORKER_URL.length > 0 || isDemoMode();
+}
+
+/** The public address of the Worker, without a trailing slash. It is empty when no Worker is set. It is not a secret. */
+export function workerUrl(): string {
+  return WORKER_URL.replace(/\/$/, "");
 }
 
 /** The providers that can run a sub-agent task by name: the direct adapters and the custom slots. The list comes from
@@ -122,6 +128,9 @@ export class WorkerApiError extends Error {
 }
 
 export async function callWorker(path: string, token: string, init: RequestInit = {}): Promise<Response> {
+  if (isDemoMode() || token === "demo-token") {
+    return handleDemoWorkerCall(path, init);
+  }
   if (!WORKER_URL) {
     throw new WorkerApiError("The titan-runner-brain Worker isn't configured yet (NEXT_PUBLIC_TITAN_WORKER_URL is empty) — see docs/RUNTIME.md.");
   }
@@ -290,3 +299,213 @@ export async function provisionVm(token: string, brief: string): Promise<{ ok: t
   if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
   return res.json();
 }
+
+// ---------------------------------------------------------------------
+// Wave 12 Release 3 — Instant Chat (A1), Schedules (A2), Daily Brief (A3),
+// Pulse Approvals (A4/T4), Activity Timeline (A5), and MCP OAuth 2.1 (M5)
+// ---------------------------------------------------------------------
+
+export interface ChatProviderOption {
+  id: string;
+  label: string;
+  defaultModel: string;
+  models: string[];
+}
+
+export interface ChatThreadSummary {
+  id: string;
+  title: string;
+  provider: string | null;
+  model: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessageRow {
+  id: number;
+  role: "user" | "assistant" | "system";
+  content: string;
+  provider: string | null;
+  model: string | null;
+  tokens_in: number | null;
+  tokens_out: number | null;
+  ms: number | null;
+  at: string;
+}
+
+export async function fetchChatThreads(token: string): Promise<{
+  ready: boolean;
+  providers: ChatProviderOption[];
+  threads: ChatThreadSummary[];
+}> {
+  const res = await callWorker("/chat/threads", token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function fetchChatThread(
+  token: string,
+  threadId: string,
+): Promise<{ thread: ChatThreadSummary; messages: ChatMessageRow[] }> {
+  const res = await callWorker(`/chat/threads/${encodeURIComponent(threadId)}`, token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function deleteChatThread(token: string, threadId: string): Promise<{ ok: true }> {
+  const res = await callWorker(`/chat/threads/${encodeURIComponent(threadId)}`, token, { method: "DELETE" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function clearChatHistory(token: string): Promise<{ ok: true }> {
+  const res = await callWorker("/chat/threads", token, { method: "DELETE" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function saveChatProviderOrder(token: string, order: string[]): Promise<{ ok: true; order: string[] }> {
+  const res = await callWorker("/chat/order", token, { method: "POST", body: JSON.stringify({ order }) });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export interface ScheduleRecord {
+  id: string;
+  label: string;
+  cron: string;
+  tz: string;
+  kind: "task" | "brief";
+  taskType: string;
+  brief: string;
+  enabled: boolean;
+  builtIn: boolean;
+  lastRunAt: string | null;
+  nextRunAt: string | null;
+  nextRuns: string[];
+  lastStatus: string | null;
+  lastError: string | null;
+}
+
+export async function fetchSchedules(token: string): Promise<{ schedules: ScheduleRecord[] }> {
+  const res = await callWorker("/schedules", token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function createSchedule(
+  token: string,
+  body: { label: string; cron: string; tz: string; brief: string; taskType?: string },
+): Promise<{ schedule: ScheduleRecord }> {
+  const res = await callWorker("/schedules", token, { method: "POST", body: JSON.stringify(body) });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function toggleSchedule(
+  token: string,
+  id: string,
+  enabled?: boolean,
+): Promise<{ schedule: ScheduleRecord }> {
+  const res = await callWorker(`/schedules/${encodeURIComponent(id)}/toggle`, token, {
+    method: "POST",
+    body: JSON.stringify(typeof enabled === "boolean" ? { enabled } : {}),
+  });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function runScheduleNow(token: string, id: string): Promise<{ ok: true; taskId?: string }> {
+  const res = await callWorker(`/schedules/${encodeURIComponent(id)}/run`, token, { method: "POST", body: "{}" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function deleteSchedule(token: string, id: string): Promise<{ ok: true }> {
+  const res = await callWorker(`/schedules/${encodeURIComponent(id)}`, token, { method: "DELETE" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export interface DailyBriefRecord {
+  date: string;
+  generatedAt: string;
+  weather: string | null;
+  calendar: string[];
+  tasks: { done: number; failed: number; running: number };
+  pendingApprovals: number;
+  keysNeedingCare: string[];
+  researchDigest: string | null;
+  healthOk: boolean;
+  aiSummary: string | null;
+  text: string;
+}
+
+export async function fetchDailyBrief(token: string): Promise<{ brief: DailyBriefRecord | null }> {
+  const res = await callWorker("/brief", token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function generateDailyBriefNow(
+  token: string,
+  send = false,
+): Promise<{ brief: DailyBriefRecord }> {
+  const res = await callWorker("/brief/generate", token, { method: "POST", body: JSON.stringify({ send }) });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function decidePulseApproval(
+  token: string,
+  issueNumber: number,
+  key: string,
+  decision: "approve" | "deny",
+): Promise<{ ok: true; issueNumber: number; key: string; decision: string; command: string }> {
+  const res = await callWorker("/approvals/pulse", token, {
+    method: "POST",
+    body: JSON.stringify({ issueNumber, key, decision }),
+  });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export interface ActivityItem {
+  id: string;
+  kind: "task" | "key" | "connector" | "approval" | "schedule" | "deploy" | "event";
+  at: string;
+  title: string;
+  detail: string | null;
+  status: string;
+}
+
+export async function fetchActivity(token: string, kind = "", limit = 50): Promise<{ items: ActivityItem[] }> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (kind) params.set("kind", kind);
+  const res = await callWorker(`/activity?${params.toString()}`, token, { method: "GET" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function cancelTask(token: string, id: string): Promise<{ ok: true; id: string; cancelled: boolean }> {
+  const res = await callWorker(`/tasks/${encodeURIComponent(id)}/cancel`, token, { method: "POST", body: "{}" });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+
+export async function approveMcpOauth(
+  token: string,
+  body: {
+    client_id: string;
+    redirect_uri: string;
+    code_challenge: string;
+    code_challenge_method: string;
+    state?: string;
+    scopes: string[];
+  },
+): Promise<{ ok: true; code: string; redirectTo: string }> {
+  const res = await callWorker("/oauth/mcp/authorize", token, { method: "POST", body: JSON.stringify(body) });
+  if (!res.ok) throw new WorkerApiError(await readErrorMessage(res, `Worker responded ${res.status}`), res.status);
+  return res.json();
+}
+

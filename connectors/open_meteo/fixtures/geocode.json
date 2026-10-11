@@ -1,0 +1,49 @@
+{
+  "name": "find a place",
+  "target": "action:geocode",
+  "connection": {
+    "config": {},
+    "secrets": {}
+  },
+  "input": {
+    "name": "Leeds",
+    "limit": 2
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://geocoding-api.open-meteo.com/v1/search?name=Leeds&count=2",
+      "headers": {},
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "results": [
+        {
+          "id": 1,
+          "name": "Leeds",
+          "latitude": 53.79,
+          "longitude": -1.55,
+          "country": "United Kingdom",
+          "admin1": "England",
+          "population": 1
+        }
+      ]
+    }
+  },
+  "output": {
+    "results": [
+      {
+        "name": "Leeds",
+        "latitude": 53.79,
+        "longitude": -1.55,
+        "country": "United Kingdom",
+        "admin1": "England"
+      }
+    ]
+  }
+}

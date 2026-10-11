@@ -1,0 +1,62 @@
+{
+  "name": "list open issues",
+  "target": "action:list_issues",
+  "connection": {
+    "config": {
+      "owner": "shreyas-tech7",
+      "repo": "TITAN-Runner"
+    },
+    "secrets": {
+      "token": "@@FAKE:github_token@@"
+    }
+  },
+  "input": {
+    "limit": 2
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/shreyas-tech7/TITAN-Runner/issues?state=open&per_page=2",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:github_token@@",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": [
+      {
+        "number": 7,
+        "title": "First",
+        "state": "open",
+        "html_url": "https://github.com/x/y/issues/7",
+        "user": {
+          "login": "alice",
+          "id": 1
+        },
+        "comments": 2,
+        "updated_at": "2026-10-01T00:00:00Z",
+        "body": "long text",
+        "labels": []
+      }
+    ]
+  },
+  "output": [
+    {
+      "number": 7,
+      "title": "First",
+      "state": "open",
+      "html_url": "https://github.com/x/y/issues/7",
+      "user": {
+        "login": "alice"
+      },
+      "comments": 2,
+      "updated_at": "2026-10-01T00:00:00Z"
+    }
+  ]
+}

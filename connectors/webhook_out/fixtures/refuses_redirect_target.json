@@ -1,0 +1,33 @@
+{
+  "name": "a 302 is a failure",
+  "target": "action:send_text",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "url": "https://hooks.example.org/in/abc123"
+    }
+  },
+  "input": {
+    "text": "Hello"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://hooks.example.org/in/abc123",
+      "headers": {},
+      "body": {
+        "text": "Hello"
+      }
+    },
+    "hosts": [
+      "hooks.example.org"
+    ]
+  },
+  "response": {
+    "status": 302,
+    "contentType": "text/plain",
+    "body": ""
+  },
+  "output": null,
+  "expectFailure": "answered 302"
+}

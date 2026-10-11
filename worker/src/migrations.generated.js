@@ -46,7 +46,46 @@ export const MIGRATIONS = [
       "CREATE INDEX IF NOT EXISTS idx_events_at ON events(at)",
       "CREATE INDEX IF NOT EXISTS idx_events_dedupe ON events(dedupe_key, at)"
     ]
+  },
+  {
+    "name": "0003_connectors_mcp_notify.sql",
+    "statements": [
+      "CREATE TABLE IF NOT EXISTS connections (\n  id TEXT PRIMARY KEY,\n  connector_id TEXT NOT NULL,\n  label TEXT NOT NULL,\n  status TEXT NOT NULL DEFAULT 'connected',\n  config_json TEXT NOT NULL DEFAULT '{}',\n  secret_names TEXT NOT NULL DEFAULT '[]',\n  meta_json TEXT NOT NULL DEFAULT '{}',\n  last_test_at TEXT,\n  last_test_ok INTEGER,\n  last_test_ms INTEGER,\n  last_error TEXT,\n  created_at TEXT NOT NULL,\n  updated_at TEXT NOT NULL\n)",
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_connections_label ON connections(connector_id, label)",
+      "CREATE TABLE IF NOT EXISTS connector_policies (\n  connection_id TEXT NOT NULL,\n  action_id TEXT NOT NULL,\n  mode TEXT NOT NULL,\n  updated_at TEXT NOT NULL,\n  PRIMARY KEY (connection_id, action_id)\n)",
+      "CREATE TABLE IF NOT EXISTS connector_calls (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  at TEXT NOT NULL,\n  connection_id TEXT NOT NULL,\n  connector_id TEXT NOT NULL,\n  action_id TEXT NOT NULL,\n  caller TEXT NOT NULL,\n  outcome TEXT NOT NULL,\n  http_status INTEGER,\n  ms INTEGER,\n  error TEXT\n)",
+      "CREATE INDEX IF NOT EXISTS idx_connector_calls_at ON connector_calls(at)",
+      "CREATE INDEX IF NOT EXISTS idx_connector_calls_conn ON connector_calls(connection_id, at)",
+      "CREATE TABLE IF NOT EXISTS connector_rate (\n  key TEXT PRIMARY KEY,\n  window_start INTEGER NOT NULL,\n  count INTEGER NOT NULL DEFAULT 0\n)",
+      "CREATE TABLE IF NOT EXISTS approvals (\n  id TEXT PRIMARY KEY,\n  connection_id TEXT NOT NULL,\n  connector_id TEXT NOT NULL,\n  action_id TEXT NOT NULL,\n  risk TEXT NOT NULL,\n  data_class TEXT NOT NULL,\n  summary TEXT NOT NULL,\n  input_json TEXT NOT NULL,\n  requested_by TEXT NOT NULL,\n  status TEXT NOT NULL DEFAULT 'pending',\n  created_at TEXT NOT NULL,\n  expires_at TEXT NOT NULL,\n  decided_at TEXT,\n  decided_by TEXT,\n  result_json TEXT,\n  error TEXT\n)",
+      "CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals(status, created_at)",
+      "CREATE TABLE IF NOT EXISTS hooks (\n  id TEXT PRIMARY KEY,\n  connection_id TEXT NOT NULL UNIQUE,\n  mode TEXT NOT NULL,\n  target TEXT NOT NULL,\n  task_brief TEXT,\n  secret_hash TEXT NOT NULL,\n  created_at TEXT NOT NULL,\n  last_event_at TEXT,\n  calls INTEGER NOT NULL DEFAULT 0\n)",
+      "CREATE TABLE IF NOT EXISTS hook_events (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  hook_id TEXT NOT NULL,\n  at TEXT NOT NULL,\n  bytes INTEGER NOT NULL,\n  outcome TEXT NOT NULL,\n  title TEXT\n)",
+      "CREATE INDEX IF NOT EXISTS idx_hook_events_hook ON hook_events(hook_id, at)",
+      "CREATE TABLE IF NOT EXISTS hook_nonces (\n  hook_id TEXT NOT NULL,\n  nonce TEXT NOT NULL,\n  at TEXT NOT NULL,\n  PRIMARY KEY (hook_id, nonce)\n)",
+      "CREATE TABLE IF NOT EXISTS oauth_states (\n  state TEXT PRIMARY KEY,\n  connection_id TEXT NOT NULL,\n  connector_id TEXT NOT NULL,\n  created_at TEXT NOT NULL,\n  expires_at TEXT NOT NULL\n)",
+      "CREATE TABLE IF NOT EXISTS mcp_tokens (\n  id TEXT PRIMARY KEY,\n  label TEXT NOT NULL,\n  token_hash TEXT NOT NULL UNIQUE,\n  scopes TEXT NOT NULL,\n  kind TEXT NOT NULL DEFAULT 'static',\n  client_id TEXT,\n  created_at TEXT NOT NULL,\n  last_used_at TEXT,\n  expires_at TEXT,\n  revoked_at TEXT\n)",
+      "CREATE TABLE IF NOT EXISTS mcp_remote_tools (\n  connection_id TEXT NOT NULL,\n  name TEXT NOT NULL,\n  description TEXT,\n  input_schema TEXT,\n  risk TEXT NOT NULL DEFAULT 'write',\n  fetched_at TEXT NOT NULL,\n  PRIMARY KEY (connection_id, name)\n)",
+      "CREATE TABLE IF NOT EXISTS notify_rules (\n  id TEXT PRIMARY KEY,\n  label TEXT NOT NULL,\n  event_pattern TEXT NOT NULL,\n  min_severity TEXT NOT NULL DEFAULT 'info',\n  connection_ids TEXT NOT NULL,\n  quiet_start TEXT,\n  quiet_end TEXT,\n  tz TEXT NOT NULL DEFAULT 'America/Chicago',\n  dedupe_minutes INTEGER NOT NULL DEFAULT 30,\n  allow_personal INTEGER NOT NULL DEFAULT 0,\n  enabled INTEGER NOT NULL DEFAULT 1,\n  created_at TEXT NOT NULL\n)",
+      "CREATE TABLE IF NOT EXISTS notify_deliveries (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  event_id INTEGER NOT NULL,\n  rule_id TEXT NOT NULL,\n  connection_id TEXT NOT NULL,\n  at TEXT NOT NULL,\n  ok INTEGER NOT NULL,\n  error TEXT\n)",
+      "CREATE INDEX IF NOT EXISTS idx_notify_deliveries_at ON notify_deliveries(at)"
+    ]
+  },
+  {
+    "name": "0004_assistant_schedules_mcp_oauth.sql",
+    "statements": [
+      "CREATE TABLE IF NOT EXISTS chat_threads (\n  id TEXT PRIMARY KEY,\n  title TEXT NOT NULL,\n  provider TEXT,\n  model TEXT,\n  created_at TEXT NOT NULL,\n  updated_at TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_chat_threads_updated ON chat_threads(updated_at)",
+      "CREATE TABLE IF NOT EXISTS chat_messages (\n  id TEXT PRIMARY KEY,\n  thread_id TEXT NOT NULL,\n  role TEXT NOT NULL,\n  content TEXT NOT NULL,\n  provider TEXT,\n  model TEXT,\n  tokens_used INTEGER,\n  at TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id, at)",
+      "CREATE TABLE IF NOT EXISTS schedules (\n  id TEXT PRIMARY KEY,\n  label TEXT NOT NULL,\n  cron TEXT NOT NULL,\n  tz TEXT NOT NULL DEFAULT 'America/Chicago',\n  brief TEXT NOT NULL,\n  task_type TEXT NOT NULL DEFAULT 'general',\n  kind TEXT NOT NULL DEFAULT 'task',\n  enabled INTEGER NOT NULL DEFAULT 1,\n  last_run_at TEXT,\n  next_run_at TEXT,\n  created_at TEXT NOT NULL,\n  updated_at TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_schedules_enabled_next ON schedules(enabled, next_run_at)",
+      "INSERT OR IGNORE INTO schedules (id, label, cron, tz, brief, task_type, kind, enabled, last_run_at, next_run_at, created_at, updated_at)\nVALUES ('sched_daily_brief', 'Daily brief', '30 7 * * *', 'America/Chicago', 'Build the daily brief from weather, calendar, tasks, approvals, keys, research, and health.', 'brief', 'daily_brief', 0, NULL, NULL, '2026-10-08T00:00:00.000Z', '2026-10-08T00:00:00.000Z')",
+      "CREATE TABLE IF NOT EXISTS mcp_oauth_clients (\n  client_id TEXT PRIMARY KEY,\n  client_name TEXT NOT NULL,\n  redirect_uris TEXT NOT NULL,\n  grant_types TEXT NOT NULL DEFAULT '[\"authorization_code\",\"refresh_token\"]',\n  created_at TEXT NOT NULL\n)",
+      "CREATE TABLE IF NOT EXISTS mcp_oauth_codes (\n  code_hash TEXT PRIMARY KEY,\n  client_id TEXT NOT NULL,\n  client_name TEXT NOT NULL,\n  redirect_uri TEXT NOT NULL,\n  scopes TEXT NOT NULL,\n  code_challenge TEXT NOT NULL,\n  code_challenge_method TEXT NOT NULL DEFAULT 'S256',\n  created_at TEXT NOT NULL,\n  expires_at TEXT NOT NULL,\n  used_at TEXT\n)",
+      "ALTER TABLE mcp_tokens ADD COLUMN refresh_token_hash TEXT"
+    ]
   }
 ];
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 4;

@@ -80,7 +80,8 @@ export class OpenRouterProvider extends BaseProvider {
       } catch (err) {
         lastError = err;
         if (signal?.aborted) throw err;
-        const rotates = err?.status === 429 || err?.code === 'RATE_LIMITED' || err?.status === 404;
+        // A reasoning model can spend all of a tiny token budget on its thinking and return no text. That also rotates.
+        const rotates = err?.status === 429 || err?.code === 'RATE_LIMITED' || err?.status === 404 || /no message content/i.test(String(err?.message ?? ''));
         if (!rotates) throw err;
         cooldowns.set(model, this.nowMs() + MODEL_COOLDOWN_MS);
       }

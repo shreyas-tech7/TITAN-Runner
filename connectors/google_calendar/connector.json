@@ -1,0 +1,166 @@
+{
+  "id": "google_calendar",
+  "name": "Google Calendar",
+  "icon": "GC",
+  "version": "1.0.0",
+  "category": "productivity",
+  "description": "Read upcoming events and your busy times. TITAN cannot change your calendar.",
+  "docsUrl": "https://developers.google.com/workspace/calendar/api/v3/reference",
+  "getKeyUrl": "https://console.cloud.google.com/apis/credentials",
+  "apiVersion": "Calendar API v3",
+  "auth": {
+    "kind": "oauth2_pkce",
+    "setupNote": "Make an OAuth client of type Web in your own Google Cloud project. Add the redirect address that TITAN shows. Paste the client id and the client secret. Then choose Connect. TITAN asks for the read only scope calendar.readonly. Google ends the refresh token after 7 days while the consent screen has the status Testing. Move the consent screen to In production for your own account to stop that. For personal use, Google does not ask you to pass a review.",
+    "oauth": {
+      "authUrl": "https://accounts.google.com/o/oauth2/v2/auth",
+      "tokenUrl": "https://oauth2.googleapis.com/token",
+      "scopes": [
+        "https://www.googleapis.com/auth/calendar.readonly"
+      ],
+      "extraAuthParams": {
+        "access_type": "offline",
+        "prompt": "consent"
+      },
+      "forbiddenScopes": [
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/calendar.events",
+        "https://mail.google.com/"
+      ]
+    },
+    "fields": [
+      {
+        "name": "client_id",
+        "label": "OAuth client id",
+        "secret": false,
+        "pattern": "^[0-9]+-[a-z0-9]+\\.apps\\.googleusercontent\\.com$",
+        "help": "It ends with .apps.googleusercontent.com."
+      },
+      {
+        "name": "client_secret",
+        "label": "OAuth client secret",
+        "secret": true,
+        "pattern": "^GOCSPX-[A-Za-z0-9_-]{20,}$",
+        "help": "It starts with GOCSPX-."
+      }
+    ]
+  },
+  "egress": [
+    "www.googleapis.com",
+    "oauth2.googleapis.com"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "GET",
+      "url": "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+      "query": {
+        "maxResults": "5"
+      }
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "pick": [
+        "items[].summary",
+        "items[].primary"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "list_events",
+      "title": "List upcoming events",
+      "risk": "read",
+      "dataClass": "personal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "time_min": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "time_max": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10
+          }
+        },
+        "required": []
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+        "query": {
+          "singleEvents": "true",
+          "orderBy": "startTime",
+          "timeMin": "{{input.time_min}}",
+          "timeMax": "{{input.time_max}}",
+          "maxResults": "{{input.limit}}"
+        }
+      },
+      "pick": [
+        "items[].id",
+        "items[].summary",
+        "items[].start",
+        "items[].end",
+        "items[].location",
+        "items[].htmlLink"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "free_busy",
+      "title": "Find busy times",
+      "risk": "read",
+      "dataClass": "personal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "time_min": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 40
+          },
+          "time_max": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "time_min",
+          "time_max"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/calendar/v3/freeBusy",
+        "body": {
+          "timeMin": "{{input.time_min}}",
+          "timeMax": "{{input.time_max}}",
+          "items": [
+            {
+              "id": "primary"
+            }
+          ]
+        }
+      },
+      "pick": [
+        "timeMin",
+        "timeMax",
+        "calendars.primary.busy"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    }
+  ]
+}

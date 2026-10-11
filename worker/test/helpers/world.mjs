@@ -151,7 +151,23 @@ export class FakeProviders {
       }
       return json({ model: body.model ?? 'fake-model', choices: [{ message: { content: 'OK' } }], usage: { total_tokens: 7 } });
     }
-    if (request.method === 'POST' && /:generateContent$/.test(url.pathname)) return json({ candidates: [{ content: { parts: [{ text: 'OK' }] } }], usageMetadata: { totalTokenCount: 7 } });
+    if (request.method === 'POST' && /:streamGenerateContent$/.test(url.pathname)) {
+      if (spec.chatStatus) return json({ error: { message: 'chat failed' } }, spec.chatStatus);
+      const enc = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          for (const piece of ['Gem', 'ini ', 'stream']) {
+            controller.enqueue(enc.encode(`data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: piece }] } }], usageMetadata: { totalTokenCount: 6 } })}\n\n`));
+          }
+          controller.close();
+        },
+      });
+      return new Response(stream, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    }
+    if (request.method === 'POST' && /:generateContent$/.test(url.pathname)) {
+      if (spec.chatStatus) return json({ error: { message: 'chat failed' } }, spec.chatStatus);
+      return json({ candidates: [{ content: { parts: [{ text: 'OK' }] } }], usageMetadata: { totalTokenCount: 7 } });
+    }
     return json({ object: 'list', data: [{ id: 'fake-model-a' }, { id: 'fake-model-b' }] });
   }
 }
@@ -166,7 +182,7 @@ export class FakeWorld {
     this.dns = new Map();
     /** @type {Array<{ host: string, method: string, path: string }>} */
     this.log = [];
-    this.fetch = (input, init) => this.handle(new Request(typeof input === 'string' ? input : input.url ?? String(input), init));
+    this.fetch = (input, init) => this.handle(new Request(typeof input === 'string' ? input : input.url ?? String(input), init), init?.signal ?? input?.signal);
     for (const h of ['api.groq.com', 'api.together.xyz', 'openrouter.ai', 'huggingface.co', 'router.huggingface.co', 'llm.example.com', 'gw.example.com', 'hermes.example.com']) this.providers.host(h);
     this.providers.host('generativelanguage.googleapis.com', { geminiStyle: true });
   }
@@ -175,16 +191,20 @@ export class FakeWorld {
     this.extraHosts.set(host, handler);
   }
 
-  /** Like a real fetch: a call that is aborted, for example by a timeout, rejects at once. */
-  async handle(request) {
+  /**
+   * Like a real fetch: a call that is aborted, for example by a timeout, rejects at once.
+   * Listen on the signal that the caller passed. A `Request` follows that signal through a weak
+   * reference in Node 24, so a garbage collection could drop the abort and leave the call open.
+   */
+  async handle(request, signal = request.signal) {
     const work = this.#route(request);
-    if (!request.signal) return work;
+    if (!signal) return work;
     return Promise.race([
       work,
       new Promise((_, reject) => {
-        const fail = () => reject(request.signal.reason ?? new DOMException('This operation was aborted', 'AbortError'));
-        if (request.signal.aborted) fail();
-        else request.signal.addEventListener('abort', fail, { once: true });
+        const fail = () => reject(signal.reason ?? new DOMException('This operation was aborted', 'AbortError'));
+        if (signal.aborted) fail();
+        else signal.addEventListener('abort', fail, { once: true });
       }),
     ]);
   }

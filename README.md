@@ -1,5 +1,7 @@
 # TITAN-Runner
 
+![TITAN Pulse Status](https://titan-runner-brain.workers.dev/badge/pulse)
+
 A free, zero-maintenance GitHub Actions "pulse" runner for a multi-agent
 orchestrator. No server, no credit card, nothing to keep running on your own
 machine — a scheduled workflow wakes up every 15 minutes, checks a task
@@ -14,6 +16,48 @@ that costs you.
 
 Live dashboard: `https://<owner>.github.io/TITAN-Runner/` (once GitHub
 Pages is enabled — see docs/RUNTIME.md).
+
+Try the read-only demo with sample data at `https://shreyas-tech7.github.io/TITAN-Runner/?demo=1`.
+
+## Architecture diagram
+
+```mermaid
+flowchart LR
+  subgraph Browser["Browser (GitHub Pages)"]
+    UI["Static Next.js Dashboard\n(/, /chat, /connectors, /keys, /health, /how-it-works)"]
+  end
+  subgraph Edge["Cloudflare Worker + D1 (titan-runner-brain)"]
+    API["Route Table & Lockout"]
+    Vault["AES-256-GCM Vault (CONNECTOR_KEK)"]
+    Broker["15-Connector Broker & Approvals"]
+    MCP["Dual-Era MCP Server + OAuth 2.1 PKCE"]
+    Chat["Instant Chat SSE + Failover"]
+    Cron["1-min Tick (Tasks, Schedules, Keeper)"]
+  end
+  subgraph Runner["GitHub Actions Compute"]
+    Pulse["titan-pulse.yml (15m)"]
+    Sub["spawn-subagent.yml"]
+    Proof["provider-selftest.yml"]
+  end
+  UI -->|"X-Titan-Auth"| API
+  API --> Vault
+  API --> Broker
+  API --> MCP
+  API --> Chat
+  Cron -->|"repository_dispatch"| Pulse
+  Cron -->|"workflow_dispatch"| Sub
+  API -->|"crypto_box_seal + dispatch"| Proof
+  Pulse -->|"X-Titan-Callback"| API
+  Sub -->|"X-Titan-Callback"| API
+  Proof -->|"X-Titan-Callback"| API
+```
+
+## Wave 12 guides
+
+- [Keys guide](docs/KEYS.md) shows how to add a free provider key and prove it in a runner.
+- [Connectors guide](docs/CONNECTORS.md) covers the 15 built-in connectors, the vault, and the personal data wall.
+- [MCP guide](docs/MCP.md) covers Claude Code Bearer setup and Claude app OAuth 2.1 with PKCE.
+- [Health Center guide](docs/HEALTH.md) covers the setup checklist, callback tokens, and the pulse keeper.
 
 ## How it works, in one paragraph
 

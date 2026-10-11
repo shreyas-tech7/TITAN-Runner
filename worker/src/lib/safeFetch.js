@@ -167,15 +167,18 @@ export async function safeFetch(env, input, init = {}, opts) {
   }
 
   const target = map ? rewriteForTest(map, checked.url) : checked.url;
-  const timeout = AbortSignal.timeout(opts.timeoutMs ?? 8000);
-  const signal = init.signal ? AbortSignal.any([timeout, init.signal]) : timeout;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(new DOMException('The operation timed out.', 'TimeoutError')), opts.timeoutMs ?? 8000);
+  const signal = init.signal ? AbortSignal.any([ctrl.signal, init.signal]) : ctrl.signal;
   let res;
   try {
     res = await fetch(target.toString(), { ...init, redirect: 'manual', signal });
   } catch (err) {
     if (err instanceof SafeFetchError) throw err;
-    const timedOut = timeout.aborted || err?.name === 'TimeoutError' || err?.name === 'AbortError';
+    const timedOut = ctrl.signal.aborted || err?.name === 'TimeoutError' || err?.name === 'AbortError';
     throw new SafeFetchError(timedOut ? 'timeout' : 'network', timedOut ? `The call to ${checked.host} timed out.` : `The call to ${checked.host} failed.`);
+  } finally {
+    clearTimeout(timer);
   }
   if (res.status >= 300 && res.status < 400) {
     throw new SafeFetchError('redirect_refused', `${checked.host} answered with a redirect. The Worker does not follow redirects.`, { status: res.status });

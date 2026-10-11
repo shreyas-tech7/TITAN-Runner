@@ -18,6 +18,7 @@ const env = { ...process.env, NODE_OPTIONS: '--max-old-space-size=1536' };
 const steps = [
   { name: 'workflow checks', cmd: 'node', args: ['scripts/check-workflows.mjs'] },
   { name: 'provider catalog', cmd: 'node', args: ['scripts/check-provider-catalog.mjs'] },
+  { name: 'connector manifests', cmd: 'node', args: ['scripts/gen-connectors.mjs', '--check'] },
   { name: 'worker migrations', cmd: 'node', args: ['scripts/gen-worker-migrations.mjs', '--check'] },
   { name: 'test mode flag', cmd: 'node', args: ['scripts/check-test-mode.mjs'] },
   { name: 'data contract', cmd: 'node', args: ['scripts/export-schemas.mjs', '--check'] },

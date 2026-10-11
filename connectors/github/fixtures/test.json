@@ -1,0 +1,42 @@
+{
+  "name": "test: get the repository",
+  "target": "test",
+  "connection": {
+    "config": {
+      "owner": "shreyas-tech7",
+      "repo": "TITAN-Runner"
+    },
+    "secrets": {
+      "token": "@@FAKE:github_token@@"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/shreyas-tech7/TITAN-Runner",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:github_token@@",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "full_name": "shreyas-tech7/TITAN-Runner",
+      "private": false,
+      "open_issues_count": 3,
+      "id": 1
+    }
+  },
+  "output": {
+    "full_name": "shreyas-tech7/TITAN-Runner",
+    "private": false,
+    "open_issues_count": 3
+  }
+}

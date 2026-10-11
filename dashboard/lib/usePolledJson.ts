@@ -20,6 +20,7 @@
  * pulled and let a viewer force a fresh pull on demand.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getDemoStateFile, isDemoMode } from "./demoFixtures";
 
 const OWNER = process.env.NEXT_PUBLIC_GITHUB_OWNER || "";
 const REPO = process.env.NEXT_PUBLIC_GITHUB_REPO || "";
@@ -60,6 +61,13 @@ export function usePolledJson<T>(statePath: string, intervalMs = 20_000): Polled
 
   const load = useCallback(async () => {
     const myNonce = ++nonce.current;
+    if (isDemoMode()) {
+      const demo = getDemoStateFile(statePath) as T | null;
+      if (demo && mounted.current && myNonce === nonce.current) {
+        setResult({ data: demo, error: null, loading: false, source: "build", lastFetchedAt: Date.now() });
+        return;
+      }
+    }
     const remote = rawUrl(statePath);
     if (remote) {
       // A hung connection (a proxy with no route to raw.githubusercontent.com,

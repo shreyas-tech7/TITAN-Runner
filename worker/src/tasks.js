@@ -41,6 +41,20 @@ export async function handleStatus(env) {
   });
 }
 
+/**
+ * Put a task in the queue. The 1-minute tick hands it to a runner.
+ * @param {{ DB: any }} env
+ * @param {{ brief: string, taskType?: string, source?: string }} task
+ * @returns {Promise<string>} The task id.
+ */
+export async function queueTask(env, { brief, taskType = 'auto', source = 'dashboard' }) {
+  const id = crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO subagents (id, task_type, brief, status, source, queued_at) VALUES (?, ?, ?, 'queued', ?, ?)")
+    .bind(id, taskType, String(brief).slice(0, 4000), String(source).slice(0, 60), nowIso())
+    .run();
+  return id;
+}
+
 export async function handleCreateTask(request, env) {
   let body;
   try {
@@ -52,11 +66,32 @@ export async function handleCreateTask(request, env) {
   if (!brief) return json({ error: 'brief is required' }, 400);
   const parsedType = parseTaskType(body?.task_type);
   if ('error' in parsedType) return json({ error: parsedType.error }, 400);
-  const id = crypto.randomUUID();
-  await env.DB.prepare("INSERT INTO subagents (id, task_type, brief, status, source, queued_at) VALUES (?, ?, ?, 'queued', 'dashboard', ?)")
-    .bind(id, parsedType.value, brief.slice(0, 4000), nowIso())
-    .run();
+  const idemRaw = request.headers.get('X-Idempotency-Key') || (typeof body?.idempotencyKey === 'string' ? body.idempotencyKey : '');
+  const idem = String(idemRaw ?? '').trim().slice(0, 80);
+  if (idem) {
+    const existing = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(`idem.task.${idem}`).first().catch(() => null);
+    if (existing?.value) return json({ ok: true, id: existing.value, deduplicated: true });
+  }
+  const id = await queueTask(env, { brief, taskType: parsedType.value, source: 'dashboard' });
+  if (idem) {
+    await env.DB.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)').bind(`idem.task.${idem}`, id, nowIso()).run().catch(() => null);
+  }
   return json({ ok: true, id });
+}
+
+/**
+ * POST /tasks/:id/cancel (X8). Cancels a task that is still queued so it is not dispatched.
+ * @param {{ env: any, requestId: string }} c
+ */
+export async function handleCancelTask(c, id) {
+  const { env } = c;
+  const row = await env.DB.prepare('SELECT id, status FROM subagents WHERE id = ?').bind(id).first();
+  if (!row) return jsonError(404, 'not_found', 'No task has this id.');
+  if (row.status !== 'queued') return jsonError(409, 'not_cancellable', `A task with the status "${row.status}" cannot be cancelled.`);
+  await env.DB.prepare("UPDATE subagents SET status = 'failed', finished_at = ?, result_summary = ? WHERE id = ?")
+    .bind(nowIso(), 'Cancelled by the owner before dispatch.', id)
+    .run();
+  return json({ ok: true, id, status: 'failed', cancelled: true, requestId: c.requestId });
 }
 
 // ---------------------------------------------------------------------

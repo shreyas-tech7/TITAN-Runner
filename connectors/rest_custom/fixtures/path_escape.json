@@ -1,0 +1,15 @@
+{
+  "name": "a path with .. is refused",
+  "target": "action:get",
+  "connection": {
+    "config": {
+      "base_url": "https://api.example.org/v2",
+      "path_prefixes": "/"
+    },
+    "secrets": {}
+  },
+  "input": {
+    "path": "/../admin"
+  },
+  "expectBuildError": "must not hold"
+}

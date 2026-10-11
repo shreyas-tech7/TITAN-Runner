@@ -10,7 +10,14 @@ const require = createRequire(import.meta.url);
 const AXE = require.resolve('axe-core/axe.min.js');
 const THEMES = ['eclipse', 'light', 'oled', 'contrast'];
 const SIZES = [{ width: 1280, height: 900 }, { width: 390, height: 844 }];
-const ROUTES = [{ path: '/keys/', ready: 'table.keys-table' }];
+const ROUTES = [
+  { path: '/keys/', ready: 'table.keys-table' },
+  { path: '/connectors/', ready: 'ul.connector-grid' },
+  { path: '/connectors/?tab=approvals', ready: '#panel-approvals' },
+  { path: '/connectors/?tab=mcp', ready: '#mcp-label' },
+  { path: '/connectors/?tab=notify', ready: '#panel-notify h3' },
+  { path: '/health/', ready: 'li[data-health="worker"]' },
+];
 
 let stack;
 let browser;
@@ -68,4 +75,61 @@ test('axe: the add key window has no violation', async (t) => {
   await page.keyboard.press('Escape');
   await page.waitForSelector('[role="dialog"]', { state: 'detached' });
   assert.equal(await page.evaluate(() => document.activeElement?.textContent), 'Add a key');
+});
+
+/** Run axe on the open page. The list of violations must be empty. */
+async function axeViolations(page, selector) {
+  await page.addScriptTag({ path: AXE });
+  return page.evaluate(async (sel) => (await window.axe.run(sel ? document.querySelector(sel) : document, { resultTypes: ['violations'] })).violations.map((v) => ({ id: v.id, nodes: v.nodes.slice(0, 3).map((n) => n.target.join(' ')) })), selector ?? null);
+}
+
+test('axe: the connect window, the drawer, and the diagnosis report have no violation, and Escape closes with focus back', async (t) => {
+  const context = await browser.newContext({ viewport: SIZES[0], serviceWorkers: 'block' });
+  t.after(() => context.close());
+  const page = await context.newPage();
+  await page.route('**/*', (r) => (['127.0.0.1', 'localhost'].includes(new URL(r.request().url()).hostname) ? r.continue() : r.abort()));
+  await page.goto(`${DASH_URL}/connectors/`);
+  await page.fill('#admin-token-input', ADMIN);
+  await page.click('button:has-text("Unlock")');
+  await page.waitForSelector('ul.connector-grid');
+  await page.click('button[aria-label="Connect Discord webhook"]');
+  await page.waitForSelector('[role="dialog"]');
+  assert.deepEqual(await axeViolations(page), []);
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('[role="dialog"]', { state: 'detached' });
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Connect Discord webhook');
+
+  await page.fill('#connector-search', 'rss');
+  await page.click('button[aria-label="Connect RSS and Atom"]');
+  await page.waitForSelector('[role="dialog"]');
+  assert.deepEqual(await axeViolations(page), [], 'a connector with no key');
+});
+
+test('axe: the health page after a full diagnosis has no violation', async (t) => {
+  const context = await browser.newContext({ viewport: SIZES[1], serviceWorkers: 'block' });
+  t.after(() => context.close());
+  const page = await context.newPage();
+  await page.route('**/*', (r) => (['127.0.0.1', 'localhost'].includes(new URL(r.request().url()).hostname) ? r.continue() : r.abort()));
+  await page.goto(`${DASH_URL}/health/`);
+  await page.fill('#admin-token-input', ADMIN);
+  await page.click('button:has-text("Unlock")');
+  await page.waitForSelector('li[data-health="worker"]');
+  await page.click('button:has-text("Run full diagnosis")');
+  await page.waitForSelector('pre[aria-label="Diagnosis report"]');
+  assert.deepEqual(await axeViolations(page), []);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  assert.ok(overflow <= 0, `horizontal scroll of ${overflow}px`);
+});
+
+test('axe: the home page with the setup checklist has no violation in the Eclipse theme', async (t) => {
+  const context = await browser.newContext({ viewport: SIZES[0], serviceWorkers: 'block' });
+  t.after(() => context.close());
+  const page = await context.newPage();
+  await page.route('**/*', (r) => (['127.0.0.1', 'localhost'].includes(new URL(r.request().url()).hostname) ? r.continue() : r.abort()));
+  await page.goto(`${DASH_URL}/`);
+  await page.fill('#admin-token-input', ADMIN);
+  await page.click('button:has-text("Unlock")');
+  await page.waitForSelector('section[aria-label="Setup"]');
+  // The home page has older panels. This test checks the new panel only.
+  assert.deepEqual(await axeViolations(page, 'section[aria-label="Setup"]'), []);
 });

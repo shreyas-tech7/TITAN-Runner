@@ -124,6 +124,8 @@ test('R5: every request writes one JSON log line with the request id, the route 
 test('an unhandled error returns 500 with the request id and no stack', async (t) => {
   const { env } = setup(t);
   captureConsole(t);
+  // Run one good request first, so the one-time migration step is done and cannot answer 503 here.
+  assert.equal((await worker.fetch(get('/status', authed), env)).status, 200);
   const broken = { ...env, DB: { prepare() { throw new Error('boom with /secret/path'); } } };
   const res = await worker.fetch(get('/status', authed), broken);
   assert.equal(res.status, 500);

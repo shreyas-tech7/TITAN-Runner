@@ -1,0 +1,15 @@
+{
+  "name": "the prefix /items does not allow /items2",
+  "target": "action:get",
+  "connection": {
+    "config": {
+      "base_url": "https://api.example.org/v2",
+      "path_prefixes": "/items"
+    },
+    "secrets": {}
+  },
+  "input": {
+    "path": "/items2"
+  },
+  "expectBuildError": "outside the allowed paths"
+}

@@ -1,0 +1,36 @@
+{
+  "name": "test: read the webhook",
+  "target": "test",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "url": "https://discord.com/api/webhooks/123456789012345678/TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://discord.com/api/webhooks/123456789012345678/TEST_VALUE_NOT_A_REAL_SECRET",
+      "headers": {},
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "name": "TITAN",
+      "channel_id": "55",
+      "guild_id": "66",
+      "token": "x",
+      "id": "1"
+    }
+  },
+  "output": {
+    "name": "TITAN",
+    "channel_id": "55",
+    "guild_id": "66"
+  }
+}

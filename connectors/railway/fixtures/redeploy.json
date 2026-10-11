@@ -1,0 +1,45 @@
+{
+  "name": "redeploy",
+  "target": "action:redeploy",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:railway_token@@"
+    }
+  },
+  "input": {
+    "service_id": "s-1234567",
+    "environment_id": "e-1234567"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://backboard.railway.com/graphql/v2",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:railway_token@@"
+      },
+      "body": {
+        "query": "mutation($serviceId: String!, $environmentId: String!) { serviceInstanceRedeploy(serviceId: $serviceId, environmentId: $environmentId) }",
+        "variables": {
+          "serviceId": "s-1234567",
+          "environmentId": "e-1234567"
+        }
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "data": {
+        "serviceInstanceRedeploy": true
+      }
+    }
+  },
+  "output": {
+    "data": {
+      "serviceInstanceRedeploy": true
+    }
+  }
+}

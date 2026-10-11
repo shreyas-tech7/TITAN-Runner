@@ -1,0 +1,39 @@
+{
+  "name": "DELETE a path",
+  "target": "action:delete",
+  "connection": {
+    "config": {
+      "base_url": "https://api.example.org/v2",
+      "auth_style": "bearer",
+      "path_prefixes": "/items,/health"
+    },
+    "secrets": {
+      "api_key": "TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {
+    "path": "/items/43"
+  },
+  "expect": {
+    "request": {
+      "method": "DELETE",
+      "url": "https://api.example.org/v2/items/43",
+      "headers": {
+        "Authorization": "Bearer TEST_VALUE_NOT_A_REAL_SECRET",
+        "Accept": "application/json"
+      },
+      "body": null
+    },
+    "hosts": [
+      "api.example.org"
+    ]
+  },
+  "response": {
+    "status": 204,
+    "contentType": "application/json",
+    "body": ""
+  },
+  "output": {
+    "status": 204
+  }
+}

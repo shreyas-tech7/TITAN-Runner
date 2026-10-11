@@ -738,8 +738,9 @@ Each token type has one job. A token that opens one group of routes never opens 
 |---|---|---|---|
 | Admin token | `X-Titan-Auth` | People, through the dashboard | The `admin` routes |
 | Callback token | `X-Titan-Callback` | Workflows | The `internal` routes only |
-| MCP token | `Authorization: Bearer` | Tools, such as Claude Code | `/mcp` only, within its scopes (release 2) |
-| Hook secret | One header for each check mode | Inbound webhooks | One `/hooks/...` route only (release 2) |
+| MCP token | `Authorization: Bearer` | Tools, such as Claude Code | `/mcp` only, within its scopes |
+| Hook secret | One header for each check mode | Inbound webhooks and the Telegram webhook | One `/hooks/...` route only |
+| OAuth state | The `state` value in the address | The redirect of an OAuth provider | `/oauth/:connectorId/callback` only |
 
 The route table is in `worker/src/routes.js`. A test fails if a route has no group or if this table misses a route.
 
@@ -749,9 +750,15 @@ The route table is in `worker/src/routes.js`. A test fails if a route has no gro
 | GET | `/version` | public |
 | GET | `/gev/jwks` | public |
 | GET | `/badge/pulse` | public |
+| GET | `/.well-known/oauth-protected-resource` | public |
+| GET | `/.well-known/oauth-authorization-server` | public |
+| POST | `/oauth/mcp/register` | public |
+| GET | `/oauth/mcp/authorize` | public |
+| POST | `/oauth/mcp/token` | public |
 | GET | `/status` | admin |
 | POST | `/tasks` | admin |
 | POST | `/tasks/:id/retry` | admin |
+| POST | `/tasks/:id/cancel` | admin |
 | GET | `/admin/keys` | admin |
 | POST | `/admin/keys` | admin |
 | GET | `/admin/keys/events` | admin |
@@ -759,6 +766,11 @@ The route table is in `worker/src/routes.js`. A test fails if a route has no gro
 | POST | `/admin/keys/:provider/test` | admin |
 | GET | `/admin/diagnose` | admin |
 | POST | `/admin/diagnose/secret-roundtrip` | admin |
+| POST | `/admin/diagnose/full` | admin |
+| GET | `/health/full` | admin |
+| GET | `/admin/setup` | admin |
+| GET | `/admin/health/urls` | admin |
+| POST | `/admin/health/urls` | admin |
 | GET | `/admin/callback` | admin |
 | POST | `/admin/callback-token/rotate` | admin |
 | POST | `/admin/callback-ping` | admin |
@@ -774,6 +786,54 @@ The route table is in `worker/src/routes.js`. A test fails if a route has no gro
 | GET | `/system-memory` | admin |
 | GET | `/vms` | admin |
 | POST | `/vms/provision` | admin |
+| GET | `/connectors` | admin |
+| POST | `/connectors/:id/connect` | admin |
+| GET | `/connections/:cid` | admin |
+| POST | `/connections/:cid/test` | admin |
+| POST | `/connections/:cid/rename` | admin |
+| POST | `/connections/:cid/disconnect` | admin |
+| POST | `/connections/:cid/policy` | admin |
+| GET | `/connections/:cid/calls` | admin |
+| POST | `/connections/:cid/actions/:actionId` | admin |
+| POST | `/connections/:cid/telegram/pair` | admin |
+| POST | `/connections/:cid/telegram/unpair` | admin |
+| POST | `/connections/:cid/hook/rotate` | admin |
+| POST | `/connections/:cid/tools/:name/risk` | admin |
+| POST | `/oauth/:connectorId/begin` | admin |
+| GET | `/approvals` | admin |
+| POST | `/approvals/:id/approve` | admin |
+| POST | `/approvals/:id/deny` | admin |
+| GET | `/admin/mcp/tokens` | admin |
+| POST | `/admin/mcp/tokens` | admin |
+| DELETE | `/admin/mcp/tokens/:id` | admin |
+| GET | `/admin/notify/rules` | admin |
+| POST | `/admin/notify/rules` | admin |
+| DELETE | `/admin/notify/rules/:id` | admin |
+| POST | `/admin/notify/preset` | admin |
+| POST | `/admin/notify/test` | admin |
+| GET | `/admin/events` | admin |
+| POST | `/chat` | admin |
+| GET | `/chat/threads` | admin |
+| GET | `/chat/threads/:id` | admin |
+| DELETE | `/chat/threads/:id` | admin |
+| DELETE | `/chat/threads` | admin |
+| POST | `/chat/order` | admin |
+| GET | `/schedules` | admin |
+| POST | `/schedules` | admin |
+| POST | `/schedules/:id/toggle` | admin |
+| POST | `/schedules/:id/run` | admin |
+| DELETE | `/schedules/:id` | admin |
+| GET | `/brief` | admin |
+| POST | `/brief/generate` | admin |
+| POST | `/approvals/pulse` | admin |
+| GET | `/activity` | admin |
+| POST | `/admin/vault/rotate` | admin |
+| POST | `/oauth/mcp/authorize` | admin |
+| POST | `/mcp` | mcp |
+| GET | `/mcp` | mcp |
+| POST | `/hooks/:hookId` | hook |
+| POST | `/hooks/telegram/:connectionId` | hook |
+| GET | `/oauth/:connectorId/callback` | oauth |
 | POST | `/internal/status` | internal |
 | POST | `/internal/vm-status` | internal |
 | POST | `/internal/geospatial-event` | internal |
@@ -783,6 +843,9 @@ The route table is in `worker/src/routes.js`. A test fails if a route has no gro
 | POST | `/internal/provider-proof` | internal |
 | POST | `/internal/pulse-heartbeat` | internal |
 | POST | `/internal/ping` | internal |
+| POST | `/internal/event` | internal |
+| GET | `/internal/connectors` | internal |
+| POST | `/internal/connector-call` | internal |
 
 ### Wrong token lockout
 

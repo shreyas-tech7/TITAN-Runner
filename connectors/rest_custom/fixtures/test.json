@@ -1,0 +1,40 @@
+{
+  "name": "test: GET the test path with a header key",
+  "target": "test",
+  "connection": {
+    "config": {
+      "base_url": "https://api.example.org/v2",
+      "auth_style": "header",
+      "header_name": "X-Api-Key",
+      "test_path": "/health"
+    },
+    "secrets": {
+      "api_key": "TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.example.org/v2/health",
+      "headers": {
+        "X-Api-Key": "TEST_VALUE_NOT_A_REAL_SECRET",
+        "Accept": "application/json"
+      },
+      "body": null
+    },
+    "hosts": [
+      "api.example.org"
+    ]
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "ok": true
+    }
+  },
+  "output": {
+    "status": 200
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "a GraphQL error is a failure even with status 200",
+  "target": "action:list_issues",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "api_key": "@@FAKE:linear_key@@"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.linear.app/graphql",
+      "headers": {
+        "Authorization": "@@FAKE:linear_key@@"
+      },
+      "body": {
+        "query": "query($first: Int!) { issues(first: $first, orderBy: updatedAt) { nodes { identifier title url updatedAt state { name } assignee { name } } } }",
+        "variables": {
+          "first": 10
+        }
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "errors": [
+        {
+          "message": "Authentication required"
+        }
+      ]
+    }
+  },
+  "output": null,
+  "expectFailure": "returned an error"
+}

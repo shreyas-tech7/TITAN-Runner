@@ -1,0 +1,65 @@
+{
+  "name": "list deploys",
+  "target": "action:list_deploys",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:railway_token@@"
+    }
+  },
+  "input": {
+    "project_id": "p-1234567"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://backboard.railway.com/graphql/v2",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:railway_token@@"
+      },
+      "body": {
+        "query": "query($projectId: String!, $serviceId: String, $first: Int!) { deployments(first: $first, input: { projectId: $projectId, serviceId: $serviceId }) { edges { node { id status createdAt } } } }",
+        "variables": {
+          "projectId": "p-1234567",
+          "first": 5
+        }
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "data": {
+        "deployments": {
+          "edges": [
+            {
+              "node": {
+                "id": "d-1",
+                "status": "SUCCESS",
+                "createdAt": "2026-10-02T00:00:00Z",
+                "url": "x"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "output": {
+    "data": {
+      "deployments": {
+        "edges": [
+          {
+            "node": {
+              "id": "d-1",
+              "status": "SUCCESS",
+              "createdAt": "2026-10-02T00:00:00Z"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

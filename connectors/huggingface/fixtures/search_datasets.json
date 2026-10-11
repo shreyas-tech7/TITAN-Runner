@@ -1,0 +1,45 @@
+{
+  "name": "search datasets",
+  "target": "action:search_datasets",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:hf_token@@"
+    }
+  },
+  "input": {
+    "query": "squad"
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://huggingface.co/api/datasets?search=squad&limit=10&sort=downloads&direction=-1",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:hf_token@@"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": [
+      {
+        "id": "rajpurkar/squad",
+        "downloads": 50,
+        "likes": 9,
+        "lastModified": "2026-08-01T00:00:00Z",
+        "private": false
+      }
+    ]
+  },
+  "output": [
+    {
+      "id": "rajpurkar/squad",
+      "downloads": 50,
+      "likes": 9,
+      "lastModified": "2026-08-01T00:00:00Z"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "comment on an issue",
+  "target": "action:comment",
+  "connection": {
+    "config": {
+      "owner": "shreyas-tech7",
+      "repo": "TITAN-Runner"
+    },
+    "secrets": {
+      "token": "@@FAKE:github_token@@"
+    }
+  },
+  "input": {
+    "number": 30,
+    "body": "Thanks"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.github.com/repos/shreyas-tech7/TITAN-Runner/issues/30/comments",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:github_token@@",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      "body": {
+        "body": "Thanks"
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 201,
+    "contentType": "application/json",
+    "body": {
+      "id": 77,
+      "html_url": "https://github.com/x/y/issues/30#issuecomment-77",
+      "body": "Thanks"
+    }
+  },
+  "output": {
+    "id": 77,
+    "html_url": "https://github.com/x/y/issues/30#issuecomment-77"
+  }
+}

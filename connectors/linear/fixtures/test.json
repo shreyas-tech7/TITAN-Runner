@@ -1,0 +1,43 @@
+{
+  "name": "test: the viewer",
+  "target": "test",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "api_key": "@@FAKE:linear_key@@"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.linear.app/graphql",
+      "headers": {
+        "Authorization": "@@FAKE:linear_key@@"
+      },
+      "body": {
+        "query": "query { viewer { id name } }"
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "data": {
+        "viewer": {
+          "id": "u1",
+          "name": "Shreyas"
+        }
+      }
+    }
+  },
+  "output": {
+    "data": {
+      "viewer": {
+        "name": "Shreyas"
+      }
+    }
+  }
+}

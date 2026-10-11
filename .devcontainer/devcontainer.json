@@ -1,0 +1,23 @@
+{
+  "name": "TITAN-Runner",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "postCreateCommand": "npm ci && npm --prefix worker ci && npm --prefix dashboard ci",
+  "forwardPorts": [3000, 8787],
+  "portsAttributes": {
+    "3000": {
+      "label": "Dashboard (Next.js)",
+      "onAutoForward": "notify"
+    },
+    "8787": {
+      "label": "Brain Worker (Wrangler)",
+      "onAutoForward": "silent"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}

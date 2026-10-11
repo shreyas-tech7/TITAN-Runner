@@ -27,6 +27,8 @@
     "gen:migrations": "node scripts/gen-worker-migrations.mjs",
     "check:migrations": "node scripts/gen-worker-migrations.mjs --check",
     "check:test-mode": "node scripts/check-test-mode.mjs",
+    "connectors:new": "node scripts/new-connector.mjs",
+    "connectors:check": "node scripts/check-connectors.mjs",
     "check:all": "node scripts/check-all.mjs"
   },
   "license": "MIT",

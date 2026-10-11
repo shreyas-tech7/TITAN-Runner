@@ -1,0 +1,47 @@
+{
+  "name": "PUT a JSON body",
+  "target": "action:put",
+  "connection": {
+    "config": {
+      "base_url": "https://api.example.org/v2",
+      "auth_style": "bearer",
+      "path_prefixes": "/items,/health"
+    },
+    "secrets": {
+      "api_key": "TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {
+    "path": "/items/43",
+    "body": {
+      "name": "Renamed"
+    }
+  },
+  "expect": {
+    "request": {
+      "method": "PUT",
+      "url": "https://api.example.org/v2/items/43",
+      "headers": {
+        "Authorization": "Bearer TEST_VALUE_NOT_A_REAL_SECRET",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "name": "Renamed"
+      }
+    },
+    "hosts": [
+      "api.example.org"
+    ]
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "id": 43
+    }
+  },
+  "output": {
+    "id": 43
+  }
+}

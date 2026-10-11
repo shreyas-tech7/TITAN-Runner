@@ -1,0 +1,51 @@
+{
+  "name": "make a draft",
+  "target": "action:create_draft",
+  "connection": {
+    "config": {
+      "client_id": "@@FAKE:google_client_id@@"
+    },
+    "secrets": {
+      "client_secret": "@@FAKE:google_client_secret@@",
+      "access_token": "TEST_ACCESS_TOKEN_NOT_REAL"
+    }
+  },
+  "input": {
+    "raw": "VG86IGFAZXhhbXBsZS5jb20"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://gmail.googleapis.com/gmail/v1/users/me/drafts",
+      "headers": {
+        "Authorization": "Bearer TEST_ACCESS_TOKEN_NOT_REAL"
+      },
+      "body": {
+        "message": {
+          "raw": "VG86IGFAZXhhbXBsZS5jb20"
+        }
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "id": "d1",
+      "message": {
+        "id": "m2",
+        "threadId": "t2",
+        "labelIds": [
+          "DRAFT"
+        ]
+      }
+    }
+  },
+  "output": {
+    "id": "d1",
+    "message": {
+      "id": "m2"
+    }
+  }
+}

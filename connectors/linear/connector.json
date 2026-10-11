@@ -1,0 +1,140 @@
+{
+  "id": "linear",
+  "name": "Linear",
+  "icon": "LN",
+  "version": "1.0.0",
+  "category": "dev",
+  "description": "List your recent issues. Create an issue.",
+  "docsUrl": "https://linear.app/developers/graphql",
+  "getKeyUrl": "https://linear.app/settings/account/security",
+  "apiVersion": "GraphQL at https://api.linear.app/graphql",
+  "auth": {
+    "kind": "api_key_header",
+    "header": "Authorization",
+    "prefix": "",
+    "setupNote": "Open Settings, then Account, then Security and access. Make a personal API key. Linear wants the key itself in the Authorization header, without the word Bearer.",
+    "fields": [
+      {
+        "name": "api_key",
+        "label": "API key",
+        "secret": true,
+        "pattern": "^lin_api_[A-Za-z0-9]{30,}$",
+        "help": "It starts with lin_api_."
+      }
+    ]
+  },
+  "egress": [
+    "api.linear.app"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "POST",
+      "url": "https://api.linear.app/graphql",
+      "body": {
+        "query": "query { viewer { id name } }"
+      }
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "noGraphqlErrors": true,
+      "pick": [
+        "data.viewer.name"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "list_issues",
+      "title": "List recent issues",
+      "risk": "read",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "default": 10
+          }
+        },
+        "required": []
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://api.linear.app/graphql",
+        "graphql": true,
+        "body": {
+          "query": "query($first: Int!) { issues(first: $first, orderBy: updatedAt) { nodes { identifier title url updatedAt state { name } assignee { name } } } }",
+          "variables": {
+            "first": "{{input.limit}}"
+          }
+        }
+      },
+      "pick": [
+        "data.issues.nodes[].identifier",
+        "data.issues.nodes[].title",
+        "data.issues.nodes[].url",
+        "data.issues.nodes[].updatedAt",
+        "data.issues.nodes[].state.name",
+        "data.issues.nodes[].assignee.name"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "create_issue",
+      "title": "Create an issue",
+      "risk": "write",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "team_id": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 64
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "team_id",
+          "title"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://api.linear.app/graphql",
+        "graphql": true,
+        "body": {
+          "query": "mutation($teamId: String!, $title: String!, $description: String) { issueCreate(input: { teamId: $teamId, title: $title, description: $description }) { success issue { identifier url title } } }",
+          "variables": {
+            "teamId": "{{input.team_id}}",
+            "title": "{{input.title}}",
+            "description": "{{input.description}}"
+          }
+        }
+      },
+      "pick": [
+        "data.issueCreate.success",
+        "data.issueCreate.issue.identifier",
+        "data.issueCreate.issue.url"
+      ],
+      "rateLimit": {
+        "perMinute": 10
+      }
+    }
+  ]
+}
