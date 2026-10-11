@@ -121,7 +121,7 @@ test('RT2: every committed workflow that commits state joins titan-state, and no
     assert.ok(!/^\s*(?:-\s+)?run:[\s\S]*?\bgit\s+(push|commit)\b/m.test(text.replace(/^\s*#.*$/gm, '')), `${f} runs git push or git commit`);
     if (/publish-state\.mjs/.test(text)) committers.push(f);
   }
-  assert.deepEqual(committers.sort(), ['keepalive.yml', 'ops-canary.yml', 'ops-eval.yml', 'provider-selftest.yml', 'state-maintenance.yml', 'titan-control.yml', 'titan-pulse.yml']);
+  assert.deepEqual(committers.sort(), ['keepalive.yml', 'ops-canary.yml', 'ops-eval.yml', 'ops-hosts.yml', 'provider-selftest.yml', 'state-maintenance.yml', 'titan-control.yml', 'titan-pulse.yml']);
   for (const f of committers) assert.match(readFileSync(join(dir, f), 'utf8'), /titan-state/, f);
 });
 

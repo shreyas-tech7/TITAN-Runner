@@ -1,0 +1,88 @@
+name: Host status
+
+# Every 3 hours this workflow checks the hosts that TITAN depends on (RO5): the pulse workflow of this repository, the
+# GitHub status API, the Hugging Face Space, the Render services, and the Hermes agents on Railway. A host whose URL
+# secret is not set is skipped. A Render service is probed at most every 5.5 hours, because a probe wakes it, and the
+# free plan shares 750 instance hours a month. A service that was asleep and woke up is `asleep`, not `down`.
+#
+# The result goes to the Worker (POST /ops/hosts) and to the public mirror state/ops/hosts.json. Only host names leave
+# the script. A host that fails 2 checks in a row opens an Issue with the label host-alert. The Issue closes when the
+# host is back. This workflow also copies the quota numbers of the Worker to state/ops/quota.json.
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# The shared group of every workflow that commits to state/ (RT2).
+concurrency:
+  group: titan-state
+  cancel-in-progress: false
+
+jobs:
+  hosts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # commit state/ops/hosts.json and state/ops/quota.json
+      issues: write # open and close host-alert Issues
+      actions: read # the time of the last successful pulse run
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Mask the secrets
+        env:
+          OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          HOST_URL_HF_SPACE: ${{ secrets.HOST_URL_HF_SPACE }}
+          HOST_URL_RENDER_1: ${{ secrets.HOST_URL_RENDER_1 }}
+          HOST_URL_RENDER_2: ${{ secrets.HOST_URL_RENDER_2 }}
+          HOST_URL_RENDER_3: ${{ secrets.HOST_URL_RENDER_3 }}
+          HOST_URL_HERMES_1: ${{ secrets.HOST_URL_HERMES_1 || secrets.HERMES_1_BASE_URL }}
+          HOST_URL_HERMES_2: ${{ secrets.HOST_URL_HERMES_2 || secrets.HERMES_2_BASE_URL }}
+          HOST_URL_HERMES_3: ${{ secrets.HOST_URL_HERMES_3 || secrets.HERMES_3_BASE_URL }}
+        run: |
+          for name in OPS_TOKEN DISCORD_WEBHOOK_URL HOST_URL_HF_SPACE HOST_URL_RENDER_1 HOST_URL_RENDER_2 HOST_URL_RENDER_3 HOST_URL_HERMES_1 HOST_URL_HERMES_2 HOST_URL_HERMES_3; do
+            value="${!name}"
+            if [ -n "$value" ]; then echo "::add-mask::$value"; fi
+          done
+
+      - name: Refresh the quota mirror
+        env:
+          TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
+          OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
+        run: node scripts/ops-sync.mjs
+
+      - name: Check the hosts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
+          OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GEV_URL: ${{ vars.GEV_URL }}
+          HOST_URL_HF_SPACE: ${{ secrets.HOST_URL_HF_SPACE }}
+          HOST_URL_RENDER_1: ${{ secrets.HOST_URL_RENDER_1 }}
+          HOST_URL_RENDER_2: ${{ secrets.HOST_URL_RENDER_2 }}
+          HOST_URL_RENDER_3: ${{ secrets.HOST_URL_RENDER_3 }}
+          HOST_URL_HERMES_1: ${{ secrets.HOST_URL_HERMES_1 || secrets.HERMES_1_BASE_URL }}
+          HOST_URL_HERMES_2: ${{ secrets.HOST_URL_HERMES_2 || secrets.HERMES_2_BASE_URL }}
+          HOST_URL_HERMES_3: ${{ secrets.HOST_URL_HERMES_3 || secrets.HERMES_3_BASE_URL }}
+        run: node scripts/ops-hosts.mjs
+
+      - name: Scan the state for secrets
+        run: node scripts/check-secrets-in-state.mjs
+
+      - name: Commit and push the mirrors
+        run: node scripts/publish-state.mjs --message "chore(ops): host status $(date -u +%Y-%m-%dT%H:%MZ)"
