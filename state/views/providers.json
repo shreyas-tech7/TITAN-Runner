@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-11T00:17:17.883Z",
+  "updatedAt": "2026-10-11T13:23:44.839Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 666 ms; error rate 36%; model allam-2-7b",
+      "explain": "groq: breaker closed (healthy); p50 666 ms; error rate 36%; model canopylabs/orpheus-v1-english",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
