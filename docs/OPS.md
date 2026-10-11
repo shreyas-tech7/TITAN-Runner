@@ -152,3 +152,25 @@ A host whose URL is not set is skipped and has no entry. The URLs are Actions se
 The workflow also copies the quota numbers of the Worker to `state/ops/quota.json` (`scripts/ops-sync.mjs`), so the dashboard can show the meter. It rewrites the file only when the numbers change, or when the file is 6 hours old.
 
 To run it by hand: Actions, Host status, Run workflow. In the Codespace, `node scripts/ops-hosts.mjs --no-post --no-alerts` checks the hosts that have a URL and writes the two files.
+
+## Doorbell (RO6)
+
+TITAN runs on a free host that has no clock of its own. `doorbell.yml` rings it on a schedule. One ring is `POST {TITAN_BACKEND_URL}/api/scheduled/{job}` with the secret `DOORBELL_TOKEN` as a bearer token in the `Authorization` header, and no body.
+
+| Job | When |
+| --- | --- |
+| `digest` | Every day at 06:30 in America/Chicago |
+| `weekly-review` | Every Sunday at 18:00 in America/Chicago |
+| `sweep` | Every 15 minutes |
+
+GitHub cron uses UTC, and Chicago changes its offset twice a year. So each timed job has two crons, and `scripts/ops-doorbell.mjs` lets only the one that falls on the right Chicago time ring. A test checks that exactly one of the two rings on every day of the year. GitHub often starts a cron a few minutes late, so the digest rings in the whole hour 06, and the weekly review in the whole hour 18.
+
+The secrets `TITAN_BACKEND_URL` and `DOORBELL_TOKEN` are Actions secrets. They must match the env of TITAN. When one of them is not set, the run stops before it checks out the code, and it prints one line. That is not an error.
+
+What the doorbell keeps:
+
+- It keeps the status code of each ring, and nothing else. The Worker stores `job`, `status_code`, and the time in `doorbell_log` (`POST /ops/doorbell`) when `OPS_TOKEN` is set. The table keeps 30 days.
+- It never reads the answer. A digest or a note can not reach a log, the Worker, or this public repository.
+- It does not print the backend URL or the token. A redirect is not followed, so the token goes only to the host that the secret names. The URL must be `https`, and the host must not resolve to a private address.
+
+To ring by hand: Actions, Doorbell, Run workflow, and pick a job. In the Codespace: `TITAN_BACKEND_URL=... DOORBELL_TOKEN=... node scripts/ops-doorbell.mjs --job sweep`.

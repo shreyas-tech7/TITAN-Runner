@@ -26,7 +26,7 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 - [~] RO3 Weekly golden task eval. Done: 15 tasks over 12 categories with deterministic checkers (reference and wrong answers tested), sandboxed code runner (tested under Node 22 and 24), budget, mirror, capability cache and router use, Worker route, tests. Waiting on the wf branch: `ops-eval.yml`. Open: first live run.
 - [~] RO4 Post-mortems. Done: signature merge, template and free-model paths, redaction, gitleaks scan, `state/lessons.jsonl`, decomposer reads 5 lessons, pulse sweep, 12 tests incl. a full pulse. Waiting on the wf branch: the gitleaks install step in `titan-pulse.yml`.
 - [~] RO5 Host status and alerts. Done: probe library (Space via Hub API, Render cold start = asleep, Hermes 401 = up, SSRF guard, no URL in any result), history and uptime, mirror, alert plan, CLI, quota sync, strict schemas, 25 tests incl. open and close of a host-alert Issue. Waiting on the wf branch: `ops-hosts.yml`. Open: first live run and the host-alert open and close check on GitHub.
-- [ ] RO6 Doorbell workflow
+- [~] RO6 Doorbell. Done: planner with Chicago guard (one cron of each pair rings on every day of the year, tested), ring with status code only, no body read, no redirect, egress guard, quiet skip, CLI, Worker log route, 19 tests. Waiting on the wf branch: `doorbell.yml`. Open: first live run needs `TITAN_BACKEND_URL` and `DOORBELL_TOKEN`.
 
 ## Phase 3: dashboard
 
