@@ -38,6 +38,11 @@ export const DENYLIST = Object.freeze([
   // this repo's safety net without ever touching src/reviewer/ itself.
   'worker/',
   'scripts/run-subagent-task.mjs',
+  // Secret scanning (RT1). A self-authored change must never loosen the scan, the allowlist, or the hook.
+  '.gitleaks.toml',
+  '.githooks/',
+  'scripts/scan-issues.mjs',
+  'scripts/install-hooks.mjs',
 ]);
 
 /**

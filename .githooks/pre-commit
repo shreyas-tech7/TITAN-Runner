@@ -1,0 +1,17 @@
+#!/bin/sh
+# TITAN-Runner pre-commit hook: scan the staged changes for secrets (RT1).
+# Install it with: npm run hooks:install
+# This hook never prints a matched value.
+set -e
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+# 1. The built in scan. It needs only Node and uses the same patterns as the pulse scrubber.
+node scripts/check-secrets-in-diff.mjs --staged
+
+# 2. The gitleaks scan, when the binary is installed.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --config .gitleaks.toml --redact=100 --no-banner --exit-code 1
+else
+  echo "pre-commit: gitleaks is not installed, so only the built in scan ran. CI runs gitleaks on every push." >&2
+fi
