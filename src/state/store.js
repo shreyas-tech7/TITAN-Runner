@@ -18,6 +18,7 @@ import { dirname, join, basename } from 'node:path';
 import { check } from '../lib/validate.js';
 import { scrubForState } from '../lib/secretScrub.js';
 import { createLogger } from '../lib/logger.js';
+import { writeMonthlyArchive } from './archive.js';
 import { statePaths } from './paths.js';
 import {
   TASKS_FILE_SCHEMA, HEARTBEAT_SCHEMA, CONTROL_SCHEMA, CHECKPOINT_SCHEMA,
@@ -277,10 +278,9 @@ export class StateStore {
       byMonth.set(month, [...(byMonth.get(month) ?? []), t]);
     }
     for (const [month, rows] of byMonth) {
-      const path = join(this.archiveDir, `tasks-${month}.jsonl`);
-      const lines = rows.map((t) => JSON.stringify(scrubForState(t))).join('\n');
-      writeFileSync(path, `${existsSync(path) ? readFileSync(path, 'utf8') : ''}${lines}\n`);
-      this.written.add(path);
+      // RT7: one compressed file for each month. A task that is already in it is not added twice.
+      const res = writeMonthlyArchive({ archiveDir: this.archiveDir, name: 'tasks', month, records: rows.map((t) => scrubForState(t)), idOf: (t) => t.id, sortKey: (t) => `${t.completedAt}|${t.id}` });
+      this.written.add(res.path);
     }
     file.tasks = keep;
     return archive.length;

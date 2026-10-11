@@ -414,8 +414,8 @@ export async function runPulse(deps = {}) {
     }
     quota.save();
 
-    const pruneResult = pruneRuns({ maxFiles: config.retention.maxRunFiles, runsDir: store.paths.runs, digestsDir: store.paths.digests });
-    if (pruneResult.prunedCount > 0) log.info('pruned old run records into a digest', pruneResult);
+    const pruneResult = pruneRuns({ maxFiles: config.retention.maxRunFiles, keepDays: config.retention.keepRunDays, runsDir: store.paths.runs, archiveDir: store.archiveDir });
+    if (pruneResult.prunedCount > 0) log.info('rolled old run records into the monthly archive', pruneResult);
     const archived = store.archiveOldTasks(tasksFile, { maxAgeDays: positiveInt(process.env.TITAN_TASK_RETENTION_DAYS, 30) });
     if (archived > 0) events.append('retention.tasks-archived', { count: archived });
     const compacted = events.compact();

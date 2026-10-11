@@ -16,7 +16,7 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 - [x] RT4 Tool argument validation (every bad field named, table tests)
 - [~] RT5 Worker auth. Done: sessions, limits with backoff, sign-in log, CORS, input limits, public route limits, tests. Open: dashboard sign-in uses the session (RD1).
 - [x] RT6 VM fleet safety (bare ssh env, URL cleaning, 120 minute cap on script and Worker, claim code hidden). The vm-agent workflow secret list shrinks on the wf branch.
-- [ ] RT7 State hygiene: schema check, retention, monthly archives, daily commit
+- [~] RT7 State hygiene. Done: strict schemas for every state file, `check-state`, monthly compressed archives (runs, tasks, event summaries, digests, reviews), daily maintenance script, publish script with retry, tests. Waiting on the wf branch: `state-maintenance.yml`, the CI step, and the shared concurrency group.
 
 ## Phase 2: shared ops services
 

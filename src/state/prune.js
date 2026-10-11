@@ -1,65 +1,50 @@
 /**
- * @file Retention for `state/runs/` — capped and pruned so the repo does not
- * grow without bound. When the run count exceeds `maxFiles`, the oldest
- * runs are rolled into that day's dated summary file under
- * `state/digests/` (one compact line each: id, title, state, task count,
- * duration) and the original per-run JSON files are deleted.
+ * @file Retention for `state/runs/` (RT7). A run record is a JSON file. Without a limit the folder grows for ever.
+ * The newest 10 records always stay as files. Of the rest, a record that is older than `keepDays`, or beyond the newest
+ * `maxFiles` records, moves into the compressed monthly archive `state/archive/runs-YYYY-MM.jsonl.gz` and the file is deleted.
  *
- * This is the only thing in this repo that deletes a committed file — and
- * it only ever deletes a run record after folding its summary into a
- * digest, so history is compacted, never silently lost.
+ * The archive holds the whole record, so a run is never lost. The dashboard reads a recent run from its file
+ * (`state/runs/<id>.json`). An older run is in the archive.
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, appendFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { RUNS_DIR, DIGESTS_DIR } from './io.js';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { RUNS_DIR } from './io.js';
+import { rollOldFiles } from './archive.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('state:prune');
 
 /**
- * @param {{ maxFiles?: number, now?: Date, runsDir?: string, digestsDir?: string }} [opts]
- *   `runsDir`/`digestsDir` default to the real, cwd-derived paths from
- *   `state/io.js`; overridable so a test can point this at a scratch
- *   directory without needing to `process.chdir()` (which a module-level
- *   `const` computed at import time — like `RUNS_DIR` itself — would not
- *   observe after the fact anyway).
+ * @param {{ maxFiles?: number, keepDays?: number, now?: Date, runsDir?: string, archiveDir?: string }} [opts]
+ *   `runsDir` and `archiveDir` default to the paths of `state/`. A test can point them at a scratch folder.
  * @returns {{ prunedCount: number, prunedIds: string[] }}
  */
 export function pruneRuns(opts = {}) {
-  const maxFiles = opts.maxFiles ?? 60;
-  const now = opts.now ?? new Date();
   const runsDir = opts.runsDir ?? RUNS_DIR;
-  const digestsDir = opts.digestsDir ?? DIGESTS_DIR;
-
-  if (!existsSync(runsDir)) return { prunedCount: 0, prunedIds: [] };
-  const files = readdirSync(runsDir)
-    .filter((f) => f.endsWith('.json'))
-    .map((f) => ({ file: f, path: join(runsDir, f), mtime: statSync(join(runsDir, f)).mtimeMs }))
-    .sort((a, b) => a.mtime - b.mtime); // oldest first
-
-  if (files.length <= maxFiles) return { prunedCount: 0, prunedIds: [] };
-
-  const toPrune = files.slice(0, files.length - maxFiles);
-  const prunedIds = [];
-  mkdirSync(digestsDir, { recursive: true });
-  const digestPath = join(digestsDir, `${now.toISOString().slice(0, 10)}-rollup.md`);
-
-  for (const entry of toPrune) {
-    try {
-      const run = JSON.parse(readFileSync(entry.path, 'utf8'));
-      const line = `- \`${run.runId ?? entry.file}\` — ${run.taskTitle ?? 'untitled'} — ${run.state ?? 'unknown'} — ${run.tasks?.length ?? 0} subtask(s)${run.durationMs ? ` — ${Math.round(run.durationMs / 1000)}s` : ''}\n`;
-      if (!existsSync(digestPath)) {
-        appendFileSync(digestPath, `# Run rollup — ${now.toISOString().slice(0, 10)}\n\nOlder runs pruned from \`state/runs/\` on this date, summarized here.\n\n`, 'utf8');
-      }
-      appendFileSync(digestPath, line, 'utf8');
-      unlinkSync(entry.path);
-      prunedIds.push(run.runId ?? entry.file);
-    } catch (err) {
-      log.warn('prune: failed to roll up a run file — leaving it in place', { file: entry.file, error: String(err) });
-    }
+  const archiveDir = opts.archiveDir ?? join(dirname(runsDir), 'archive');
+  const maxFiles = opts.maxFiles ?? 60;
+  const keepDays = opts.keepDays ?? 14;
+  try {
+    const res = rollOldFiles({
+      dir: runsDir,
+      archiveDir,
+      name: 'runs',
+      keepDays,
+      keepNewest: Math.min(10, maxFiles),
+      maxFiles,
+      now: opts.now,
+      accept: (f) => f.endsWith('.json'),
+      read: (path) => JSON.parse(readFileSync(path, 'utf8')),
+      dateOf: (run, _file, mtimeMs) => run.createdAt ?? mtimeMs,
+      idOf: (run) => String(run.runId),
+    });
+    const ids = res.files.map((f) => f.replace(/\.json$/, ''));
+    if (res.archived > 0) log.info('rolled old run records into the monthly archive', { count: res.archived });
+    return { prunedCount: res.archived, prunedIds: ids };
+  } catch (err) {
+    log.warn('prune: could not roll old run records, so they stay in place', { error: String(err).slice(0, 200) });
+    return { prunedCount: 0, prunedIds: [] };
   }
-
-  return { prunedCount: prunedIds.length, prunedIds };
 }
 
 export default { pruneRuns };

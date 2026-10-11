@@ -125,6 +125,8 @@ export const config = Object.freeze({
 
   retention: {
     maxRunFiles: positiveInt(process.env.TITAN_MAX_RUN_FILES, 60),
+    // Run records older than this many days, beyond the newest maxRunFiles, move into the monthly archive (RT7).
+    keepRunDays: positiveInt(process.env.TITAN_RUNS_KEEP_DAYS, 14),
     maxReviewLines: positiveInt(process.env.TITAN_MAX_REVIEW_LINES, 5000),
   },
 });

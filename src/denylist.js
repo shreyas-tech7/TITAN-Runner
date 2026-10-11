@@ -45,6 +45,13 @@ export const DENYLIST = Object.freeze([
   'scripts/install-hooks.mjs',
   // VM safety limits (RT6).
   'src/lib/vmSafety.js',
+  // State hygiene (RT7): the strict schemas, the checker, the publisher, and the archives.
+  'src/state/strict.js',
+  'src/state/archive.js',
+  'src/state/maintenance.js',
+  'scripts/check-state.mjs',
+  'scripts/publish-state.mjs',
+  'scripts/state-maintenance.mjs',
 ]);
 
 /**

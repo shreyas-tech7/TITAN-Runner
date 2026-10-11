@@ -97,3 +97,34 @@ A railway.new VM is untrusted. Runner handles it with these rules:
 - The preview URL must be `https` on `up.railway.app`. Runner removes the query, the path, and any user name.
 - The claim URL must be `https://railway.com/ssh-signup?code=<code>`. Logs hide the code.
 - A VM lives for 120 minutes at most. Set `TITAN_VM_MAX_LIFETIME_MINUTES` to change the cap (10 to 1440). The Worker applies the cap again and expires the row. Railway can keep an unclaimed box for 24 hours. Runner stops treating it as live after the cap.
+
+## State hygiene
+
+Every file under `state/` has a strict schema in `src/state/strict.js`. A schema lists each key that a file may hold. An extra key fails the check. A file with no schema fails the check too, so a new kind of state file needs a schema in the same change.
+
+Run the check by hand:
+
+```bash
+node scripts/check-state.mjs
+node scripts/check-state.mjs --gitleaks
+```
+
+The check also scans the text of each file for secret-shaped strings. It reads inside the compressed archives. The messages name the file and the field. They never show a value.
+
+### Retention
+
+Old files move into one compressed file for each month under `state/archive/`. The archive holds the whole record.
+
+| Kind | Stays as a file | Archive |
+|---|---|---|
+| Run records | The newest 10, and any run newer than 14 days up to 60 files | `runs-YYYY-MM.jsonl.gz` |
+| Finished tasks | Tasks that ended in the last 30 days | `tasks-YYYY-MM.jsonl.gz` |
+| Event summaries | 90 days | `events-summary-YYYY-MM.jsonl.gz` |
+| Research and weekly digests | 60 days | `digests-YYYY-MM.jsonl.gz` |
+| Gate review logs | 60 days | `reviews-YYYY-MM.jsonl.gz` |
+
+The daily workflow `state-maintenance.yml` does the archive work, checks the schemas, and writes `state/maintenance.json`. That file holds a time stamp, so the workflow makes one commit each day. GitHub turns off the scheduled workflows of a public repo after 60 days with no activity. The daily commit keeps them on.
+
+### How a workflow publishes state
+
+A workflow that writes to `state/` calls `node scripts/publish-state.mjs --message "..."`. The script checks the schemas, commits through the Reviewer Gate, pulls with rebase, and pushes. It tries three times and then fails. The workflow also joins the concurrency group `titan-state`, so two workflows never push at the same time.
