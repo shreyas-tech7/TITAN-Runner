@@ -1,0 +1,170 @@
+{
+  "id": "todoist",
+  "name": "Todoist",
+  "icon": "TD",
+  "version": "1.0.0",
+  "category": "productivity",
+  "description": "List your projects and tasks. Add a task. Close a task.",
+  "docsUrl": "https://developer.todoist.com/api/v1/",
+  "getKeyUrl": "https://app.todoist.com/app/settings/integrations/developer",
+  "apiVersion": "API v1 (https://api.todoist.com/api/v1). The old REST v2 answers 410 Gone.",
+  "auth": {
+    "kind": "bearer",
+    "setupNote": "Open Settings, then Integrations, then Developer. Copy the API token.",
+    "fields": [
+      {
+        "name": "token",
+        "label": "API token",
+        "secret": true,
+        "pattern": "^[A-Za-z0-9_-]{20,64}$",
+        "help": "Todoist shows it in Settings, Integrations, Developer."
+      }
+    ]
+  },
+  "egress": [
+    "api.todoist.com"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "GET",
+      "url": "https://api.todoist.com/api/v1/projects",
+      "query": {
+        "limit": "1"
+      }
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "pick": [
+        "results[].name"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "list_tasks",
+      "title": "List tasks",
+      "risk": "read",
+      "dataClass": "personal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 20
+          }
+        },
+        "required": []
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://api.todoist.com/api/v1/tasks",
+        "query": {
+          "project_id": "{{input.project_id}}",
+          "limit": "{{input.limit}}"
+        }
+      },
+      "pick": [
+        "results[].id",
+        "results[].content",
+        "results[].priority",
+        "results[].due.date",
+        "results[].labels",
+        "results[].project_id"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "add_task",
+      "title": "Add a task",
+      "risk": "write",
+      "dataClass": "personal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "project_id": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "due_string": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://api.todoist.com/api/v1/tasks",
+        "body": {
+          "content": "{{input.content}}",
+          "project_id": "{{input.project_id}}",
+          "due_string": "{{input.due_string}}",
+          "priority": "{{input.priority}}"
+        }
+      },
+      "pick": [
+        "id",
+        "content",
+        "url"
+      ],
+      "rateLimit": {
+        "perMinute": 10
+      }
+    },
+    {
+      "id": "close_task",
+      "title": "Close a task",
+      "risk": "write",
+      "dataClass": "personal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://api.todoist.com/api/v1/tasks/{{input.task_id}}/close"
+      },
+      "response": "status",
+      "okStatus": [
+        200,
+        204
+      ],
+      "rateLimit": {
+        "perMinute": 10
+      }
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import AdminGate from "@/components/AdminGate";
 import ThemeSwitch from "@/components/ThemeSwitch";
 import TopTabs, { type TopTab } from "@/components/TopTabs";
 import OfflineNotice from "@/components/OfflineNotice";
+import VersionFooter from "@/components/VersionFooter";
 
 export default function PageShell({
   active,
@@ -39,6 +40,9 @@ export default function PageShell({
             <OfflineNotice />
             {children(token, lock)}
           </main>
+          <footer>
+            <VersionFooter />
+          </footer>
         </div>
       )}
     </AdminGate>

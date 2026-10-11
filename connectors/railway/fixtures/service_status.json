@@ -1,0 +1,54 @@
+{
+  "name": "service status",
+  "target": "action:service_status",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:railway_token@@"
+    }
+  },
+  "input": {
+    "service_id": "s-1234567"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://backboard.railway.com/graphql/v2",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:railway_token@@"
+      },
+      "body": {
+        "query": "query($id: String!) { service(id: $id) { id name projectId updatedAt } }",
+        "variables": {
+          "id": "s-1234567"
+        }
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "data": {
+        "service": {
+          "id": "s-1234567",
+          "name": "agent",
+          "projectId": "p-1234567",
+          "updatedAt": "2026-10-01T00:00:00Z",
+          "icon": "x"
+        }
+      }
+    }
+  },
+  "output": {
+    "data": {
+      "service": {
+        "id": "s-1234567",
+        "name": "agent",
+        "projectId": "p-1234567",
+        "updatedAt": "2026-10-01T00:00:00Z"
+      }
+    }
+  }
+}

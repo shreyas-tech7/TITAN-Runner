@@ -9,6 +9,8 @@ import { dispatchQueuedVms, expireStaleVms } from './legacy.js';
 import { dispatchQueuedTasks, mirrorGithubIssues, reapStuckTasks } from './tasks.js';
 import { runMetaAgent } from './meta-agent.js';
 import { pruneOldRows } from './retention.js';
+import { expireApprovals } from './connectors/broker.js';
+import { routeEvents } from './connectors/notifyRouter.js';
 
 export { authenticateInternal };
 
@@ -27,6 +29,8 @@ export async function runTick(env, now = new Date()) {
     ['reaper', () => reapStuckTasks(env, now)],
     ['mirror', () => mirrorGithubIssues(env)],
     ['dispatch', () => dispatchQueuedTasks(env)],
+    ['approvals', () => expireApprovals(env, now)],
+    ['notify', () => routeEvents(env, now)],
     ['vms', () => dispatchQueuedVms(env)],
     ['expireVms', () => expireStaleVms(env)],
   ];

@@ -1,0 +1,105 @@
+{
+  "id": "ntfy",
+  "name": "ntfy",
+  "icon": "NT",
+  "version": "1.0.0",
+  "category": "notify",
+  "description": "Send a push notification to your phone through ntfy.sh.",
+  "docsUrl": "https://docs.ntfy.sh/publish/",
+  "getKeyUrl": "https://ntfy.sh/",
+  "apiVersion": "Publish API (HTTP POST to a topic)",
+  "auth": {
+    "kind": "secret_url",
+    "hostAllowlist": [
+      "ntfy.sh"
+    ],
+    "setupNote": "The topic name is the secret on the public server. Pick a long random topic name. Subscribe to it in the ntfy app. The URL is https://ntfy.sh/ and the topic. If your topic needs a token, add it in the second field.",
+    "fields": [
+      {
+        "name": "url",
+        "label": "Topic URL",
+        "secret": true,
+        "pattern": "^https://ntfy\\.sh/[A-Za-z0-9_-]{6,64}$",
+        "help": "For example https://ntfy.sh/ and a long random name."
+      },
+      {
+        "name": "token",
+        "label": "Access token (optional)",
+        "secret": true,
+        "optional": true,
+        "pattern": "^tk_[A-Za-z0-9]{20,}$",
+        "help": "Only if the topic is protected."
+      }
+    ]
+  },
+  "egress": [
+    "ntfy.sh"
+  ],
+  "test": {
+    "mode": "onClick",
+    "request": {
+      "method": "POST",
+      "bodyText": "TITAN test message",
+      "headers": {
+        "Title": "TITAN"
+      }
+    },
+    "expect": {
+      "status": [
+        200
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "publish",
+      "title": "Publish a notification",
+      "risk": "write",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 100,
+            "default": "TITAN"
+          },
+          "priority": {
+            "enum": [
+              "min",
+              "low",
+              "default",
+              "high",
+              "max"
+            ],
+            "default": "default"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "bodyText": "{{input.message}}",
+        "headers": {
+          "Title": "{{input.title}}",
+          "Priority": "{{input.priority}}"
+        }
+      },
+      "pick": [
+        "id",
+        "event",
+        "topic"
+      ],
+      "rateLimit": {
+        "perMinute": 20
+      }
+    }
+  ]
+}

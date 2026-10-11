@@ -1,0 +1,42 @@
+{
+  "name": "test: me",
+  "target": "test",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:railway_token@@"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://backboard.railway.com/graphql/v2",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:railway_token@@"
+      },
+      "body": {
+        "query": "query { me { name } }"
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "data": {
+        "me": {
+          "name": "Shreyas"
+        }
+      }
+    }
+  },
+  "output": {
+    "data": {
+      "me": {
+        "name": "Shreyas"
+      }
+    }
+  }
+}

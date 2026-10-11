@@ -1,0 +1,40 @@
+{
+  "name": "read an Atom feed",
+  "target": "action:read_feed",
+  "connection": {
+    "config": {
+      "feed_url": "https://blog.example.org/atom.xml"
+    },
+    "secrets": {}
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://blog.example.org/atom.xml",
+      "headers": {
+        "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.5"
+      },
+      "body": null
+    },
+    "hosts": [
+      "blog.example.org"
+    ]
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/atom+xml",
+    "body": "<?xml version=\"1.0\"?><feed xmlns=\"http://www.w3.org/2005/Atom\"><title>Blog</title><entry><title>Post one</title><link rel=\"alternate\" href=\"https://blog.example.org/one\"/><updated>2026-10-06T08:00:00Z</updated><summary>Short text</summary></entry></feed>"
+  },
+  "output": {
+    "title": "Blog",
+    "items": [
+      {
+        "title": "Post one",
+        "link": "https://blog.example.org/one",
+        "date": "2026-10-06T08:00:00Z",
+        "summary": "Short text"
+      }
+    ]
+  }
+}

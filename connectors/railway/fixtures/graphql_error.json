@@ -1,0 +1,37 @@
+{
+  "name": "a GraphQL error is a failure",
+  "target": "action:list_projects",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:railway_token@@"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://backboard.railway.com/graphql/v2",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:railway_token@@"
+      },
+      "body": {
+        "query": "query { projects { edges { node { id name updatedAt } } } }"
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "errors": [
+        {
+          "message": "Not Authorized"
+        }
+      ]
+    }
+  },
+  "output": null,
+  "expectFailure": "returned an error"
+}

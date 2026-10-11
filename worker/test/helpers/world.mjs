@@ -166,7 +166,7 @@ export class FakeWorld {
     this.dns = new Map();
     /** @type {Array<{ host: string, method: string, path: string }>} */
     this.log = [];
-    this.fetch = (input, init) => this.handle(new Request(typeof input === 'string' ? input : input.url ?? String(input), init));
+    this.fetch = (input, init) => this.handle(new Request(typeof input === 'string' ? input : input.url ?? String(input), init), init?.signal ?? input?.signal);
     for (const h of ['api.groq.com', 'api.together.xyz', 'openrouter.ai', 'huggingface.co', 'router.huggingface.co', 'llm.example.com', 'gw.example.com', 'hermes.example.com']) this.providers.host(h);
     this.providers.host('generativelanguage.googleapis.com', { geminiStyle: true });
   }
@@ -175,16 +175,20 @@ export class FakeWorld {
     this.extraHosts.set(host, handler);
   }
 
-  /** Like a real fetch: a call that is aborted, for example by a timeout, rejects at once. */
-  async handle(request) {
+  /**
+   * Like a real fetch: a call that is aborted, for example by a timeout, rejects at once.
+   * Listen on the signal that the caller passed. A `Request` follows that signal through a weak
+   * reference in Node 24, so a garbage collection could drop the abort and leave the call open.
+   */
+  async handle(request, signal = request.signal) {
     const work = this.#route(request);
-    if (!request.signal) return work;
+    if (!signal) return work;
     return Promise.race([
       work,
       new Promise((_, reject) => {
-        const fail = () => reject(request.signal.reason ?? new DOMException('This operation was aborted', 'AbortError'));
-        if (request.signal.aborted) fail();
-        else request.signal.addEventListener('abort', fail, { once: true });
+        const fail = () => reject(signal.reason ?? new DOMException('This operation was aborted', 'AbortError'));
+        if (signal.aborted) fail();
+        else signal.addEventListener('abort', fail, { once: true });
       }),
     ]);
   }

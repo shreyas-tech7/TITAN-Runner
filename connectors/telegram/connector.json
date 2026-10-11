@@ -1,0 +1,85 @@
+{
+  "id": "telegram",
+  "name": "Telegram",
+  "icon": "TG",
+  "version": "1.0.0",
+  "category": "notify",
+  "description": "Send messages from a bot you own. Command TITAN from your phone.",
+  "docsUrl": "https://core.telegram.org/bots/api",
+  "getKeyUrl": "https://t.me/BotFather",
+  "apiVersion": "Bot API (HTTPS, methods by name)",
+  "auth": {
+    "kind": "telegram_bot",
+    "setupNote": "Open @BotFather in Telegram. Send /newbot and follow the steps. Paste the bot token here. Then send /pair with the code that TITAN shows to your bot.",
+    "fields": [
+      {
+        "name": "token",
+        "label": "Bot token",
+        "secret": true,
+        "pattern": "^\\d{8,10}:[A-Za-z0-9_-]{35}$",
+        "help": "BotFather gives it to you. It looks like 123456789:AA... with 35 characters after the colon."
+      }
+    ]
+  },
+  "egress": [
+    "api.telegram.org"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "GET",
+      "telegram": "getMe"
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "okField": "ok",
+      "pick": [
+        "result.username",
+        "result.first_name"
+      ]
+    }
+  },
+  "triggers": [
+    "webhook"
+  ],
+  "actions": [
+    {
+      "id": "send_message",
+      "title": "Send a message",
+      "risk": "write",
+      "dataClass": "internal",
+      "description": "Sends to the paired owner chat only.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "telegram": "sendMessage",
+        "body": {
+          "chat_id": "{{config.chat_id}}",
+          "text": "{{input.text}}",
+          "disable_web_page_preview": true
+        }
+      },
+      "pick": [
+        "ok",
+        "result.message_id"
+      ],
+      "rateLimit": {
+        "perMinute": 20
+      }
+    }
+  ]
+}

@@ -31,6 +31,8 @@ import ThemeSwitch from "@/components/ThemeSwitch";
 import OfflineNotice from "@/components/OfflineNotice";
 import QuotaPanel from "@/components/QuotaPanel";
 import LastPulsePanel from "@/components/LastPulsePanel";
+import SetupChecklist from "@/components/SetupChecklist";
+import VersionFooter from "@/components/VersionFooter";
 import { THEMES, THEME_LABEL, applyTheme } from "@/lib/theme";
 import { quotaRows, type QuotaRow, type QuotaState } from "@/lib/quota";
 
@@ -43,6 +45,8 @@ function useMinuteClock(): number {
   }, []);
   return now;
 }
+
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 function readUrlParam(name: string): string {
   if (typeof window === "undefined") return "";
@@ -116,6 +120,14 @@ export default function DashboardPage() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [optimistic, setOptimistic] = useState(() => listOptimisticTasks());
 
+  // A link from the Health Center, such as /?settings=health, opens Settings. The parameter goes away at once.
+  useEffect(() => {
+    if (readUrlParam("settings")) {
+      setSettingsOpen(true);
+      writeUrlParams({ settings: "" });
+    }
+  }, []);
+
   useEffect(() => writeUrlParams({ q: query }), [query]);
   useEffect(() => writeUrlParams({ task: selectedTaskId }), [selectedTaskId]);
 
@@ -179,7 +191,11 @@ export default function DashboardPage() {
       },
       { id: "open-repo", label: "Open repo", run: () => window.open(`https://github.com/${OWNER}/${REPO}`, "_blank") },
       { id: "toggle-settings", label: "Settings", run: () => setSettingsOpen(true) },
-      { id: "add-key", label: "Add a key", run: () => window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/keys/`) },
+      { id: "add-key", label: "Add a key", run: () => window.location.assign(`${BASE_PATH}/keys/`) },
+      { id: "connect-tool", label: "Connect a tool", run: () => window.location.assign(`${BASE_PATH}/connectors/?focus=search`) },
+      { id: "test-connectors", label: "Test all connectors", run: () => window.location.assign(`${BASE_PATH}/connectors/?testAll=1`) },
+      { id: "open-health", label: "Open the Health Center", run: () => window.location.assign(`${BASE_PATH}/health/`) },
+      { id: "open-approvals", label: "Open approvals", run: () => window.location.assign(`${BASE_PATH}/connectors/?tab=approvals`) },
       ...THEMES.map((t) => ({ id: `theme-${t}`, label: `Theme: ${THEME_LABEL[t]}`, run: () => applyTheme(t) })),
     ];
     const taskCommands: Command[] = allTasks.slice(-30).map((t) => ({
@@ -232,6 +248,8 @@ export default function DashboardPage() {
 
       <StalenessBanner lastPulseAt={heartbeat.data?.lastPulseAt ?? null} token={ adminToken } />
 
+      <SetupChecklist token={adminToken} onUnauthorized={lockDashboard} />
+
       <div className="vitals-grid">
         <CommandClock />
         <WeatherPanel />
@@ -282,6 +300,7 @@ export default function DashboardPage() {
         — see the repo README before filing a task with anything sensitive in it. Press <span className="kbd">⌘K</span> for
         the command palette, <span className="kbd">n</span> for a new task, <span className="kbd">/</span> to filter.
       </p>
+      <VersionFooter />
       </footer>
 
       {selectedTask && <TaskDetailDrawer task={selectedTask} onClose={() => setSelectedTaskId("")} />}

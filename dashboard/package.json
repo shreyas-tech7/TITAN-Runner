@@ -7,7 +7,7 @@
     "build": "node scripts/copy-state.mjs && next build",
     "start": "next start",
     "test": "tsx --tsconfig test/tsconfig.json --test test/*.test.ts test/*.test.tsx",
-    "e2e": "node --test e2e/*.e2e.mjs"
+    "e2e": "node --test --test-concurrency=1 --test-timeout=180000 e2e/*.e2e.mjs"
   },
   "dependencies": {
     "next": "^15.1.0",

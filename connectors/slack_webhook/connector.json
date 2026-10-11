@@ -1,0 +1,75 @@
+{
+  "id": "slack_webhook",
+  "name": "Slack webhook",
+  "icon": "SL",
+  "version": "1.0.0",
+  "category": "notify",
+  "description": "Post a message to a Slack channel through an incoming webhook.",
+  "docsUrl": "https://api.slack.com/messaging/webhooks",
+  "getKeyUrl": "https://api.slack.com/apps",
+  "apiVersion": "Incoming webhooks",
+  "auth": {
+    "kind": "secret_url",
+    "hostAllowlist": [
+      "hooks.slack.com"
+    ],
+    "setupNote": "The URL is the secret. Make a Slack app, turn on Incoming Webhooks, add a webhook to a channel, and copy its URL.",
+    "fields": [
+      {
+        "name": "url",
+        "label": "Webhook URL",
+        "secret": true,
+        "pattern": "^https://hooks\\.slack\\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[A-Za-z0-9]+$",
+        "help": "It starts with https://hooks.slack.com/services/."
+      }
+    ]
+  },
+  "egress": [
+    "hooks.slack.com"
+  ],
+  "test": {
+    "mode": "onClick",
+    "request": {
+      "method": "POST",
+      "body": {
+        "text": "TITAN test message"
+      }
+    },
+    "expect": {
+      "status": [
+        200
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "send",
+      "title": "Send a message",
+      "risk": "write",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 3000
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "body": {
+          "text": "{{input.text}}"
+        }
+      },
+      "response": "text",
+      "rateLimit": {
+        "perMinute": 20
+      }
+    }
+  ]
+}

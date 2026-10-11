@@ -1,0 +1,96 @@
+{
+  "id": "discord_webhook",
+  "name": "Discord webhook",
+  "icon": "DC",
+  "version": "1.0.0",
+  "category": "notify",
+  "description": "Post a message to a Discord channel through a webhook.",
+  "docsUrl": "https://discord.com/developers/docs/resources/webhook",
+  "getKeyUrl": "https://support.discord.com/hc/en-us/articles/228383668",
+  "apiVersion": "Webhook API v10",
+  "auth": {
+    "kind": "secret_url",
+    "hostAllowlist": [
+      "discord.com",
+      "discordapp.com",
+      "ptb.discord.com",
+      "canary.discord.com"
+    ],
+    "setupNote": "The URL is the secret. Anyone who has it can post to the channel. Open the channel settings, choose Integrations, then Webhooks, and copy the URL.",
+    "fields": [
+      {
+        "name": "url",
+        "label": "Webhook URL",
+        "secret": true,
+        "pattern": "^https://(?:ptb\\.|canary\\.)?discord(?:app)?\\.com/api/webhooks/\\d+/[A-Za-z0-9_-]+$",
+        "help": "It starts with https://discord.com/api/webhooks/."
+      }
+    ]
+  },
+  "egress": [
+    "discord.com",
+    "discordapp.com",
+    "ptb.discord.com",
+    "canary.discord.com"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "GET",
+      "headers": {}
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "pick": [
+        "name",
+        "channel_id",
+        "guild_id"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "send",
+      "title": "Send a message",
+      "risk": "write",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "username": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "body": {
+          "content": "{{input.text}}",
+          "username": "{{input.username}}",
+          "allowed_mentions": {
+            "parse": []
+          }
+        }
+      },
+      "response": "status",
+      "okStatus": [
+        200,
+        204
+      ],
+      "rateLimit": {
+        "perMinute": 20
+      }
+    }
+  ]
+}

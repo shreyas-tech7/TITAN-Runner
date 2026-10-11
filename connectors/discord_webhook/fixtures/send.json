@@ -1,0 +1,35 @@
+{
+  "name": "send a message",
+  "target": "action:send",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "url": "https://discord.com/api/webhooks/123456789012345678/TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {
+    "text": "Hello channel"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://discord.com/api/webhooks/123456789012345678/TEST_VALUE_NOT_A_REAL_SECRET",
+      "headers": {},
+      "body": {
+        "content": "Hello channel",
+        "allowed_mentions": {
+          "parse": []
+        }
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 204,
+    "contentType": "text/plain",
+    "body": ""
+  },
+  "output": {
+    "status": 204
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "start a deploy",
+  "target": "action:trigger_deploy",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:render_key@@"
+    }
+  },
+  "input": {
+    "service_id": "srv-abc123def456"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.render.com/v1/services/srv-abc123def456/deploys",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:render_key@@"
+      },
+      "body": {
+        "clearCache": "do_not_clear"
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 201,
+    "contentType": "application/json",
+    "body": {
+      "id": "dep-2",
+      "status": "created",
+      "createdAt": "2026-10-08T00:00:00Z",
+      "commit": {}
+    }
+  },
+  "output": {
+    "id": "dep-2",
+    "status": "created",
+    "createdAt": "2026-10-08T00:00:00Z"
+  }
+}

@@ -1,0 +1,309 @@
+{
+  "id": "github",
+  "name": "GitHub",
+  "icon": "GH",
+  "version": "1.0.0",
+  "category": "dev",
+  "description": "List issues, pull requests, and runs. Create an issue or a comment.",
+  "docsUrl": "https://docs.github.com/en/rest",
+  "getKeyUrl": "https://github.com/settings/personal-access-tokens/new",
+  "apiVersion": "REST API, header X-GitHub-Api-Version 2022-11-28",
+  "auth": {
+    "kind": "bearer",
+    "setupNote": "Make a fine-grained token for one repository. Give it Issues: Read and write, Pull requests: Read, and Actions: Read.",
+    "fields": [
+      {
+        "name": "token",
+        "label": "Fine-grained token",
+        "secret": true,
+        "pattern": "^(github_pat_|ghp_|gho_|ghs_)[A-Za-z0-9_]{20,}$",
+        "help": "It starts with github_pat_.",
+        "placeholder": "github_pat_..."
+      },
+      {
+        "name": "owner",
+        "label": "Owner",
+        "secret": false,
+        "pattern": "^[A-Za-z0-9-]{1,39}$",
+        "help": "The user or organization name.",
+        "placeholder": "shreyas-tech7"
+      },
+      {
+        "name": "repo",
+        "label": "Repository",
+        "secret": false,
+        "pattern": "^[A-Za-z0-9._-]{1,100}$",
+        "help": "The repository name.",
+        "placeholder": "TITAN-Runner"
+      }
+    ]
+  },
+  "egress": [
+    "api.github.com"
+  ],
+  "test": {
+    "mode": "request",
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/{{config.owner}}/{{config.repo}}",
+      "headers": {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "titan-runner-brain"
+      }
+    },
+    "expect": {
+      "status": [
+        200
+      ],
+      "pick": [
+        "full_name",
+        "private",
+        "open_issues_count"
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "list_issues",
+      "title": "List issues",
+      "risk": "read",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "enum": [
+              "open",
+              "closed",
+              "all"
+            ],
+            "default": "open"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "default": 10
+          }
+        },
+        "required": []
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/{{config.owner}}/{{config.repo}}/issues",
+        "query": {
+          "state": "{{input.state}}",
+          "per_page": "{{input.limit}}"
+        },
+        "headers": {
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "titan-runner-brain"
+        }
+      },
+      "pick": [
+        "number",
+        "title",
+        "state",
+        "html_url",
+        "user.login",
+        "comments",
+        "updated_at",
+        "pull_request.url"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "list_prs",
+      "title": "List pull requests",
+      "risk": "read",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "enum": [
+              "open",
+              "closed",
+              "all"
+            ],
+            "default": "open"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "default": 10
+          }
+        },
+        "required": []
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/{{config.owner}}/{{config.repo}}/pulls",
+        "query": {
+          "state": "{{input.state}}",
+          "per_page": "{{input.limit}}"
+        },
+        "headers": {
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "titan-runner-brain"
+        }
+      },
+      "pick": [
+        "number",
+        "title",
+        "state",
+        "html_url",
+        "user.login",
+        "draft",
+        "updated_at",
+        "head.ref"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "list_runs",
+      "title": "List workflow runs",
+      "risk": "read",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "default": 5
+          }
+        },
+        "required": []
+      },
+      "request": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/{{config.owner}}/{{config.repo}}/actions/runs",
+        "query": {
+          "per_page": "{{input.limit}}"
+        },
+        "headers": {
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "titan-runner-brain"
+        }
+      },
+      "pick": [
+        "workflow_runs[].id",
+        "workflow_runs[].name",
+        "workflow_runs[].status",
+        "workflow_runs[].conclusion",
+        "workflow_runs[].html_url",
+        "workflow_runs[].created_at"
+      ],
+      "rateLimit": {
+        "perMinute": 30
+      }
+    },
+    {
+      "id": "create_issue",
+      "title": "Create an issue",
+      "risk": "write",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 50
+            },
+            "maxItems": 5
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/{{config.owner}}/{{config.repo}}/issues",
+        "headers": {
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "titan-runner-brain"
+        },
+        "body": {
+          "title": "{{input.title}}",
+          "body": "{{input.body}}",
+          "labels": "{{input.labels}}"
+        }
+      },
+      "pick": [
+        "number",
+        "html_url",
+        "title"
+      ],
+      "rateLimit": {
+        "perMinute": 10
+      }
+    },
+    {
+      "id": "comment",
+      "title": "Comment on an issue",
+      "risk": "write",
+      "dataClass": "internal",
+      "input": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "number",
+          "body"
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/{{config.owner}}/{{config.repo}}/issues/{{input.number}}/comments",
+        "headers": {
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "titan-runner-brain"
+        },
+        "body": {
+          "body": "{{input.body}}"
+        }
+      },
+      "pick": [
+        "id",
+        "html_url"
+      ],
+      "rateLimit": {
+        "perMinute": 10
+      }
+    }
+  ]
+}

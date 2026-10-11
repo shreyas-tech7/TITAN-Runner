@@ -1,0 +1,54 @@
+{
+  "name": "create an issue",
+  "target": "action:create_issue",
+  "connection": {
+    "config": {
+      "owner": "shreyas-tech7",
+      "repo": "TITAN-Runner"
+    },
+    "secrets": {
+      "token": "@@FAKE:github_token@@"
+    }
+  },
+  "input": {
+    "title": "A bug",
+    "body": "Steps",
+    "labels": [
+      "bug"
+    ]
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.github.com/repos/shreyas-tech7/TITAN-Runner/issues",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:github_token@@",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      "body": {
+        "title": "A bug",
+        "body": "Steps",
+        "labels": [
+          "bug"
+        ]
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 201,
+    "contentType": "application/json",
+    "body": {
+      "number": 30,
+      "html_url": "https://github.com/x/y/issues/30",
+      "title": "A bug",
+      "id": 5
+    }
+  },
+  "output": {
+    "number": 30,
+    "html_url": "https://github.com/x/y/issues/30",
+    "title": "A bug"
+  }
+}

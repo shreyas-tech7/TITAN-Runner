@@ -1,0 +1,54 @@
+{
+  "name": "list services",
+  "target": "action:list_services",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:render_key@@"
+    }
+  },
+  "input": {
+    "limit": 2
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://api.render.com/v1/services?limit=2",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:render_key@@"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": [
+      {
+        "service": {
+          "id": "srv-abc123def456",
+          "name": "titan-api",
+          "type": "web_service",
+          "suspended": "not_suspended",
+          "dashboardUrl": "https://dashboard.render.com/web/srv-abc123def456",
+          "updatedAt": "2026-10-01T00:00:00Z",
+          "envVars": []
+        },
+        "cursor": "c"
+      }
+    ]
+  },
+  "output": [
+    {
+      "service": {
+        "id": "srv-abc123def456",
+        "name": "titan-api",
+        "type": "web_service",
+        "suspended": "not_suspended",
+        "dashboardUrl": "https://dashboard.render.com/web/srv-abc123def456",
+        "updatedAt": "2026-10-01T00:00:00Z"
+      }
+    }
+  ]
+}

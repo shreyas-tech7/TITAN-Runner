@@ -1,0 +1,50 @@
+{
+  "name": "search models",
+  "target": "action:search_models",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "@@FAKE:hf_token@@"
+    }
+  },
+  "input": {
+    "query": "llama",
+    "limit": 2
+  },
+  "expect": {
+    "request": {
+      "method": "GET",
+      "url": "https://huggingface.co/api/models?search=llama&limit=2&sort=downloads&direction=-1",
+      "headers": {
+        "Authorization": "Bearer @@FAKE:hf_token@@"
+      },
+      "body": null
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": [
+      {
+        "id": "a/llama",
+        "downloads": 100,
+        "likes": 3,
+        "pipeline_tag": "text-generation",
+        "lastModified": "2026-09-01T00:00:00Z",
+        "tags": [
+          "x"
+        ]
+      }
+    ]
+  },
+  "output": [
+    {
+      "id": "a/llama",
+      "downloads": 100,
+      "likes": 3,
+      "pipeline_tag": "text-generation",
+      "lastModified": "2026-09-01T00:00:00Z"
+    }
+  ]
+}

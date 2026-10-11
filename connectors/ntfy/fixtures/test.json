@@ -1,0 +1,34 @@
+{
+  "name": "test: publish the test message",
+  "target": "test",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "url": "https://ntfy.sh/titan-test-topic-0000"
+    }
+  },
+  "input": {},
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://ntfy.sh/titan-test-topic-0000",
+      "headers": {
+        "Title": "TITAN",
+        "Content-Type": "text/plain; charset=utf-8"
+      },
+      "body": "TITAN test message"
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "id": "abc",
+      "event": "message"
+    }
+  },
+  "output": {
+    "status": 200
+  }
+}

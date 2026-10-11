@@ -41,6 +41,20 @@ export async function handleStatus(env) {
   });
 }
 
+/**
+ * Put a task in the queue. The 1-minute tick hands it to a runner.
+ * @param {{ DB: any }} env
+ * @param {{ brief: string, taskType?: string, source?: string }} task
+ * @returns {Promise<string>} The task id.
+ */
+export async function queueTask(env, { brief, taskType = 'auto', source = 'dashboard' }) {
+  const id = crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO subagents (id, task_type, brief, status, source, queued_at) VALUES (?, ?, ?, 'queued', ?, ?)")
+    .bind(id, taskType, String(brief).slice(0, 4000), String(source).slice(0, 60), nowIso())
+    .run();
+  return id;
+}
+
 export async function handleCreateTask(request, env) {
   let body;
   try {
@@ -52,10 +66,7 @@ export async function handleCreateTask(request, env) {
   if (!brief) return json({ error: 'brief is required' }, 400);
   const parsedType = parseTaskType(body?.task_type);
   if ('error' in parsedType) return json({ error: parsedType.error }, 400);
-  const id = crypto.randomUUID();
-  await env.DB.prepare("INSERT INTO subagents (id, task_type, brief, status, source, queued_at) VALUES (?, ?, ?, 'queued', 'dashboard', ?)")
-    .bind(id, parsedType.value, brief.slice(0, 4000), nowIso())
-    .run();
+  const id = await queueTask(env, { brief, taskType: parsedType.value, source: 'dashboard' });
   return json({ ok: true, id });
 }
 

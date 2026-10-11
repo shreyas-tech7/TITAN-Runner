@@ -1,0 +1,58 @@
+{
+  "name": "create an issue",
+  "target": "action:create_issue",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "api_key": "@@FAKE:linear_key@@"
+    }
+  },
+  "input": {
+    "team_id": "team-uuid-0001",
+    "title": "New"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.linear.app/graphql",
+      "headers": {
+        "Authorization": "@@FAKE:linear_key@@"
+      },
+      "body": {
+        "query": "mutation($teamId: String!, $title: String!, $description: String) { issueCreate(input: { teamId: $teamId, title: $title, description: $description }) { success issue { identifier url title } } }",
+        "variables": {
+          "teamId": "team-uuid-0001",
+          "title": "New"
+        }
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "data": {
+        "issueCreate": {
+          "success": true,
+          "issue": {
+            "identifier": "TIT-2",
+            "url": "https://linear.app/x/issue/TIT-2",
+            "title": "New"
+          }
+        }
+      }
+    }
+  },
+  "output": {
+    "data": {
+      "issueCreate": {
+        "success": true,
+        "issue": {
+          "identifier": "TIT-2",
+          "url": "https://linear.app/x/issue/TIT-2"
+        }
+      }
+    }
+  }
+}

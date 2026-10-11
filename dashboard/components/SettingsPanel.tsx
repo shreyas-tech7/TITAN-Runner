@@ -5,6 +5,8 @@ import { getToken, setToken, clearToken, maskToken, tokenLocation } from "@/lib/
 import { newTokenSettingsUrl, OWNER, REPO } from "@/lib/githubApi";
 import { useModal } from "@/components/useModal";
 import RunnerCallbacks from "@/components/RunnerCallbacks";
+import HealthUrlsEditor from "@/components/HealthUrlsEditor";
+import NotifyPanel from "@/components/NotifyPanel";
 
 export default function SettingsPanel({ onClose, adminToken, onUnauthorized }: { onClose: () => void; adminToken?: string; onUnauthorized?: () => void }) {
   const [stored, setStored] = useState<string | null>(() => getToken());
@@ -93,6 +95,24 @@ export default function SettingsPanel({ onClose, adminToken, onUnauthorized }: {
                 Runner callbacks
               </div>
               <RunnerCallbacks token={ adminToken } onUnauthorized={onUnauthorized ?? (() => {})} />
+            </div>
+          ) : null}
+
+          {adminToken ? (
+            <div style={{ marginTop: 20, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
+              <div className="label" style={{ marginBottom: 8 }}>
+                Notifications
+              </div>
+              <NotifyPanel token={adminToken} onUnauthorized={onUnauthorized ?? (() => {})} />
+            </div>
+          ) : null}
+
+          {adminToken ? (
+            <div id="settings-health" style={{ marginTop: 20, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
+              <div className="label" style={{ marginBottom: 8 }}>
+                Health addresses
+              </div>
+              <HealthUrlsEditor token={adminToken} onUnauthorized={onUnauthorized ?? (() => {})} />
             </div>
           ) : null}
 

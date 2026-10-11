@@ -1,0 +1,60 @@
+{
+  "id": "webhook_in",
+  "name": "Inbound webhook",
+  "icon": "WI",
+  "version": "1.0.0",
+  "category": "automation",
+  "description": "Get a private address. Other tools post to it, and TITAN turns each post into an event or a task.",
+  "docsUrl": "https://github.com/shreyas-tech7/TITAN-Runner/blob/main/docs/CONNECTORS.md",
+  "getKeyUrl": "",
+  "apiVersion": "TITAN hook v1",
+  "auth": {
+    "kind": "none",
+    "setupNote": "TITAN makes the hook id and the secret for you. It shows the secret one time only. Choose how the sender proves itself: hmac, github, or static.",
+    "fields": [
+      {
+        "name": "label",
+        "label": "Name",
+        "secret": false,
+        "pattern": "^[A-Za-z0-9 _.-]{1,40}$",
+        "help": "A short name that shows in the event list.",
+        "placeholder": "Deploy alerts"
+      },
+      {
+        "name": "mode",
+        "label": "Check mode",
+        "secret": false,
+        "optional": true,
+        "pattern": "^(hmac|github|static)$",
+        "help": "hmac signs the body and the time. github uses X-Hub-Signature-256. static sends the secret in a header and is weaker.",
+        "default": "hmac"
+      },
+      {
+        "name": "target",
+        "label": "What a post does",
+        "secret": false,
+        "optional": true,
+        "pattern": "^(event|task)$",
+        "help": "event goes to the notification rules. task makes a sub-agent task.",
+        "default": "event"
+      },
+      {
+        "name": "task_brief",
+        "label": "Task brief",
+        "secret": false,
+        "optional": true,
+        "pattern": "^[^\\u0000-\\u001f]{1,500}$",
+        "help": "Used when a post makes a task. Write {{body.field}} to insert a field of the post.",
+        "placeholder": "Check the failed build: {{body.repo}}"
+      }
+    ]
+  },
+  "egress": [],
+  "test": {
+    "mode": "none"
+  },
+  "triggers": [
+    "webhook"
+  ],
+  "actions": []
+}

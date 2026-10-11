@@ -32,6 +32,8 @@ const nextConfig: NextConfig = {
     // https://titan-gev.onrender.com. Empty shows the tab's empty state.
     // Not a secret. The gate secret lives on the Worker and the host only.
     NEXT_PUBLIC_GEV_URL: process.env.NEXT_PUBLIC_GEV_URL || "",
+    // The commit of this build. The footer compares it with the commit of the Worker (Wave 12, H4). Not a secret.
+    NEXT_PUBLIC_COMMIT: process.env.NEXT_PUBLIC_COMMIT || "dev",
   },
 };
 

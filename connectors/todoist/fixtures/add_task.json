@@ -1,0 +1,43 @@
+{
+  "name": "add a task",
+  "target": "action:add_task",
+  "connection": {
+    "config": {},
+    "secrets": {
+      "token": "TEST_VALUE_NOT_A_REAL_SECRET"
+    }
+  },
+  "input": {
+    "content": "Call mum",
+    "due_string": "today"
+  },
+  "expect": {
+    "request": {
+      "method": "POST",
+      "url": "https://api.todoist.com/api/v1/tasks",
+      "headers": {
+        "Authorization": "Bearer TEST_VALUE_NOT_A_REAL_SECRET"
+      },
+      "body": {
+        "content": "Call mum",
+        "due_string": "today"
+      }
+    },
+    "hosts": []
+  },
+  "response": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": {
+      "id": "t2",
+      "content": "Call mum",
+      "url": "https://app.todoist.com/app/task/t2",
+      "labels": []
+    }
+  },
+  "output": {
+    "id": "t2",
+    "content": "Call mum",
+    "url": "https://app.todoist.com/app/task/t2"
+  }
+}
