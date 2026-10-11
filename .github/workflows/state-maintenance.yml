@@ -1,0 +1,53 @@
+name: State maintenance
+
+# Runs once a day (RT7). It does three things:
+#   1. It rolls old run records, event summaries, digests, and gate review logs into compressed monthly archives
+#      under state/archive/, so state/ stops growing without limit.
+#   2. It checks every file under state/ against its strict schema.
+#   3. It writes state/maintenance.json and commits. The file holds a time stamp, so this workflow makes one real
+#      commit each day. GitHub turns off the scheduled workflows of a public repo after 60 days with no activity,
+#      and this commit prevents that.
+on:
+  schedule:
+    - cron: "23 4 * * *" # every day, 04:23 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# The shared group of every workflow that commits to state/ (RT2).
+concurrency:
+  group: titan-state
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # commit state/
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+
+      - name: Archive old files and check the schemas
+        run: node scripts/state-maintenance.mjs || echo "MAINTENANCE_FAILED=1" >> "$GITHUB_ENV"
+
+      - name: Scan the state for secrets
+        run: node scripts/check-secrets-in-state.mjs
+
+      # The archives and maintenance.json are committed even when a schema check failed, so the daily commit
+      # still happens. The last step then fails the run, which shows the problem.
+      - name: Commit and push
+        run: node scripts/publish-state.mjs --no-validate --message "chore(state): daily maintenance $(date -u +%Y-%m-%d)"
+
+      - name: Fail the run if a state file broke its schema
+        if: env.MAINTENANCE_FAILED == '1'
+        run: |
+          echo "::error::A state file does not match its strict schema. Run node scripts/check-state.mjs."
+          exit 1

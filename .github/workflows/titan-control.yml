@@ -45,17 +45,19 @@ on:
         required: false
         type: string
 
-# One control change at a time, and never while a pulse is committing state.
+# One control change at a time, and never while another workflow is committing state (RT2).
 concurrency:
-  group: titan-pulse
+  group: titan-state
   cancel-in-progress: false
 
 permissions:
-  contents: write # commit state/control.json and state/tasks.json
+  contents: read
 
 jobs:
   control:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # commit state/control.json and state/tasks.json
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -79,18 +81,4 @@ jobs:
         run: node scripts/check-secrets-in-state.mjs
 
       - name: Commit the change
-        run: |
-          git config user.name "titan-runner-bot"
-          git config user.email "titan-runner@users.noreply.github.com"
-          git add state/
-          if git diff --cached --quiet; then
-            echo "No state change."
-          else
-            git commit -m "chore(control): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            if ! git pull --rebase origin "${GITHUB_REF_NAME}"; then
-              echo "::error::Rebase conflict against origin/${GITHUB_REF_NAME}; re-run the control action."
-              git rebase --abort
-              exit 1
-            fi
-            git push
-          fi
+        run: node scripts/publish-state.mjs --message "chore(control): $(date -u +%Y-%m-%dT%H:%M:%SZ)"

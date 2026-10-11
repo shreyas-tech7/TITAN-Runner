@@ -6,7 +6,13 @@
  */
 import { readFileSync } from 'node:fs';
 
-export const WORKFLOWS_WITH_PROVIDER_ENV = ['titan-pulse.yml', 'spawn-subagent.yml', 'provider-selftest.yml', 'vm-agent.yml'];
+export const WORKFLOWS_WITH_PROVIDER_ENV = ['titan-pulse.yml', 'spawn-subagent.yml', 'provider-selftest.yml'];
+
+/**
+ * Workflows that may hold only some provider secrets (RT6). A VM job is untrusted, so it holds the key of the
+ * Reviewer Gate and no other provider key.
+ */
+export const LEAST_PRIVILEGE_WORKFLOWS = Object.freeze({ 'vm-agent.yml': ['GROQ_API_KEY', 'GROQ_MODEL'] });
 export const BEGIN = '# BEGIN provider secrets (generated from config/providers.catalog.json, run npm run sync:providers)';
 export const END = '# END provider secrets';
 

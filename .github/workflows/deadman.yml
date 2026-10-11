@@ -12,12 +12,14 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write # open the alert issue
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -29,47 +31,16 @@ jobs:
         id: check
         run: node scripts/check-heartbeat.mjs || echo "TRIPPED=1" >> "$GITHUB_ENV"
 
+      # RT3: the alert Issue is opened by a script that uses the gated GitHub client. No third-party action.
       - name: Open an alert issue
         if: env.TRIPPED == '1'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
-        with:
-          script: |
-            const { execSync } = require('node:child_process');
-            let detail = '';
-            try {
-              detail = execSync('node scripts/check-heartbeat.mjs').toString();
-            } catch (err) {
-              detail = err.stdout?.toString() || err.stderr?.toString() || String(err);
-            }
-            const title = 'TITAN-Runner: no successful pulse in 24h';
-            const { data: existing } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: 'titan-alert',
-            });
-            if (existing.some((i) => i.title === title)) {
-              console.log('Alert issue already open — not filing a duplicate.');
-              return;
-            }
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title,
-              labels: ['titan-alert'],
-              body: [
-                'The dead-man\'s switch tripped — no pulse has succeeded in the last 24 hours.',
-                '',
-                '```',
-                detail,
-                '```',
-                '',
-                'Check the Actions tab for `TITAN Pulse` run history. Common causes: the cron ' +
-                  'schedule was auto-disabled (GitHub pauses scheduled workflows after 60 days ' +
-                  'with no commit activity on the repo — see docs/RUNTIME.md), a bug in a recent ' +
-                  'change to `src/pulse.js`, or every configured provider key having expired at once.',
-              ].join('\n'),
-            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          detail="$(node scripts/check-heartbeat.mjs 2>&1 || true)"
+          node scripts/alert-issue.mjs open --label titan-alert --title "TITAN-Runner: no successful pulse in 24h" \
+            --body "The dead-man's switch tripped. No pulse has succeeded in the last 24 hours. Detail: ${detail} Check the Actions tab for the TITAN Pulse run history. Common causes: GitHub paused the schedule after 60 days with no commits, a bug in a recent change to src/pulse.js, or every provider key expired at once."
 
       - name: Fail the job so this is visible in the Actions tab too
         if: env.TRIPPED == '1'
