@@ -87,6 +87,7 @@ export function usageOf(cp) {
  *   onJudgeCall?: () => void,
  *   taskTimeoutMs?: number,
  *   maxSubtasks?: number,
+ *   lessons?: string,
  *   subtaskMaxAttempts?: number,
  *   now?: () => Date,
  * }} args
@@ -107,7 +108,7 @@ export async function runOrchestration(args) {
     events?.append('plan.started', { taskId: task.id, runId, attempt: (cp.stepUsage.plan?.calls ?? 0) + 1 });
     let graph;
     try {
-      graph = await decompose(task.prompt, { pools, maxTasks: args.maxSubtasks });
+      graph = await decompose(task.prompt, { pools, maxTasks: args.maxSubtasks, lessons: args.lessons ?? '' });
     } catch (err) {
       // The provider side is down / limited / out of quota: the plan is not
       // degraded, the task waits (same ladder a parked step uses).

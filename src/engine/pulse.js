@@ -39,6 +39,7 @@
  * `TITAN_CHECKPOINT=git` (the workflow's setting).
  */
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { config, isProviderConfigured } from '../config.js';
@@ -57,6 +58,7 @@ import { QUOTA_SCHEMA } from '../state/schema.js';
 import { registry as defaultRegistry, FAILOVER_ORDER } from '../providers/registry.js';
 import { OpsGate } from '../ops/gate.js';
 import { UsageReporter } from '../ops/usageReporter.js';
+import { lessonsBlock, readLessons, relevantLessons, runPostmortems } from '../ops/postmortem.js';
 import { onAdapterCall } from '../agents/AgentAdapter.js';
 import { now as clockNow } from '../lib/clock.js';
 import { ToolRegistry } from '../tools/registry.js';
@@ -397,6 +399,23 @@ export async function runPulse(deps = {}) {
         events.append('pulse.draining', { reason: control.reason ?? 'drain control is on', outcome: 'no-claims', audit: true });
       }
 
+      // RO4: a short post-mortem for each task that failed. A free model writes it when one is free. A template is the
+      // fallback. It never fails the pulse, and it writes nothing in a dry run or with the kill switch on.
+      if (!dryRun && process.env.TITAN_POSTMORTEM !== '0' && !budget.shouldDrain()) {
+        try {
+          const usesFakes = Boolean(deps.pools || deps.github);
+          const pm = await runPostmortems({
+            tasks: tasksFile.tasks, lessonsPath: join(store.paths.stateDir, 'lessons.jsonl'), now: now(), events,
+            readRun: (runId) => { try { return JSON.parse(readFileSync(join(store.paths.runs, `${runId}.json`), 'utf8')); } catch { return null; } },
+            chat: deps.postmortem?.chat ?? (usesFakes ? null : defaultRegistry.chat.bind(defaultRegistry)),
+            scan: deps.postmortem?.scan,
+          });
+          if (pm.written + pm.merged > 0) log.info('wrote post-mortems', pm);
+        } catch (err) {
+          log.warn('post-mortem failed, so the pulse goes on', { error: String(err).slice(0, 200) });
+        }
+      }
+
       // Daily research digest: at most one low-priority model call per UTC
       // day, after the real work, never failing the pulse. Off whenever a
       // caller injects fakes (simulation, harness, tests) unless it asks for
@@ -699,6 +718,8 @@ async function processTaskInner(task, ctx, control) {
       onCheckpoint: (checkpoint, reason) => persist(checkpoint, reason),
       taskTimeoutMs: config.orchestrator.taskTimeoutMs,
       maxSubtasks: config.orchestrator.maxSubtasksPerRun,
+      // RO4: the 5 most relevant post-mortems go to the decomposer before it plans.
+      lessons: lessonsBlock(relevantLessons(readLessons(join(ctx.stateDir, 'lessons.jsonl')), task.prompt, 5, now())),
       tools: ctx.tools, toolContext, maxToolCalls: limits.maxToolCalls,
       judge, maxRemediations: limits.maxRemediations, scratchDir: join(ctx.stateDir, 'workspaces'),
       onJudgeCall: () => { ctx.usage.modelCalls += 1; live.calls += 1; },

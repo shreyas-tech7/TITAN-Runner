@@ -100,3 +100,15 @@ A provider error is not a wrong answer. A rate limit, a rejected key, or a spent
 - The capability cache `state/agents.json`, in the field `measured` of each record. The router reads it: a measured score beats an assumed strength. A score of 1.0 counts like a strength, 0.0 like a weakness, and 0.5 counts zero. If a category has no measured score, the assumed lists decide, as before.
 
 The workflow has two jobs. The first job has the keys, runs the tasks, and uploads a small file of scores. It cannot write to the repo. The second job has no key. It writes the files under `state/` and commits them. So the long run never holds the shared state group.
+
+## Post-mortems (RO4)
+
+Every task that ends `failed` or `dead-lettered` gets a short post-mortem. It says what failed, the likely cause, and a suggested fix. The pulse writes it after the work of the pulse, at most 3 for each pulse. `TITAN_POSTMORTEM=0` turns it off.
+
+A free model writes the cause and the fix when one is free. It gets facts only: the failure class, the code, the step category, the counts, and the providers tried. A template writes them when no model is free, or when the model text is not clean. The text is cleaned of secrets, email addresses, and links. gitleaks scans it when the binary is there. The pulse job installs it with a checked sum. A finding drops the model text.
+
+This repo is public, so a post-mortem never holds the title, the prompt, an answer, or a login of the task. A test checks that with a marker in the task text.
+
+The lessons go to `state/lessons.jsonl`. A repeat merges by error signature: the class, the code, and the shape of the message. The shape ignores numbers, ids, quoted text, and lists in parentheses. The second failure of one kind raises `count` and moves `last_seen`. It adds no line. The file holds 200 lessons at most and drops the rarest.
+
+Before the decomposer plans, it reads the 5 most relevant lessons. Words that the task and the lesson share, how often the failure happened, and how recent it is decide the order. The lessons go into the planning prompt, before the task.

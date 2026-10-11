@@ -52,9 +52,10 @@ const DECOMPOSER_POOL_ORDER = ['freebuff', 'phase2', 'opencode'];
  * @param {string} masterPrompt
  * @param {number} maxTasks
  * @param {string[]} [retryErrors] Validation errors from a prior attempt, if this is the retry.
+ * @param {string} [lessons] The text of the most relevant post-mortems (RO4), one line for each lesson.
  * @returns {string}
  */
-export function buildDecomposePrompt(masterPrompt, maxTasks, retryErrors) {
+export function buildDecomposePrompt(masterPrompt, maxTasks, retryErrors, lessons = '') {
   const categories = ASPECT_CATEGORIES.join(', ');
   const base =
     `You are the decomposer for a multi-agent build system. Break the following master prompt ` +
@@ -72,6 +73,7 @@ export function buildDecomposePrompt(masterPrompt, maxTasks, retryErrors) {
     `this shared context plus its own task, so it must carry everything needed to keep every agent's ` +
     `output consistent with every other agent's.\n` +
     `- The dependency graph must have no cycles, and every id in "dependsOn" must exist in "tasks".\n\n` +
+    (lessons ? `Lessons from earlier failed runs of this system. Plan so that you do not repeat them:\n${lessons}\n\n` : '') +
     `Master prompt:\n${masterPrompt}`;
 
   if (!retryErrors || retryErrors.length === 0) return base;
@@ -323,11 +325,11 @@ export function pickDecomposerAdapter(pools) {
 
 /**
  * @param {string} masterPrompt
- * @param {{ pools?: Record<string, object>, maxTasks?: number }} [options]
+ * @param {{ pools?: Record<string, object>, maxTasks?: number, lessons?: string }} [options]
  * @returns {Promise<TaskGraph>}
  */
 export async function decompose(masterPrompt, options = {}) {
-  const { pools = {}, maxTasks = config.orchestrator?.maxSubtasksPerRun ?? 8 } = options;
+  const { pools = {}, maxTasks = config.orchestrator?.maxSubtasksPerRun ?? 8, lessons = '' } = options;
 
   if (config.dryRun) {
     // Still validated — proves the validator accepts a realistically-shaped
@@ -341,12 +343,12 @@ export async function decompose(masterPrompt, options = {}) {
   const adapter = pickDecomposerAdapter(pools);
   if (!adapter) return singleTaskFallback(masterPrompt);
 
-  const first = await attemptDecompose(adapter, masterPrompt, maxTasks);
+  const first = await attemptDecompose(adapter, masterPrompt, maxTasks, undefined, lessons);
   if (first.ok) return first.graph;
   throwIfParkable(first);
 
   const firstErrors = /** @type {{ ok: false, errors: string[] }} */ (first).errors;
-  const retry = await attemptDecompose(adapter, masterPrompt, maxTasks, firstErrors);
+  const retry = await attemptDecompose(adapter, masterPrompt, maxTasks, firstErrors, lessons);
   if (retry.ok) return retry.graph;
   throwIfParkable(retry);
 
@@ -382,8 +384,8 @@ function throwIfParkable(attempt) {
  * @param {string[]} [retryErrors]
  * @returns {Promise<{ ok: true, graph: TaskGraph } | { ok: false, errors: string[], failure?: object }>}
  */
-export async function attemptDecompose(adapter, masterPrompt, maxTasks, retryErrors) {
-  const promptText = buildDecomposePrompt(masterPrompt, maxTasks, retryErrors);
+export async function attemptDecompose(adapter, masterPrompt, maxTasks, retryErrors, lessons = '') {
+  const promptText = buildDecomposePrompt(masterPrompt, maxTasks, retryErrors, lessons);
   /** @type {import('../../agents/AgentAdapter.js').AdapterTask} */
   const pseudoTask = {
     id: 'decompose',
