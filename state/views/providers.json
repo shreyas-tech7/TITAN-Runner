@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-10T13:00:18.612Z",
+  "updatedAt": "2026-10-11T00:01:53.797Z",
   "providers": {
     "groq": {
-      "breaker": "half-open",
+      "breaker": "closed",
       "until": null,
-      "reason": "cooldown over after 2 failure(s); next call is a probe",
-      "explain": "groq: breaker half-open (cooldown over after 2 failure(s); next call is a probe); error rate 51%; model allam-2-7b",
-      "status": "error",
-      "consecutiveFailures": 2,
+      "reason": "healthy",
+      "explain": "groq: breaker closed (healthy); p50 666 ms; error rate 36%; model allam-2-7b",
+      "status": "ok",
+      "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
+        "usedMinute": 1,
         "usedDay": 1,
         "dayLeft": 11999,
         "perDay": 12000
@@ -42,8 +42,8 @@
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
-        "usedDay": 1,
-        "dayLeft": 179,
+        "usedDay": 0,
+        "dayLeft": 180,
         "perDay": 180
       }
     },
