@@ -23,6 +23,7 @@ const steps = [
   { name: 'test mode flag', cmd: 'node', args: ['scripts/check-test-mode.mjs'] },
   { name: 'data contract', cmd: 'node', args: ['scripts/export-schemas.mjs', '--check'] },
   { name: 'secret scan of state/', cmd: 'node', args: ['scripts/check-secrets-in-state.mjs'] },
+  { name: 'state schemas', cmd: 'node', args: ['scripts/check-state.mjs'] },
   { name: 'documentation standard', cmd: 'node', args: ['scripts/check-ste.mjs', '--base', base, '--worktree', '--quiet'] },
   { name: 'denylist gate', cmd: 'node', args: ['scripts/check-denylist.mjs', base, 'HEAD'] },
   { name: 'secret scan of the diff', cmd: 'node', args: ['scripts/check-secrets-in-diff.mjs', base, 'HEAD'] },

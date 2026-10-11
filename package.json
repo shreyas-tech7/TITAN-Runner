@@ -32,7 +32,9 @@
     "check:all": "node scripts/check-all.mjs",
     "hooks:install": "node scripts/install-hooks.mjs",
     "prepare": "node scripts/install-hooks.mjs",
-    "scan:issues": "node scripts/scan-issues.mjs"
+    "scan:issues": "node scripts/scan-issues.mjs",
+    "check:state": "node scripts/check-state.mjs",
+    "state:maintain": "node scripts/state-maintenance.mjs"
   },
   "license": "MIT",
   "bin": {
