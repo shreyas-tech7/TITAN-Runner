@@ -95,7 +95,7 @@ async function cmdSimulate(args) {
   const githubSpec = args.flags.github ?? join(stateDir, 'github-fixture.json');
   if (!args.flags.github && !existsSync(githubSpec)) {
     // A single authorized issue so a plain `titan simulate` has something to run.
-    writeFileSync(githubSpec, JSON.stringify({ issues: [{ number: 1, title: 'Simulated task', body: 'Build the module the fake script describes.', user: { login: 'simulated-owner' }, author_association: 'OWNER', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), labels: [{ name: 'titan-task' }], state: 'open', comments: [] }] }));
+    writeFileSync(githubSpec, JSON.stringify({ issues: [{ number: 1, title: 'Simulated task', body: 'Build the module the fake script describes.', user: { login: 'fake-owner' }, author_association: 'OWNER', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), labels: [{ name: 'titan-task' }], state: 'open', comments: [] }] }));
   }
   const pulses = Math.max(1, Number.parseInt(String(args.flags.pulses ?? '1'), 10) || 1);
   process.env.TITAN_STATE_DIR = stateDir;

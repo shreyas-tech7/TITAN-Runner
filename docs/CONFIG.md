@@ -21,7 +21,7 @@ key makes that provider `not_configured`, and the pulse still runs.
 | Variable | Default | Meaning |
 |---|---|---|
 | `TITAN_TASK_AUTHORS` | empty | Comma-separated GitHub logins allowed to file tasks besides the owner. Bots never. `src/security/authorization.js`. |
-| `TITAN_TRUST_COLLABORATORS` | `1` | `0` trusts only the owner and `TITAN_TASK_AUTHORS`; otherwise `author_association` OWNER/MEMBER/COLLABORATOR is trusted. |
+| `TITAN_TRUST_COLLABORATORS` | unset | By default only the owner and `TITAN_TASK_AUTHORS` may file tasks. Set `1` to also trust the `author_association` values OWNER, MEMBER, and COLLABORATOR. |
 | `TITAN_MANUAL_TASK` | unset | A one-off task from `workflow_dispatch`. |
 | `TITAN_MAX_TASKS_PER_PULSE` | `3` | Tasks one pulse may claim. |
 | `TITAN_MAX_SUBTASKS_PER_RUN` | `8` | Steps a plan may have. |

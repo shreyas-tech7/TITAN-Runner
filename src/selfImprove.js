@@ -31,6 +31,7 @@ import { dirname, join } from 'node:path';
 import { findDenylistViolations } from './denylist.js';
 import { checkRepoRelativePath } from './lib/pathJail.js';
 import { reviewAction } from './reviewer/reviewer.js';
+import { gatedCommit, gatedCreateBranch, gatedPush } from './reviewer/githubGate.js';
 import { defaultGitHubClient } from './github.js';
 import { createLogger } from './lib/logger.js';
 
@@ -100,7 +101,7 @@ export async function proposeSelfImprovement(task, synthesis, deps = {}) {
   const originalRef = git(['rev-parse', '--abbrev-ref', 'HEAD']);
 
   try {
-    git(['checkout', '-b', branch]);
+    gatedCreateBranch({ branch });
     for (const file of files) {
       // Re-checked at write time (the jail also refuses symlinked ancestors,
       // which can only be judged against the branch we just checked out).
@@ -111,8 +112,9 @@ export async function proposeSelfImprovement(task, synthesis, deps = {}) {
     }
     // `--` so a path that starts with a dash can never be read as a git option.
     git(['add', '--', ...files.map((f) => f.path)]);
-    git(['-c', 'user.email=titan-runner@users.noreply.github.com', '-c', 'user.name=TITAN Runner', 'commit', '-m', `self-improve: ${task.title || task.id}`]);
-    git(['push', '-u', 'origin', branch]);
+    // RT3: the commit and the push go through the Reviewer Gate. The denylist and the path jail ran above.
+    gatedCommit({ message: `self-improve: ${task.title || task.id}`, roots: null, identity: ['-c', 'user.email=titan-runner@users.noreply.github.com', '-c', 'user.name=TITAN Runner'] });
+    gatedPush({ ref: branch, from: 'HEAD', roots: null });
 
     const pr = await github.createPullRequest({
       title: `[self-improve] ${task.title || task.id}`,

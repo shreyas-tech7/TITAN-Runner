@@ -28,14 +28,14 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, isAbsolute } from 'node:path';
 import { createLogger } from '../lib/logger.js';
+import { gatedCommit, gatedCommitTree, gatedPush } from '../reviewer/githubGate.js';
 
 const log = createLogger('checkpoint');
 
-const IDENTITY = ['-c', 'user.name=titan-runner-bot', '-c', 'user.email=titan-runner@users.noreply.github.com'];
-
 export class Checkpointer {
   /**
-   * @param {{ mode?: 'none'|'git', stateDir: string, repoRoot?: string, ref?: string, minIntervalMs?: number, now?: () => number, events?: object|null, git?: (args: string[], opts?: object) => string }} init
+   * @param {{ mode?: 'none'|'git', stateDir: string, repoRoot?: string, ref?: string, minIntervalMs?: number, now?: () => number, events?: object|null, git?: (args: string[], opts?: object) => string, message?: string }} init
+   *   `message` replaces the commit message. Every commit and push goes through the Reviewer Gate (RT3).
    */
   constructor(init) {
     this.mode = init.mode ?? 'none';
@@ -45,6 +45,7 @@ export class Checkpointer {
     this.minIntervalMs = init.minIntervalMs ?? 20_000;
     this.now = init.now ?? (() => Date.now());
     this.events = init.events ?? null;
+    this.message = init.message ?? null;
     this.lastCommitAt = 0;
     this.commits = 0;
     this.pushes = 0;
@@ -73,7 +74,7 @@ export class Checkpointer {
       this.git(['add', '-A', '--', this.stateRel]);
       const staged = this.git(['diff', '--cached', '--name-only', '--', this.stateRel]);
       if (!staged) return { committed: false, pushed: false, skipped: 'nothing changed' };
-      this.git([...IDENTITY, 'commit', '-q', '-m', `chore(state): checkpoint ${reason} ${new Date(this.now()).toISOString()}`]);
+      gatedCommit({ message: this.message ?? `chore(state): checkpoint ${reason} ${new Date(this.now()).toISOString()}`, roots: [this.stateRel], git: this.git, events: this.events });
       this.commits += 1;
       this.lastCommitAt = this.now();
     } catch (err) {
@@ -101,7 +102,7 @@ export class Checkpointer {
           }
           this.#reapplyOnRemote(reason);
         }
-        this.git(['push', '--quiet', 'origin', `HEAD:${this.ref}`]);
+        gatedPush({ ref: this.ref, from: 'HEAD', roots: [this.stateRel], currentRef: this.ref, git: this.git, events: this.events });
         this.pushes += 1;
         return true;
       } catch (err) {
@@ -144,7 +145,7 @@ export class Checkpointer {
       const remoteTree = this.git(['rev-parse', `${remoteTip}^{tree}`]);
       let target = remoteTip;
       if (tree !== remoteTree) {
-        target = this.git([...IDENTITY, 'commit-tree', tree, '-p', remoteTip, '-m', `chore(state): checkpoint ${reason} (re-applied after conflict)`]);
+        target = gatedCommitTree({ tree, parent: remoteTip, message: this.message ?? `chore(state): checkpoint ${reason} (re-applied after conflict)`, git: this.git });
       }
       this.git(['reset', '-q', '--soft', target]);
       this.git(['reset', '-q']);

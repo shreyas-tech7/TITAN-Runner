@@ -16,6 +16,7 @@
  */
 import { config } from './config.js';
 import { createLogger } from './lib/logger.js';
+import { createRestWriter } from './reviewer/githubGate.js';
 
 const log = createLogger('github');
 const API_BASE = 'https://api.github.com';
@@ -29,21 +30,22 @@ export function createGitHubClient(opts = {}) {
   const dryRun = opts.dryRun ?? false;
   const fetchImpl = opts.fetchImpl ?? ((url, init) => globalThis.fetch(url, init));
   const [owner, repo] = repository.split('/');
+  // Every write goes through the Reviewer Gate (RT3). This client sends reads only.
+  const write = createRestWriter({ token, repository, fetchImpl, events: opts.events ?? null });
 
   function ready() {
     return Boolean(token && owner && repo) && !dryRun;
   }
 
   async function call(method, path, body) {
+    if (method !== 'GET') return write(method, path, body);
     const res = await fetchImpl(`${API_BASE}${path}`, {
       method,
       headers: {
         authorization: `Bearer ${token}`,
         accept: 'application/vnd.github+json',
-        'content-type': 'application/json',
         'x-github-api-version': '2022-11-28',
       },
-      body: body ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
@@ -144,10 +146,41 @@ export function createGitHubClient(opts = {}) {
     return createIssue(title, body, [label]);
   }
 
+  /** Add labels to an Issue. The gate allows only `titan-*` names and `host-alert`. */
+  async function addLabels(number, labels) {
+    if (!ready()) {
+      log.info('dry-run/no-token: would label issue', { number, labels });
+      return null;
+    }
+    return call('POST', `/repos/${owner}/${repo}/issues/${number}/labels`, { labels });
+  }
+
+  /** Remove one label from an Issue. The gate allows `titan-task` only. */
+  async function removeLabel(number, name) {
+    if (!ready()) {
+      log.info('dry-run/no-token: would remove label', { number, name });
+      return null;
+    }
+    return call('DELETE', `/repos/${owner}/${repo}/issues/${number}/labels/${encodeURIComponent(name)}`);
+  }
+
+  async function reopenIssue(number) {
+    if (!ready()) return null;
+    return call('PATCH', `/repos/${owner}/${repo}/issues/${number}`, { state: 'open', state_reason: 'reopened' });
+  }
+
+  /** Issues with a label, in any state or in one state. Reads only. */
+  async function listIssuesByLabel(label, state = 'open') {
+    if (!ready()) return [];
+    return call('GET', `/repos/${owner}/${repo}/issues?labels=${encodeURIComponent(label)}&state=${state}&per_page=100`);
+  }
+
   return {
     ready,
+    repository,
     listOpenTaskIssues, listIssueComments, commentOnIssue, closeIssue, createPullRequest, closePullRequest,
     getPullRequest, getCombinedStatus, createIssue, createIssueForDeadman,
+    addLabels, removeLabel, reopenIssue, listIssuesByLabel,
   };
 }
 
@@ -168,9 +201,11 @@ export const getPullRequest = (...args) => defaultGitHubClient.getPullRequest(..
 export const getCombinedStatus = (...args) => defaultGitHubClient.getCombinedStatus(...args);
 export const createIssue = (...args) => defaultGitHubClient.createIssue(...args);
 export const createIssueForDeadman = (...args) => defaultGitHubClient.createIssueForDeadman(...args);
+export const addLabels = (...args) => defaultGitHubClient.addLabels(...args);
+export const removeLabel = (...args) => defaultGitHubClient.removeLabel(...args);
 
 export default {
   createGitHubClient, defaultGitHubClient,
   listOpenTaskIssues, listIssueComments, commentOnIssue, closeIssue, createPullRequest, closePullRequest,
-  getPullRequest, getCombinedStatus, createIssue, createIssueForDeadman,
+  getPullRequest, getCombinedStatus, createIssue, createIssueForDeadman, addLabels, removeLabel,
 };

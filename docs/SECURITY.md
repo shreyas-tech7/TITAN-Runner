@@ -51,3 +51,49 @@ A key in a commit, an Issue, or a log counts as leaked. Do this:
 2. Update the secret in GitHub Actions, the Worker, or Codespaces.
 3. Edit or delete the Issue or comment text.
 4. Do not rewrite git history. Rotation is the fix.
+
+## Who may file a task
+
+Only the owner of the repository may file a task. This holds for Issues and for `/titan` comments. The owner can add more logins in the repository variable `TITAN_TASK_AUTHORS`. A bot never counts.
+
+GitHub also reports an author association: `OWNER`, `MEMBER`, `COLLABORATOR`. Runner ignores it by default. Set `TITAN_TRUST_COLLABORATORS=1` to trust it.
+
+Runner checks the author before it reads the task text, before it calls a model, and before it uses a key. For an Issue from anyone else, Runner does three things:
+
+1. It adds the label `titan-ignored`.
+2. It removes the label `titan-task`.
+3. It does nothing else. It does not comment and it does not call a model.
+
+The Worker mirror of Issues follows the same rule.
+
+## The Reviewer Gate for GitHub writes
+
+Every write to GitHub passes the gate. A write is a comment, a label, an Issue, a pull request, a dispatch, an Actions secret, a commit, or a push.
+
+The runner side is `src/reviewer/githubGate.js`. The Worker side is `worker/src/lib/githubGate.js`. Both use the rules in `src/reviewer/githubGatePolicy.js`.
+
+The gate does these things:
+
+- It allows only the listed kinds of write. A request that fits no kind is blocked.
+- It limits a write to this repository.
+- It limits dispatch event types, label names, and secret names to fixed lists.
+- It removes secret-shaped text and email addresses from comments, Issues, and pull requests.
+- It blocks a force push, a branch delete, a push to another branch, and a commit outside `state/`.
+- It scans the lines of a commit and a push for secrets.
+- It requires that a pull request is a draft from a `self-improve/` branch into `main`.
+
+The checks in the gate have no off switch. `TITAN_REVIEWER=0` turns off only the model layer.
+
+The test `test/github-write-boundary.test.js` fails when a file outside the gate sends a write.
+
+Connector writes to GitHub also pass the gate in `sendRequest`. A person approves them first. The gate then allows two shapes only: a new Issue and a comment.
+
+## VM fleet
+
+A railway.new VM is untrusted. Runner handles it with these rules:
+
+- No key and no token goes to a VM. The `ssh` child process gets a bare environment: `PATH`, `LANG`, `TZ`, `TMPDIR`, and a temporary `HOME`.
+- The command sent to the VM is fixed. It passes the gate first. A brief with a secret-shaped string is blocked.
+- The preview URL must be `https` on `up.railway.app`. Runner removes the query, the path, and any user name.
+- The claim URL must be `https://railway.com/ssh-signup?code=<code>`. Logs hide the code.
+- A VM lives for 120 minutes at most. Set `TITAN_VM_MAX_LIFETIME_MINUTES` to change the cap (10 to 1440). The Worker applies the cap again and expires the row. Railway can keep an unclaimed box for 24 hours. Runner stops treating it as live after the cap.

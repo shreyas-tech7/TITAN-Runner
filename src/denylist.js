@@ -43,6 +43,8 @@ export const DENYLIST = Object.freeze([
   '.githooks/',
   'scripts/scan-issues.mjs',
   'scripts/install-hooks.mjs',
+  // VM safety limits (RT6).
+  'src/lib/vmSafety.js',
 ]);
 
 /**

@@ -29,7 +29,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { scrubForState } from '../src/lib/secretScrub.js';
-import { reviewAction } from '../src/reviewer/index.js';
+import { gateVmCommand } from '../src/reviewer/githubGate.js';
+import { capDeadline, hideClaimCode, maxLifetimeMinutes, sanitizeClaimUrl, sanitizePreviewUrl, sshEnv } from '../src/lib/vmSafety.js';
 
 const VM_ID = process.env.TITAN_VM_ID;
 const BRIEF = process.env.TITAN_VM_BRIEF || '';
@@ -38,10 +39,11 @@ const RUN_URL = process.env.GITHUB_RUN_URL || '';
 const BUILD_WINDOW_MS = 60 * 60 * 1000; // 60 minutes to build
 const CLAIM_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours to claim
 const SSH_HOST = process.env.TITAN_RAILWAY_SSH_HOST || 'railway.new';
+export const REMOTE_COMMAND = 'true';
 const SSH_TIMEOUT_MS = 90_000;
 
 function safe(value) {
-  return scrubForState(String(value ?? ''));
+  return hideClaimCode(scrubForState(String(value ?? '')));
 }
 
 /**
@@ -144,12 +146,16 @@ function connectToRailway() {
         '-o', `UserKnownHostsFile=${knownHosts}`,
         '-o', 'ConnectTimeout=30',
         '-o', 'BatchMode=yes',
+        '-o', 'ForwardAgent=no',
+        '-o', 'ForwardX11=no',
+        '-o', 'PermitLocalCommand=no',
         SSH_HOST,
         // A no-op remote command: the value is in the welcome banner /
         // manifest Railway prints on connect, not in any command output.
-        'true',
+        REMOTE_COMMAND,
       ],
-      { encoding: 'utf8', timeout: SSH_TIMEOUT_MS, stdio: ['ignore', 'pipe', 'pipe'] },
+      // RT6: the VM is untrusted. The child gets a bare environment, so no key and no token can reach it.
+      { encoding: 'utf8', timeout: SSH_TIMEOUT_MS, stdio: ['ignore', 'pipe', 'pipe'], env: sshEnv(process.env, dir) },
     );
     const transcript = `${result.stdout || ''}\n${result.stderr || ''}`;
     return { transcript, code: result.status, error: result.error };
@@ -167,22 +173,14 @@ async function main() {
 
   await reportVmStatus({ status: 'provisioning', run_url: RUN_URL });
 
-  // A brief that will run ON the VM is put past the SAME Reviewer Gate the
-  // sub-agent path uses, before Railway is touched at all.
-  if (BRIEF.trim()) {
-    const review = await reviewAction({
-      toolId: 'railway-vm',
-      args: { host: SSH_HOST },
-      description: BRIEF,
-      effect: 'external',
-    });
-    if (review.verdict === 'block') {
-      const summary = `Blocked by the Reviewer Gate: ${safe(review.reason ?? 'no reason given')}`;
-      console.error(`provision-railway-vm: ${summary}`);
-      await reportVmStatus({ status: 'failed', result_summary: summary.slice(0, 1800), run_url: RUN_URL });
-      process.exitCode = 1;
-      return;
-    }
+  // RT3: the command and the brief go past the Reviewer Gate before Railway is touched. The command is fixed.
+  const gate = await gateVmCommand({ host: SSH_HOST, command: REMOTE_COMMAND, brief: BRIEF });
+  if (!gate.ok) {
+    const summary = `Blocked by the Reviewer Gate: ${safe(gate.reason ?? 'no reason given')}`;
+    console.error(`provision-railway-vm: ${summary}`);
+    await reportVmStatus({ status: 'failed', result_summary: summary.slice(0, 1800), run_url: RUN_URL });
+    process.exitCode = 1;
+    return;
   }
 
   let transcript = '';
@@ -221,19 +219,31 @@ async function main() {
     return;
   }
 
+  // RT6: clean the URLs and cap the lifetime. Railway keeps an unclaimed box for 24 hours. Runner stops
+  // treating it as live after the cap (default 120 minutes, TITAN_VM_MAX_LIFETIME_MINUTES).
+  const previewUrl = sanitizePreviewUrl(manifest.previewUrl);
+  const claimUrl = sanitizeClaimUrl(manifest.claimUrl);
+  if (!previewUrl) {
+    const summary = 'Railway returned a preview URL that does not look like https on up.railway.app, so Runner dropped it.';
+    console.error(`provision-railway-vm: ${summary}`);
+    await reportVmStatus({ status: 'failed', result_summary: summary, run_url: RUN_URL });
+    process.exitCode = 1;
+    return;
+  }
   const now = Date.now();
-  const buildDeadline = manifest.buildDeadline || new Date(now + BUILD_WINDOW_MS).toISOString();
-  const claimDeadline = manifest.claimDeadline || new Date(now + CLAIM_WINDOW_MS).toISOString();
+  const cap = maxLifetimeMinutes(process.env);
+  const buildDeadline = capDeadline(manifest.buildDeadline || new Date(now + BUILD_WINDOW_MS).toISOString(), now, cap);
+  const claimDeadline = capDeadline(manifest.claimDeadline || new Date(now + CLAIM_WINDOW_MS).toISOString(), now, cap);
   const summary = safe(
     `Live Railway VM${manifest.name ? ` "${manifest.name}"` : ''} (2 vCPU / 2 GB). ` +
-      `Preview ${manifest.previewUrl}. Claim within 24h to keep it.`,
+      `Runner treats it as gone after ${cap} minutes. Claim it before then to keep it.`,
   ).slice(0, 1800);
 
   console.log(`provision-railway-vm: ${summary}`);
   await reportVmStatus({
     status: 'live',
-    preview_url: safe(manifest.previewUrl),
-    claim_url: manifest.claimUrl ? safe(manifest.claimUrl) : undefined,
+    preview_url: previewUrl,
+    claim_url: claimUrl ?? undefined,
     build_deadline: buildDeadline,
     claim_deadline: claimDeadline,
     run_url: RUN_URL,

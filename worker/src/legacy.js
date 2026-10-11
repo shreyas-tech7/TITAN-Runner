@@ -5,6 +5,7 @@
  */
 import { parseSigningJwk, publicJwkOf, signingKeyIsConsistent, mintGevToken, GEV_TOKEN_TTL_SECONDS } from './gev-token.js';
 import { githubClient } from './lib/github.js';
+import { capDeadline, maxLifetimeMinutes, sanitizeClaimUrl, sanitizePreviewUrl } from '../../src/lib/vmSafety.js';
 import { SafeFetchError, safeFetch } from './lib/safeFetch.js';
 import { json } from './lib/util.js';
 
@@ -146,6 +147,14 @@ export async function handleInternalVmStatus(request, env) {
     run_url: body?.run_url,
     region: body?.region,
   };
+  // RT6: a VM is untrusted. The Worker cleans both URLs and caps the lifetime again, even when the runner script
+  // did it, so the cap holds if a caller skips the script.
+  const cap = maxLifetimeMinutes(env);
+  const nowMs = Date.now();
+  optionalStringFields.preview_url = sanitizePreviewUrl(optionalStringFields.preview_url) ?? undefined;
+  optionalStringFields.claim_url = sanitizeClaimUrl(optionalStringFields.claim_url) ?? undefined;
+  if (status === 'live' || optionalStringFields.claim_deadline) optionalStringFields.claim_deadline = capDeadline(optionalStringFields.claim_deadline, nowMs, cap);
+  if (optionalStringFields.build_deadline) optionalStringFields.build_deadline = capDeadline(optionalStringFields.build_deadline, nowMs, cap);
   for (const [col, value] of Object.entries(optionalStringFields)) {
     if (typeof value === 'string' && value) {
       sets.push(`${col} = ?`);
@@ -504,15 +513,19 @@ export async function dispatchQueuedVms(env) {
  * if it never even reported live, 60m after). Honest lifecycle — the row
  * reflects that the free box and its files are gone, never a stale "live". */
 export async function expireStaleVms(env) {
-  const now = new Date().toISOString();
+  const nowMs = Date.now();
+  const now = new Date(nowMs).toISOString();
+  // RT6: a VM older than the lifetime cap is expired, whatever deadline it carries.
+  const oldest = new Date(nowMs - maxLifetimeMinutes(env) * 60_000).toISOString();
   await env.DB.prepare(
     `UPDATE vms SET status = 'expired', updated_at = ?
      WHERE status IN ('live', 'provisioning', 'requested')
        AND (
          (claim_deadline IS NOT NULL AND claim_deadline < ?)
          OR (claim_deadline IS NULL AND build_deadline IS NOT NULL AND build_deadline < ?)
+         OR created_at < ?
        )`,
   )
-    .bind(now, now, now)
+    .bind(now, now, now, oldest)
     .run();
 }

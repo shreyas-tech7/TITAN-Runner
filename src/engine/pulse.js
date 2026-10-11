@@ -65,8 +65,9 @@ import { runDailyResearch, researchEnabledFromEnv } from '../research/dailyResea
 import { ApprovalLog } from '../policy/approvalLog.js';
 import { writeViews } from '../observability/views.js';
 
-import { syncIssuesIntoTasks, reconcileIssueState, addManualTask } from '../issueSync.js';
+import { syncIssuesIntoTasks, reconcileIssueState, addManualTask, IGNORED_LABEL } from '../issueSync.js';
 import { defaultGitHubClient } from '../github.js';
+import { authorizationContextFrom } from '../security/authorization.js';
 import { proposeSelfImprovement, checkSelfImprovePrStatus } from '../selfImprove.js';
 import { reviewAction } from '../reviewer/reviewer.js';
 import { capabilityRegistry } from '../orchestrator/capabilityRegistry.js';
@@ -338,7 +339,26 @@ export async function runPulse(deps = {}) {
       log.warn('kill switch is on — reconciled state, claiming nothing', { by: control.updatedBy, reason: control.reason });
     } else {
       if (!dryRun) {
-        const intake = await syncIssuesIntoTasks(tasksFile, { listIssues: github.listOpenTaskIssues.bind(github), now, events, maxAttempts });
+        // The owner is the owner of the repository that this client talks to (RT2).
+        const intakeAuthz = deps.authz ?? authorizationContextFrom({
+          taskAuthors: config.authorization.taskAuthors,
+          repository: github.repository || config.github.repository,
+          trustCollaborators: config.authorization.trustCollaborators,
+        });
+        const intake = await syncIssuesIntoTasks(tasksFile, {
+          listIssues: github.listOpenTaskIssues.bind(github),
+          authz: intakeAuthz,
+          now,
+          events,
+          maxAttempts,
+          // RT2: a stranger's Issue gets the titan-ignored label and loses titan-task. Nothing else.
+          labelIgnored: github.addLabels
+            ? async (number) => {
+                await github.addLabels(number, [IGNORED_LABEL]);
+                await github.removeLabel?.(number, 'titan-task');
+              }
+            : undefined,
+        });
         if (intake.added > 0) log.info('synced issues into task queue', { added: intake.added });
         if (intake.ignored > 0) log.info('ignored issues from unauthorized authors', { ignored: intake.ignored });
         for (const dupId of intake.duplicates) {
@@ -348,7 +368,7 @@ export async function runPulse(deps = {}) {
             await ledger.comment(dup.issueNumber, `dup:${dup.id}`, `TITAN-Runner did not run this task: it is a duplicate of ${dup.duplicateOf}${dup.error ? '' : '.'}\n\n${dup.error ?? ''}`);
           }
         }
-        const controls = await reconcileIssueState(tasksFile, intake.issues, { listComments: github.listIssueComments.bind(github), now, events, approvalLog: ctx.approvalLog });
+        const controls = await reconcileIssueState(tasksFile, intake.issues, { listComments: github.listIssueComments.bind(github), authz: intakeAuthz, now, events, approvalLog: ctx.approvalLog });
         if (controls.cancelled > 0) log.info('cancelled tasks whose issue was closed', { cancelled: controls.cancelled });
         if (controls.commands > 0) log.info('applied authorized control commands', { commands: controls.commands, retried: controls.retried });
       }

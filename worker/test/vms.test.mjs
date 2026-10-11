@@ -9,6 +9,7 @@ import {
   handleProvisionVm,
   handleInternalVmStatus,
   dispatchQueuedVms,
+  expireStaleVms,
 } from '../src/legacy.js';
 
 /**
@@ -102,7 +103,7 @@ test('POST /internal/vm-status rejects an unknown status', async () => {
 test('POST /internal/vm-status updates only the provided fields', async () => {
   const env = { DB: fakeDb() };
   const res = await handleInternalVmStatus(
-    jsonRequest({ id: 'vm-1', status: 'live', preview_url: 'https://x.up.railway.app', claim_url: 'https://railway.com/ssh-signup?code=z' }),
+    jsonRequest({ id: 'vm-1', status: 'live', preview_url: 'https://x.up.railway.app', claim_url: 'https://railway.com/ssh-signup?code=abc123XYZ' }),
     env,
   );
   assert.equal(res.status, 200);
@@ -150,4 +151,61 @@ test('dispatchQueuedVms is a no-op without a GITHUB_PAT (degrades, never throws)
   const env = { DB: fakeDb() };
   await dispatchQueuedVms(env); // must not throw
   assert.equal(env.DB.calls.length, 0);
+});
+
+// RT6: a VM is untrusted. The Worker cleans the URLs and caps the lifetime, whatever the caller sends.
+
+function paramsOf(env) {
+  const update = env.DB.calls.find((c) => c.sql.includes('UPDATE vms'));
+  const cols = [...update.sql.matchAll(/(\w+) = \?/g)].map((m) => m[1]);
+  return Object.fromEntries(cols.map((c, i) => [c, update.params[i]]));
+}
+
+test('RT6: a preview URL is cut to https on up.railway.app with no query, user name, or path', async () => {
+  const env = { DB: fakeDb() };
+  await handleInternalVmStatus(jsonRequest({ id: 'vm-1', status: 'live', preview_url: 'https://Box-1.up.railway.app/app?token=sk_live_should_not_stay#frag' }), env);
+  assert.equal(paramsOf(env).preview_url, 'https://box-1.up.railway.app/');
+  for (const bad of ['http://box.up.railway.app/', 'https://evil.example.com/', 'https://u:p@box.up.railway.app/', 'https://box.up.railway.app:8443/', 'javascript:alert(1)']) {
+    const e = { DB: fakeDb() };
+    await handleInternalVmStatus(jsonRequest({ id: 'vm-1', status: 'live', preview_url: bad }), e);
+    assert.equal(paramsOf(e).preview_url, undefined, `${bad} must be dropped`);
+  }
+});
+
+test('RT6: a claim URL keeps only the code, and anything else is dropped', async () => {
+  const env = { DB: fakeDb() };
+  await handleInternalVmStatus(jsonRequest({ id: 'vm-1', status: 'live', claim_url: 'https://railway.com/ssh-signup?code=abc123XYZ' }), env);
+  assert.equal(paramsOf(env).claim_url, 'https://railway.com/ssh-signup?code=abc123XYZ');
+  for (const bad of ['https://railway.com/ssh-signup?code=abc123XYZ&next=https://evil.example', 'https://evil.example/ssh-signup?code=abc123XYZ', 'https://railway.com/other?code=abc123XYZ']) {
+    const e = { DB: fakeDb() };
+    await handleInternalVmStatus(jsonRequest({ id: 'vm-1', status: 'live', claim_url: bad }), e);
+    assert.equal(paramsOf(e).claim_url, undefined, `${bad} must be dropped`);
+  }
+});
+
+test('RT6: a live VM gets a claim deadline within the cap, even when the caller sends 24 hours or nothing', async () => {
+  const day = new Date(Date.now() + 24 * 3600_000).toISOString();
+  const env = { DB: fakeDb() };
+  await handleInternalVmStatus(jsonRequest({ id: 'vm-1', status: 'live', claim_deadline: day }), env);
+  const capped = Date.parse(paramsOf(env).claim_deadline) - Date.now();
+  assert.ok(capped <= 120 * 60_000 + 5_000 && capped > 100 * 60_000, `capped to about 120 minutes, got ${Math.round(capped / 60_000)}`);
+  const none = { DB: fakeDb() };
+  await handleInternalVmStatus(jsonRequest({ id: 'vm-1', status: 'live' }), none);
+  assert.ok(paramsOf(none).claim_deadline, 'a live VM always has a deadline');
+  const short = { DB: fakeDb() };
+  const soon = new Date(Date.now() + 30 * 60_000).toISOString();
+  await handleInternalVmStatus(jsonRequest({ id: 'vm-1', status: 'live', claim_deadline: soon }), short);
+  assert.equal(paramsOf(short).claim_deadline, soon, 'a shorter deadline stays');
+  const custom = { DB: fakeDb(), TITAN_VM_MAX_LIFETIME_MINUTES: '30' };
+  await handleInternalVmStatus(jsonRequest({ id: 'vm-1', status: 'live', claim_deadline: day }), custom);
+  assert.ok(Date.parse(paramsOf(custom).claim_deadline) - Date.now() <= 30 * 60_000 + 5_000, 'the cap is configurable');
+});
+
+test('RT6: expireStaleVms also expires a VM older than the cap', async () => {
+  const env = { DB: fakeDb() };
+  await expireStaleVms(env);
+  const update = env.DB.calls.find((c) => c.sql.includes("status = 'expired'"));
+  assert.ok(update.sql.includes('created_at < ?'));
+  const oldest = Date.parse(update.params.at(-1));
+  assert.ok(Math.abs(Date.now() - oldest - 120 * 60_000) < 5_000);
 });

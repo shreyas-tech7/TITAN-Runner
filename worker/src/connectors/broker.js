@@ -14,6 +14,7 @@
  * is a sub-agent with the callback token. `approval` is a call that a person approved.
  */
 import { SafeFetchError, checkUrl, safeFetch } from '../lib/safeFetch.js';
+import { WorkerGateError, gateConnectorWrite, isGithubWrite } from '../lib/githubGate.js';
 import { hmacHex } from '../lib/hmac.js';
 import { addMinutes, nowIso, randomHex } from '../lib/util.js';
 import { VAULT_FIX, vaultReady } from '../lib/vault.js';
@@ -98,6 +99,15 @@ export async function listCatalog(env) {
 export async function sendRequest(env, manifest, connection, secrets, req, { timeoutMs = 8000 } = {}) {
   const { hosts, dynamic } = allowedHosts(manifest, connection.config, secrets);
   const host = new URL(req.url).hostname.toLowerCase();
+  // RT3: a write to GitHub passes the Reviewer Gate, even after a person approved it.
+  if (isGithubWrite(req.method, req.url)) {
+    try {
+      req = { ...req, body: gateConnectorWrite(req).body };
+    } catch (err) {
+      if (err instanceof WorkerGateError) throw new BrokerError(403, 'gate_blocked', err.reason);
+      throw err;
+    }
+  }
   const res = await safeFetch(env, req.url, { method: req.method, headers: req.headers, body: req.body }, { allow: hosts, timeoutMs, maxBytes: 1_000_000, checkDns: dynamic.includes(host) });
   return { status: res.status, text: await res.text(), contentType: res.headers.get('content-type') ?? '' };
 }
