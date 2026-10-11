@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-11T13:07:44.576Z",
+  "updatedAt": "2026-10-11T13:13:10.695Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -15,16 +15,16 @@
       "consecutiveFailures": 0,
       "cooldownUntil": null,
       "lastError": null,
-      "model": "allam-2-7b",
+      "model": "canopylabs/orpheus-v1-english",
       "discoveredModels": [
-        "allam-2-7b",
         "canopylabs/orpheus-v1-english",
+        "canopylabs/orpheus-arabic-saudi",
         "qwen/qwen3.8-27b",
         "openai/gpt-oss-20b",
         "openai/gpt-oss-120b",
-        "canopylabs/orpheus-arabic-saudi"
+        "allam-2-7b"
       ],
-      "modelsDiscoveredAt": "2026-10-10T12:49:21.753Z",
+      "modelsDiscoveredAt": "2026-10-11T13:13:10.308Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -82,7 +82,7 @@
         "nvidia/nemotron-3-super-120b-a12b:free",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-10-10T12:49:21.975Z",
+      "modelsDiscoveredAt": "2026-10-11T13:13:10.589Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -136,7 +136,7 @@
         "lyria-3-pro-preview",
         "deep-research-pro-preview-12-2025"
       ],
-      "modelsDiscoveredAt": "2026-10-10T12:49:22.124Z",
+      "modelsDiscoveredAt": "2026-10-11T13:13:10.694Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -175,7 +175,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
