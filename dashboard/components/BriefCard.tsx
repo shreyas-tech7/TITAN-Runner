@@ -116,8 +116,11 @@ export default function BriefCard({ token, onUnauthorized }: { token: string; on
           {brief.aiSummary ? <p className="e-hint">{brief.aiSummary}</p> : null}
           <div className="chip-row" style={{ marginBottom: 8 }}>
             <Badge tone={brief.healthOk ? "ok" : "warn"}>{brief.healthOk ? "Health green" : "Health needs check"}</Badge>
-            <Badge tone="neutral">{brief.tasks.done} done (24h)</Badge>
-            {brief.pendingApprovals > 0 ? <Badge tone="corona">{brief.pendingApprovals} approval waiting</Badge> : null}
+            {/* Defensive: an older/newer Worker build could send a brief shaped slightly differently than this
+                tab's `DailyBriefRecord` — a missing field here must never take down the whole dashboard (see
+                lib/workerApi.ts's own "fails with a clear, catchable message" philosophy). */}
+            <Badge tone="neutral">{brief.tasks?.done ?? 0} done (24h)</Badge>
+            {(brief.pendingApprovals ?? 0) > 0 ? <Badge tone="corona">{brief.pendingApprovals} approval waiting</Badge> : null}
             <span className="e-dim e-num">Updated {relative(brief.generatedAt)}</span>
           </div>
           <pre className="result-box" tabIndex={0} style={{ whiteSpace: "pre-wrap" }}>

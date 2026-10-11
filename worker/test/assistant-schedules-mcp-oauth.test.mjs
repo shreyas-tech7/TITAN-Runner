@@ -149,6 +149,20 @@ test('A3, A4, T4, A5, X8, X19, X32: daily brief, pulse approval comments, activi
   assert.match(gen.body.brief.text, /TITAN daily brief/);
   assert.equal((await api.get('/brief')).body.brief.date, gen.body.brief.date);
 
+  // Regression: dashboard/lib/workerApi.ts's DailyBriefRecord (and BriefCard.tsx, which reads
+  // `brief.tasks.done` and `brief.pendingApprovals` directly) requires these as structured fields, not
+  // just baked into `.text`. A brief missing `tasks` crashed the whole dashboard with "Cannot read
+  // properties of undefined (reading 'done')" in production — see the Pages deploy this fixed.
+  const brief = gen.body.brief;
+  assert.equal(typeof brief.tasks, 'object');
+  assert.equal(typeof brief.tasks.done, 'number');
+  assert.equal(typeof brief.tasks.failed, 'number');
+  assert.equal(typeof brief.tasks.running, 'number');
+  assert.equal(typeof brief.pendingApprovals, 'number');
+  assert.equal(typeof brief.healthOk, 'boolean');
+  assert.ok(Array.isArray(brief.keysNeedingCare));
+  assert.ok(Array.isArray(brief.calendar));
+
   // Connect Telegram and verify /brief and pulse approval (#issue key) work.
   const tg = await api.post('/connectors/telegram/connect', { fields: { token: telegramToken() } });
   const cid = tg.body.connection.id;
