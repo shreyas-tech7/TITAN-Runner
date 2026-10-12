@@ -16,7 +16,7 @@
     "blakejs": "^1.2.1"
   },
   "devDependencies": {
-    "wrangler": "^4.132.0",
+    "wrangler": "^4.149.0",
     "libsodium-wrappers": "^0.7.15"
   }
 }
