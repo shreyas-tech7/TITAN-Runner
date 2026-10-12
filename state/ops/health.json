@@ -1,12 +1,12 @@
 {
   "contract": "1",
-  "generated_at": "2026-10-12T03:40:32.195Z",
+  "generated_at": "2026-10-12T03:43:29.648Z",
   "providers": {
     "custom_1": {
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:32.194Z",
+        "checked_at": "2026-10-12T03:43:29.646Z",
         "error_class": "no_key"
       }
     },
@@ -14,7 +14,7 @@
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:32.194Z",
+        "checked_at": "2026-10-12T03:43:29.646Z",
         "error_class": "no_key"
       }
     },
@@ -22,7 +22,7 @@
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:32.194Z",
+        "checked_at": "2026-10-12T03:43:29.646Z",
         "error_class": "no_key"
       }
     },
@@ -30,31 +30,31 @@
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:32.194Z",
+        "checked_at": "2026-10-12T03:43:29.646Z",
         "error_class": "no_public_api"
       }
     },
     "gemini": {
       "gemini-2.5-flash": {
         "status": "healthy",
-        "latency_ms": 842,
-        "checked_at": "2026-10-12T03:40:31.352Z",
+        "latency_ms": 643,
+        "checked_at": "2026-10-12T03:43:29.003Z",
         "error_class": null
       }
     },
     "groq": {
-      "llama-3.3-70b-versatile": {
-        "status": "down",
-        "latency_ms": 175,
-        "checked_at": "2026-10-12T03:40:23.158Z",
-        "error_class": "model_invalid"
+      "openai/gpt-oss-20b": {
+        "status": "degraded",
+        "latency_ms": 247,
+        "checked_at": "2026-10-12T03:43:21.844Z",
+        "error_class": "bad_format"
       }
     },
     "hermes_1": {
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:32.194Z",
+        "checked_at": "2026-10-12T03:43:29.646Z",
         "error_class": "no_key"
       }
     },
@@ -62,7 +62,7 @@
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:32.194Z",
+        "checked_at": "2026-10-12T03:43:29.646Z",
         "error_class": "no_key"
       }
     },
@@ -70,7 +70,7 @@
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:32.194Z",
+        "checked_at": "2026-10-12T03:43:29.646Z",
         "error_class": "no_key"
       }
     },
@@ -78,7 +78,7 @@
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:32.194Z",
+        "checked_at": "2026-10-12T03:43:29.646Z",
         "error_class": "no_key"
       }
     },
@@ -86,7 +86,7 @@
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:32.194Z",
+        "checked_at": "2026-10-12T03:43:29.646Z",
         "error_class": "no_key"
       }
     },
@@ -94,23 +94,23 @@
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:32.194Z",
+        "checked_at": "2026-10-12T03:43:29.646Z",
         "error_class": "no_key"
       }
     },
     "openrouter": {
       "inclusionai/ling-3.1-flash": {
-        "status": "down",
-        "latency_ms": 2557,
-        "checked_at": "2026-10-12T03:40:23.335Z",
-        "error_class": "auth"
+        "status": "healthy",
+        "latency_ms": 4540,
+        "checked_at": "2026-10-12T03:43:24.464Z",
+        "error_class": null
       }
     },
     "together": {
       "*": {
         "status": "not_configured",
         "latency_ms": null,
-        "checked_at": "2026-10-12T03:40:23.335Z",
+        "checked_at": "2026-10-12T03:43:24.464Z",
         "error_class": "no_key"
       }
     }
