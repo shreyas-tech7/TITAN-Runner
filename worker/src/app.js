@@ -58,6 +58,8 @@ export async function handleRequest(request, env, ctx) {
   return out;
 }
 
+const PUBLIC_ROUTES_WITH_DB = new Set(['/badge/pulse', '/auth/login', '/oauth/mcp/register', '/oauth/mcp/authorize', '/oauth/mcp/token']);
+
 async function route(request, env, ctx, { url, matched, group, requestId, log }) {
   if (request.method === 'OPTIONS') {
     if (!originAllowed(request, env) || !request.headers.get('Origin')) return new Response(null, { status: request.headers.get('Origin') ? 403 : 204 });
@@ -81,7 +83,9 @@ async function route(request, env, ctx, { url, matched, group, requestId, log })
     return jsonError(403, 'origin_not_allowed', 'This origin is not on the allowlist.');
   }
 
-  const needsDb = matched.route.group !== 'public' || matched.route.path === '/badge/pulse';
+  // A public route that reads or writes D1 needs the schema, so the migrations run first. Without this, the first
+  // request to a fresh database (a sign-in, a dashboard that is the first visitor) would fail with a missing table.
+  const needsDb = matched.route.group !== 'public' || PUBLIC_ROUTES_WITH_DB.has(matched.route.path);
   if (needsDb && env.DB) {
     try {
       await ensureMigrations(env);
