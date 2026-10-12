@@ -62,6 +62,9 @@ export function judgeError(err) {
   const f = classifyFailure(err);
   if (f.class === 'rate_limited') return { status: 'degraded', errorClass: 'rate_limited' };
   if (f.class === 'budget_exhausted') return { status: 'down', errorClass: 'quota' };
+  // A 403 that names the model is a limit of that model, not a bad key. OpenRouter said "only available on agentic
+  // harnesses" for a free model that discovery had chosen, and the canary called it a key problem.
+  if (f.status === 403 && /only available|not available|terms acceptance|do(es)? not have access to (this|the) model|not allowed for this model/i.test(String(err?.message ?? ''))) return { status: 'down', errorClass: 'model_invalid' };
   if (f.status === 401 || f.status === 403 || err?.code === 'UNAUTHORIZED') return { status: 'down', errorClass: 'auth' };
   if (f.class === 'timeout') return { status: 'down', errorClass: 'timeout' };
   if (f.status === 404 || /model[_ -]?not[_ -]?found|does not exist/i.test(String(err?.message ?? ''))) return { status: 'down', errorClass: 'model_invalid' };

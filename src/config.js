@@ -168,7 +168,9 @@ export function isProviderConfigured(id) {
  * @type {Record<string, string>}
  */
 export const DEFAULT_MODELS = Object.freeze({
-  groq: 'llama-3.3-70b-versatile',
+  // Groq retired the llama models of this default. The list that Groq returned on 2026-10-11 held qwen/qwen3.8-27b,
+  // openai/gpt-oss-20b, openai/gpt-oss-120b, and allam-2-7b as chat models. The canary of 2026-10-12 got a 404 for the old default.
+  groq: 'openai/gpt-oss-20b',
   together: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
   openrouter: 'openai/gpt-oss-20b:free',
   gemini: 'gemini-2.5-flash',
