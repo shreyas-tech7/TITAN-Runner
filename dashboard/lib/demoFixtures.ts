@@ -127,6 +127,62 @@ export function getDemoStateFile(statePath: string): unknown | null {
       ],
     };
   }
+  // The ops mirrors (RD1). The numbers are samples. No provider or host here is real.
+  if (clean === "ops/health.json") {
+    return {
+      contract: "1", generated_at: HOUR_2_AGO,
+      providers: {
+        groq: { "llama-3.3-70b-versatile": { status: "healthy", latency_ms: 310, checked_at: HOUR_2_AGO, error_class: null } },
+        gemini: { "gemini-2.5-flash": { status: "degraded", latency_ms: 9200, checked_at: HOUR_2_AGO, error_class: "slow" } },
+        openrouter: { "meta-llama/llama-3.3-70b-instruct:free": { status: "down", latency_ms: null, checked_at: HOUR_2_AGO, error_class: "rate_limited" } },
+        together: { unknown: { status: "not_configured", latency_ms: null, checked_at: HOUR_2_AGO, error_class: "no_key" } },
+      },
+    };
+  }
+  if (clean === "ops/quota.json") {
+    return {
+      contract: "1", generated_at: MIN_20_AGO,
+      providers: {
+        groq: { "llama-3.3-70b-versatile": { limit_day: 1000, used_day: 742, limit_month: null, used_month: 9120, remaining_pct: 25.8, resets_at: "2026-10-12T00:00:00.000Z", exhausted: false, limit_source: "https://console.groq.com/docs/rate-limits", limit_confidence: "observed" } },
+        gemini: { "gemini-2.5-flash": { limit_day: null, used_day: 61, limit_month: null, used_month: 802, remaining_pct: null, resets_at: "2026-10-12T00:00:00.000Z", exhausted: false, limit_source: null, limit_confidence: "unknown" } },
+        openrouter: { "meta-llama/llama-3.3-70b-instruct:free": { limit_day: 50, used_day: 50, limit_month: null, used_month: 410, remaining_pct: 0, resets_at: "2026-10-12T00:00:00.000Z", exhausted: true, limit_source: "https://openrouter.ai/docs/api-reference/limits", limit_confidence: "official" } },
+      },
+    };
+  }
+  if (clean === "ops/eval.json") {
+    return {
+      contract: "1", generated_at: "2026-10-04T18:10:00.000Z", eval_version: "v1",
+      models: {
+        "llama-3.3-70b-versatile": {
+          "code-generation": { score: 0.92, tasks_run: 2, run_at: "2026-10-04T18:10:00.000Z", eval_version: "v1" },
+          debugging: { score: 0.75, tasks_run: 2, run_at: "2026-10-04T18:10:00.000Z", eval_version: "v1" },
+          research: { score: 1, tasks_run: 2, run_at: "2026-10-04T18:10:00.000Z", eval_version: "v1" },
+          "security-review": { score: 0.4, tasks_run: 1, run_at: "2026-10-04T18:10:00.000Z", eval_version: "v1" },
+        },
+        "gemini-2.5-flash": {
+          "code-generation": { score: 0.6, tasks_run: 2, run_at: "2026-10-04T18:10:00.000Z", eval_version: "v1" },
+          research: { score: 0.5, tasks_run: 2, run_at: "2026-10-04T18:10:00.000Z", eval_version: "v1" },
+        },
+      },
+    };
+  }
+  if (clean === "ops/hosts.json") {
+    return {
+      contract: "1", generated_at: MIN_20_AGO,
+      hosts: {
+        github_actions: { status: "up", last_check: MIN_20_AGO, uptime_24h: 100, uptime_7d: 99.6, uptime_30d: 99.1, last_pulse_at: MIN_5_AGO },
+        github_status: { status: "up", last_check: MIN_20_AGO, uptime_24h: 100, uptime_7d: 100, uptime_30d: 100 },
+        render_1: { status: "asleep", last_check: MIN_20_AGO, uptime_24h: 100, uptime_7d: 100, uptime_30d: 98.7 },
+        hermes_1: { status: "down", last_check: MIN_20_AGO, uptime_24h: 62.5, uptime_7d: 91.4, uptime_30d: 96.2 },
+      },
+    };
+  }
+  if (clean === "lessons.jsonl") {
+    return [
+      { id: "les_demo_1", signature: "rate_limited|429", first_seen: HOUR_2_AGO, last_seen: MIN_20_AGO, count: 4, task_type: "research", what_failed: "A research task met a 429 from a free provider.", likely_cause: "Two tasks ran on the same provider in one minute.", suggested_fix: "Spread the steps over more providers, and wait for the reset before a retry.", source: "template" },
+      { id: "les_demo_2", signature: "bad_format|json", first_seen: HOUR_2_AGO, last_seen: HOUR_2_AGO, count: 1, task_type: "code", what_failed: "A planning step returned text that was not valid JSON.", likely_cause: "The model added a sentence before the JSON.", suggested_fix: "Ask for JSON only, and retry once with the parse error.", source: "model" },
+    ];
+  }
   if (clean === "quota.json") {
     return {
       updatedAt: MIN_5_AGO,
@@ -491,6 +547,18 @@ export function handleDemoWorkerCall(path: string, init: RequestInit = {}): Resp
     });
   }
 
+  if (p === "/admin/security/signins") {
+    return jsonResponse({
+      generatedAt: NOW,
+      summary: { success: 3, failure: 2, blocked: 0, distinctIps: 2 },
+      entries: [
+        { id: 5, at: MIN_5_AGO, ip: "203.0.113.10", userAgent: "Demo browser", route: "login", result: "success", reason: "ok" },
+        { id: 4, at: MIN_20_AGO, ip: "198.51.100.77", userAgent: "Demo script", route: "login", result: "failure", reason: "wrong_token" },
+        { id: 3, at: HOUR_2_AGO, ip: "198.51.100.77", userAgent: "Demo script", route: "login", result: "failure", reason: "wrong_token" },
+        { id: 2, at: HOUR_2_AGO, ip: "203.0.113.10", userAgent: "Demo browser", route: "login", result: "success", reason: "ok" },
+      ],
+    });
+  }
   if (p === "/admin/health/urls") return jsonResponse({ urls: ["https://shreyas-tech7.github.io/TITAN-Runner/"] });
   if (p === "/admin/callback") return jsonResponse({ status: "active", createdAt: HOUR_2_AGO, lastPingAt: MIN_5_AGO, lastPingOk: true });
   if (p === "/admin/pulse") return jsonResponse({ paused: false, lastHeartbeatAt: MIN_5_AGO, lastKeeperDispatchAt: null, lateMinutes: 0 });

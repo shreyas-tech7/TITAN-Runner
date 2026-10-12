@@ -86,6 +86,8 @@ test('scenario 1: connect a Discord webhook, see the test pass, send a test mess
   assert.match(JSON.stringify(stack.discordSent.at(-1)), /TITAN test notification/);
   await page.click('li[data-channel] button:has-text("Add default rules")');
   await page.waitForSelector('text=Added 6 default rules');
+  // The list reloads after the Worker answers, so wait for the rows instead of counting at once.
+  await page.waitForFunction(() => document.querySelectorAll('tr[data-rule]').length === 6, null, { timeout: 10_000 });
   assert.equal(await page.locator('tr[data-rule]').count(), 6);
   assert.deepEqual(await whereIs(page, SECRET_SUFFIX), []);
 });
@@ -211,6 +213,6 @@ test('the home page shows the setup checklist with a ring, and the commands for 
 test('the top tabs show the new pages in the order of the brief', async (t) => {
   const { page } = await openDash(browser, t, '/health/', 'nav.top-tabs');
   const labels = await page.locator('nav.top-tabs a').allInnerTexts();
-  assert.deepEqual(labels, ['Dashboard', 'Connectors', 'Keys', 'Health', "God's Eye View"]);
+  assert.deepEqual(labels, ['Dashboard', 'Chat', 'Connectors', 'Keys', 'Health', 'Ops', 'How It Works', "God's Eye View"]);
   assert.equal(await page.getAttribute('nav.top-tabs a[aria-current="page"]', 'href'), '/TITAN-Runner/health/');
 });

@@ -14,7 +14,7 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 - [~] RT2 Workflow and Issue hardening. Done: owner-only intake, label and skip, Worker mirror. Waiting on the wf branch: workflow permissions, shared state group, publish script, linter rules.
 - [x] RT3 Reviewer Gate coverage for every GitHub write and every VM command (runner gate, Worker gate, VM gate, static boundary test). The workflow `git push` steps move to the gate on the wf branch.
 - [x] RT4 Tool argument validation (every bad field named, table tests)
-- [~] RT5 Worker auth. Done: sessions, limits with backoff, sign-in log, CORS, input limits, public route limits, tests. Open: dashboard sign-in uses the session (RD1).
+- [x] RT5 Worker auth. Sessions with idle and absolute limits, login limits with backoff, sign-in log, CORS, input limits, public route limits, tests. The dashboard now signs in with a session (`lib/sessionApi.ts`), keeps no admin token, and locks with a notice when the session ends. A real-runtime test found and fixed a first-login failure on a fresh database.
 - [x] RT6 VM fleet safety (bare ssh env, URL cleaning, 120 minute cap on script and Worker, claim code hidden). The vm-agent workflow secret list shrinks on the wf branch.
 - [~] RT7 State hygiene. Done: strict schemas for every state file, `check-state`, monthly compressed archives (runs, tasks, event summaries, digests, reviews), daily maintenance script, publish script with retry, tests. Waiting on the wf branch: `state-maintenance.yml`, the CI step, and the shared concurrency group.
 
@@ -30,7 +30,7 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 
 ## Phase 3: dashboard
 
-- [ ] RD1 Panels: provider health, quota meter, eval scores, host status, lessons, and the Security panel (behind sign-in)
+- [x] RD1 Panels. Done: the Ops page (`/ops`) with provider health, quota meter, eval scores, host status with uptime bars, lessons, and the Security panel after sign-in. Phone first, four themes, demo data, 25 unit tests, 15 browser tests (axe in 4 themes at 2 sizes, sign-in and expiry against the real Worker). Open: confirm on the live Pages site after the merge.
 
 ## Phase 4: verify and ship
 

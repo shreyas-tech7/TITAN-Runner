@@ -283,6 +283,18 @@ Actions minutes are unlimited on a public repository, so there is nothing
 to budget — see "Minute budget math" below for the number that matters
 instead (measured pulse duration).
 
+**The Ops page** (`/ops`, the tab "Ops", `dashboard/components/OpsPage.tsx`) shows the shared ops services. Five panels read the public mirrors, so they still work when the Worker is down:
+
+| Panel | File it reads | What it shows |
+|---|---|---|
+| Provider health | `state/ops/health.json` | The result of the nightly canary for each provider and model. A problem is first. A provider with no key is one line. |
+| Quota meter | `state/ops/quota.json` | The free quota used today for each model. An unknown limit shows no meter. |
+| Eval scores | `state/ops/eval.json` | The weekly score of each model for each category. |
+| Host status | `state/ops/hosts.json` | Up, asleep, or down for each host, with three uptime bars (24 hours, 7 days, 30 days). |
+| Lessons | `state/lessons.jsonl` | The post-mortems of failed tasks, the most repeated first. |
+
+Each panel shows when its file was written, and says "stale" when the file is older than its workflow rhythm (`STALE_AFTER_MS` in `dashboard/lib/opsView.ts`). The Security panel is the sixth. It shows only after the sign-in, because it reads the sign-in log from the Worker (`GET /admin/security/signins`, with IP addresses) and the last gitleaks scan from the public GitHub API. `?demo=1` fills every panel with sample data. The page is one column on a phone and two columns from 900 pixels. `npm run build` copies `state/ops/*.json` and `state/lessons.jsonl` into the export, as the fallback when `raw.githubusercontent.com` is not reachable.
+
 Rebuild triggers: a push to `main` touching `dashboard/**`, a manual run,
 and a daily safety-net rebuild (`cron: "0 6 * * *"`) in case the runtime
 polling above is ever unavailable for a viewer. **Deliberately not**
@@ -864,7 +876,7 @@ The route table is in `worker/src/routes.js`. A test fails if a route has no gro
 
 ### Sessions and sign-in
 
-The dashboard does not keep the admin token. The person signs in once. `POST /auth/login` takes the admin token in the body `{"token": "..."}`. It gives back a session token that starts with `tsn_`. The dashboard keeps the session token and sends it in the header `X-Titan-Auth`. The admin token still works in that header for scripts and `curl`.
+The dashboard does not keep the admin token. The person signs in once, and the sign-in screen sends the token to `POST /auth/login` (`dashboard/lib/sessionApi.ts`). A Worker without that route answers 404, and the page then uses the typed token as before. A token that an older version of the page kept in the browser is removed when the page loads. `POST /auth/login` takes the admin token in the body `{"token": "..."}`. It gives back a session token that starts with `tsn_`. The dashboard keeps the session token and sends it in the header `X-Titan-Auth`. The admin token still works in that header for scripts and `curl`.
 
 A session ends after an idle time or after an absolute time, whichever comes first. A call with an ended session gets `401 session_expired`, and the dashboard locks itself. An ended session does not count as a wrong token. The Worker stores the SHA-256 hash of the session token, never the token.
 

@@ -35,6 +35,10 @@ function localUrl(path: string): string {
   return `${BASE_PATH}/state/${path.replace(/^state\//, "")}?t=${Date.now()}`;
 }
 
+async function readBody<T>(res: Response, parse?: (text: string) => T): Promise<T> {
+  return parse ? parse(await res.text()) : ((await res.json()) as T);
+}
+
 export interface PolledJsonResult<T> {
   data: T | null;
   error: string | null;
@@ -47,8 +51,11 @@ export interface PolledJsonResult<T> {
 /**
  * @param statePath e.g. "state/heartbeat.json"
  * @param intervalMs how often to re-poll; 0 disables polling (fetch once, refresh() still works)
+ * @param parse for a file that is not one JSON value, such as `state/lessons.jsonl`: it turns the text into the data
  */
-export function usePolledJson<T>(statePath: string, intervalMs = 20_000): PolledJsonResult<T> {
+export function usePolledJson<T>(statePath: string, intervalMs = 20_000, parse?: (text: string) => T): PolledJsonResult<T> {
+  const parseRef = useRef(parse);
+  parseRef.current = parse;
   const [result, setResult] = useState<Omit<PolledJsonResult<T>, "refresh">>({
     data: null,
     error: null,
@@ -78,7 +85,7 @@ export function usePolledJson<T>(statePath: string, intervalMs = 20_000): Polled
       try {
         const res = await fetch(remote, { cache: "no-store", signal: controller.signal });
         if (res.ok) {
-          const data = (await res.json()) as T;
+          const data = await readBody<T>(res, parseRef.current);
           if (mounted.current && myNonce === nonce.current) {
             setResult({ data, error: null, loading: false, source: "live", lastFetchedAt: Date.now() });
           }
@@ -93,7 +100,7 @@ export function usePolledJson<T>(statePath: string, intervalMs = 20_000): Polled
     try {
       const res = await fetch(localUrl(statePath), { cache: "no-store" });
       if (res.ok) {
-        const data = (await res.json()) as T;
+        const data = await readBody<T>(res, parseRef.current);
         if (mounted.current && myNonce === nonce.current) {
           setResult({ data, error: null, loading: false, source: "build", lastFetchedAt: Date.now() });
         }

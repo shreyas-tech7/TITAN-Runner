@@ -41,4 +41,21 @@ if (existsSync(VIEWS)) {
     }
   }
 }
+// The ops mirrors (state/ops/*.json), for the ops panels.
+const OPS = join(SRC, 'ops');
+if (existsSync(OPS)) {
+  mkdirSync(join(DEST, 'ops'), { recursive: true });
+  for (const entry of readdirSync(OPS, { withFileTypes: true })) {
+    // The host history is a work file of the probe. The panels read only the mirror.
+    if (entry.isFile() && entry.name.endsWith('.json') && entry.name !== 'hosts-history.json') {
+      copyFileSync(join(OPS, entry.name), join(DEST, 'ops', entry.name));
+      copied += 1;
+    }
+  }
+}
+// The lessons of the post-mortems (one JSON object on each line).
+if (existsSync(join(SRC, 'lessons.jsonl'))) {
+  copyFileSync(join(SRC, 'lessons.jsonl'), join(DEST, 'lessons.jsonl'));
+  copied += 1;
+}
 console.log(`Copied ${copied} state file(s) into dashboard/public/state/.`);

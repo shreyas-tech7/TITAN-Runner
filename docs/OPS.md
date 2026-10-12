@@ -174,3 +174,13 @@ What the doorbell keeps:
 - It does not print the backend URL or the token. A redirect is not followed, so the token goes only to the host that the secret names. The URL must be `https`, and the host must not resolve to a private address.
 
 To ring by hand: Actions, Doorbell, Run workflow, and pick a job. In the Codespace: `TITAN_BACKEND_URL=... DOORBELL_TOKEN=... node scripts/ops-doorbell.mjs --job sweep`.
+
+## The Ops page (RD1)
+
+The dashboard tab "Ops" shows the five public mirrors and the lessons, and a Security panel after the sign-in. `docs/RUNTIME.md` ("The dashboard") lists each panel and its file. Three rules hold for every panel:
+
+- A value that is unknown stays unknown. A limit that no official page states shows "limit unknown" and the count of calls. It never shows a guess.
+- An eval category that ran no task is left out. It is never shown as a zero score.
+- A provider that has no key is not an error. It is one line under the list.
+
+The Security panel needs the Worker. It shows the sign-in log of the last 24 hours (who tried, from which address, and the result), and the result of the last gitleaks scan. The log never goes to the repository or to the public site.

@@ -1812,3 +1812,27 @@ button {
   .drawer { padding: var(--space-3); }
   .connector-grid { grid-template-columns: 1fr; }
 }
+
+/* ==========================================================================
+   The ops page (RD1): provider health, quota meter, eval scores, host status, lessons, and the Security panel.
+   It is phone first. Every grid is one column, and two columns start at 900px with .e-pair.
+   ========================================================================== */
+.ops-page { display: grid; gap: 4px; min-width: 0; }
+.ops-page .e-panel { min-width: 0; }
+.ops-cards { display: grid; gap: 10px; }
+.ops-card { border: 1px solid var(--line-subtle); border-radius: 10px; padding: 8px 12px 10px; background: var(--surface-2); }
+.ops-card > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; cursor: pointer; min-height: 32px; color: var(--text-hi); }
+.ops-card[open] > summary { margin-bottom: 10px; }
+.ops-card .e-row-name { text-transform: none; overflow-wrap: anywhere; }
+.ops-uptime { display: grid; gap: 4px; }
+.ops-uptime-bar { display: grid; grid-template-columns: 62px minmax(0, 1fr) 52px; align-items: center; gap: 8px; font-size: 12px; }
+.ops-uptime-none { grid-column: 2 / -1; }
+.ops-uptime-bar .e-num { text-align: right; color: var(--text-body); }
+.ops-security-scan { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 12px; }
+.ops-table-wrap { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+.ops-table { min-width: 460px; }
+.ops-table td, .ops-table th { white-space: nowrap; }
+.ops-page .e-row-name { overflow-wrap: anywhere; text-transform: none; }
+@media (max-width: 640px) {
+  .ops-uptime-bar { grid-template-columns: 54px minmax(0, 1fr) 46px; gap: 6px; }
+}
