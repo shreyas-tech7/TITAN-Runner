@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-10-11T00:01:53.116Z",
+  "lastAttemptAt": "2026-10-12T00:03:56.043Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-10-11",
-  "lastDigestFile": "state/digests/2026-10-11-research.md",
-  "provider": "groq",
-  "model": "allam-2-7b",
+  "lastDigestDate": "2026-10-12",
+  "lastDigestFile": "state/digests/2026-10-12-research.md",
+  "provider": "openrouter",
+  "model": "inclusionai/ling-3.1-flash",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n1. Groq: Recently, Groq has increased the limit for free tier usage from 100MB to 500MB per month, which is a significant improvement for our agent system.\n2. Together: Together has updated their free tier model to offer more AI models, including LLMs, making it a more attractive option for our agent system. However, we should verify if these models are compatible with our agent's requirements.\n3. OpenRouter: OpenRouter has introduced a new free tier with a limit of 100MB per month, which could be a suitable alternative for our agent system if the LLMs offered meet our requirements.\n\n## agent-safety-practice\n1. Approval Tiers: To ensure agent safety, we should implement approval tiers that allow human oversight and control over the agent's actions.\n2. Sandboxing: Utilizing sandboxing techniques can help isolate the agent's environment, preventing it from accessing unauthorized data or making unintended decisions.\n3. Prompt Injection Defenses: Implementing prompt injection defenses can protect our agent from malicious inputs, ensuring its safe operation and preventing potential misuse.\n\n## actions-automation\n1. Cron Reliability: As our agent relies on sche",
+  "preview": "*I have no web access and no reliable information about changes after my knowledge cutoff; treat every current limit, term and default below as unverified.*\n\n## free-tier-llm-landscape\n- **What matters:** Free tiers at Groq, Together, OpenRouter, Google Gemini and Hugging Face frequently change rate limits, model availability, routing and terms; I cannot confirm any specific recent change.\n- **Why it matters:** An agent that runs only on free tiers can break silently when a model is renamed, capped or removed, or when a terms change forbids automated use.\n- **Verify:** Check each provider's current docs and terms directly, plus OpenRouter's status/model list, before any deployment.\n\n## agent-safety-practice\n- **What matters:** Use tiered human approval for destructive or outward-facing actions, run code in sandboxes/containers with no network or credentials by default, treat all tool output as untrusted to resist prompt injection, and keep immutable audit logs.\n- **Why it matters:** Autonomous coding agents can exfiltrate secrets, mutate repos or follow injected instructions from issues, pages and dependencies; approvals plus blast-radius limits reduce damage.\n- **Verify:** Confirm",
   "lastDetail": null
 }

@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-11T13:23:44.839Z",
+  "updatedAt": "2026-10-12T00:04:13.186Z",
   "providers": {
     "groq": {
-      "breaker": "closed",
-      "until": null,
-      "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 666 ms; error rate 36%; model canopylabs/orpheus-v1-english",
-      "status": "ok",
-      "consecutiveFailures": 0,
+      "breaker": "open",
+      "until": "2026-10-12T00:08:56.219Z",
+      "reason": "error — cooling down after 1 consecutive failure(s)",
+      "explain": "groq: breaker open (error — cooling down after 1 consecutive failure(s)); p50 666 ms; error rate 55%; model canopylabs/orpheus-v1-english",
+      "status": "error",
+      "consecutiveFailures": 1,
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
@@ -36,14 +36,14 @@
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "openrouter: breaker closed (healthy); p50 21018 ms; error rate 47%; model inclusionai/ling-3.1-flash",
+      "explain": "openrouter: breaker closed (healthy); p50 18987 ms; error rate 33%; model inclusionai/ling-3.1-flash",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
-        "usedDay": 0,
-        "dayLeft": 180,
+        "usedMinute": 1,
+        "usedDay": 1,
+        "dayLeft": 179,
         "perDay": 180
       }
     },
