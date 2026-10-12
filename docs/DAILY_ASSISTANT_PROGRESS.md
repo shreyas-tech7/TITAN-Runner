@@ -64,5 +64,5 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 - D4 Tests run with `--test-concurrency=2` and `NODE_OPTIONS=--max-old-space-size=3072`.
 - D5 The `gh` token has no `workflow` scope. GitHub rejected a push that adds a workflow file (checked 2026-10-11). The fix needs a browser approval, so it goes to the Cowork handoff.
 - D6 Two branches. `claude/daily-assistant` holds all code, tests, and docs and is pushed. `claude/daily-assistant-wf` holds only workflow file commits, stays local, and sits on top of the first branch. Workflow files live untracked in `/workspaces/TITAN-Runner/.github/workflows/` while I work. A helper copies them into the worktree `/workspaces/TITAN-Runner-wf` and commits there. After the scope fix, one push sends the wf branch.
-- D7 Two pull requests. The first one carries the main-line branch, because it passes on its own. The second one carries the wf branch, after the `workflow` scope is fixed.
+- D7 Two pull requests. The first one carries the main-line branch, because it passes on its own. The later one carries the wf branch, after the `workflow` scope is fixed.
 - D8 The dashboard e2e stack sets `TITAN_DEV_ORIGINS=1`, because the RT5 CORS lock refuses local origins by default. The deployed Worker never sets it.

@@ -16,7 +16,7 @@ You are Claude Cowork. You work in the browser for Shreyas. This file holds ever
 Claude Code worked in the Codespace of the public repository `shreyas-tech7/TITAN-Runner`. It closed the trust gaps (secret scanning, hardened Issues, a gate for every GitHub write, Worker sessions, state hygiene). It built the shared ops services of the contract with TITAN (quota meter, nightly provider canary, weekly eval, post-mortems, host status, doorbell). It added the **Ops** page to the dashboard.
 
 - Pull request 31 holds all the code, tests, and docs. It is merged into `main`. The Pages site and the Worker redeploy from `main` by themselves.
-- The workflow changes are **not** on GitHub yet. They are six new workflows (gitleaks, state maintenance, provider canary, golden task eval, host status, doorbell) and edits to eight existing ones. A push that changes `.github/workflows/` needs the `workflow` scope, and the token in the Codespace does not have it. The files wait on a local branch named `claude/daily-assistant-wf`. Step 1 below fixes this. After that, Claude Code pushes the branch and opens pull request 2.
+- The workflow changes are **not** on GitHub yet. They are six new workflows (gitleaks, state maintenance, provider canary, golden task eval, host status, doorbell) and edits to eight existing ones. A push that changes `.github/workflows/` needs the `workflow` scope, and the token in the Codespace does not have it. The files wait on a local branch named `claude/daily-assistant-wf`. Step 1 below fixes this. After that, Claude Code pushes the branch and opens a new pull request.
 
 Useful values (none of them is a secret):
 
@@ -133,6 +133,6 @@ When you finish, write a prompt for Claude Code that starts with "Continue the T
 
 ## What Claude Code does after your prompt arrives (for your information)
 
-1. It pushes the branch `claude/daily-assistant-wf`, opens pull request 2 with the workflow files, and merges it with a merge commit when the checks pass.
+1. It pushes the branch `claude/daily-assistant-wf`, opens a new pull request with the workflow files, and merges it with a merge commit when the checks pass.
 2. It runs each new workflow once by hand (gitleaks, state maintenance, provider canary, golden task eval, host status, doorbell) and checks the output and the files that they commit.
 3. It checks that the Ops page shows live data, and writes the completion report.

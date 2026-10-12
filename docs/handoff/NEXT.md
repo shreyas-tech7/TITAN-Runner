@@ -4,7 +4,7 @@ This file lists the steps for the Cowork handoff. Claude Code adds a step when i
 
 ## Blocked now
 
-1. **Push access for workflow files.** The `gh` token in the Codespace has the scopes `gist`, `read:org`, and `repo`. GitHub rejects any push that changes `.github/workflows/` without the `workflow` scope. The workflow commits wait on the local branch `claude/daily-assistant-wf` in the Codespace folder `/workspaces/TITAN-Runner-wf`. Fix: in the Codespace terminal, run `gh auth refresh -h github.com -s workflow`. Open https://github.com/login/device. Enter the one-time code. Approve for the account `shreyas-tech7` only. After that, Claude Code pushes the branch, opens the second pull request, and merges it.
+1. **Push access for workflow files.** The `gh` token in the Codespace has the scopes `gist`, `read:org`, and `repo`. GitHub rejects any push that changes `.github/workflows/` without the `workflow` scope. The workflow commits wait on the local branch `claude/daily-assistant-wf` in the Codespace folder `/workspaces/TITAN-Runner-wf`. Fix: in the Codespace terminal, run `gh auth refresh -h github.com -s workflow`. Open https://github.com/login/device. Enter the one-time code. Approve for the account `shreyas-tech7` only. After that, Claude Code pushes the branch, opens a new pull request, and merges it.
 
 ## Repository settings (the repo rule forbids Claude Code from changing them)
 
@@ -26,6 +26,6 @@ This file lists the steps for the Cowork handoff. Claude Code adds a step when i
 
 ## After the push scope is fixed (Claude Code does these)
 
-- Push `claude/daily-assistant-wf`, open the second pull request, merge it with a merge commit.
+- Push `claude/daily-assistant-wf`, open a new pull request, merge it with a merge commit.
 - Run each new workflow once with `workflow_dispatch` and check the output: gitleaks, state maintenance, provider canary, golden task eval, host status, doorbell.
 - Check that the Ops page shows live data. Check that the files under `state/ops/` have data.
