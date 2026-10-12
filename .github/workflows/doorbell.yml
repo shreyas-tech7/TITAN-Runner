@@ -1,0 +1,84 @@
+name: Doorbell
+
+# TITAN has no clock of its own on a free host, so this workflow rings it (RO6). A ring is one POST to
+# TITAN_BACKEND_URL/api/scheduled/<job> with the bearer token DOORBELL_TOKEN and no body. The jobs:
+#
+#   digest         every day at 06:30 in America/Chicago
+#   weekly-review  every Sunday at 18:00 in America/Chicago
+#   sweep          every 15 minutes
+#
+# GitHub cron uses UTC and Chicago changes its offset twice a year. So each timed job has two crons, and the script
+# lets only the one that falls on the right Chicago time ring. A manual run always rings.
+#
+# When TITAN_BACKEND_URL or DOORBELL_TOKEN is not set, the run stops before it checks out the code and costs a few
+# seconds. Only the status code of each ring is kept (in the Worker log, when OPS_TOKEN is set). The answer is never read.
+on:
+  schedule:
+    - cron: "*/15 * * * *" # sweep
+    - cron: "30 11 * * *" # digest, 06:30 CDT
+    - cron: "30 12 * * *" # digest, 06:30 CST
+    - cron: "0 23 * * 0" # weekly-review, Sunday 18:00 CDT
+    - cron: "0 0 * * 1" # weekly-review, Sunday 18:00 CST
+  workflow_dispatch:
+    inputs:
+      job:
+        description: The job to ring
+        type: choice
+        options:
+          - sweep
+          - digest
+          - weekly-review
+        default: sweep
+
+permissions:
+  contents: read
+
+# One ring of a kind at a time. A late sweep waits and does not cancel the one that runs.
+concurrency:
+  group: doorbell-${{ github.event.schedule || inputs.job }}
+  cancel-in-progress: false
+
+jobs:
+  ring:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check the secrets
+        id: secrets
+        env:
+          TITAN_BACKEND_URL: ${{ secrets.TITAN_BACKEND_URL }}
+          DOORBELL_TOKEN: ${{ secrets.DOORBELL_TOKEN }}
+        run: |
+          if [ -z "$TITAN_BACKEND_URL" ] || [ -z "$DOORBELL_TOKEN" ]; then
+            echo "ring=false" >> "$GITHUB_OUTPUT"
+            echo "TITAN_BACKEND_URL or DOORBELL_TOKEN is not set, so there is nothing to ring."
+          else
+            echo "ring=true" >> "$GITHUB_OUTPUT"
+            echo "::add-mask::$TITAN_BACKEND_URL"
+            echo "::add-mask::$DOORBELL_TOKEN"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.secrets.outputs.ring == 'true'
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.secrets.outputs.ring == 'true'
+        with:
+          node-version: "20"
+
+      - name: Ring the doorbell
+        if: steps.secrets.outputs.ring == 'true'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+          INPUT_JOB: ${{ inputs.job }}
+          TITAN_BACKEND_URL: ${{ secrets.TITAN_BACKEND_URL }}
+          DOORBELL_TOKEN: ${{ secrets.DOORBELL_TOKEN }}
+          TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}
+          OPS_TOKEN: ${{ secrets.OPS_TOKEN }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            node scripts/ops-doorbell.mjs --job "$INPUT_JOB"
+          else
+            node scripts/ops-doorbell.mjs --schedule "$EVENT_SCHEDULE"
+          fi

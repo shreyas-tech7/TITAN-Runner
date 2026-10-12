@@ -14,13 +14,20 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: write
-  issues: write
+  contents: read
+
+# Shares the state group (RT2): this workflow commits state/digests/.
+concurrency:
+  group: titan-state
+  cancel-in-progress: false
 
 jobs:
   rollup:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: write # commit the weekly digest
+      issues: write # open the weekly summary issue
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -36,12 +43,4 @@ jobs:
 
       - name: Commit the weekly summary
         run: |
-          git config user.name "titan-runner-bot"
-          git config user.email "titan-runner@users.noreply.github.com"
-          git add state/digests/
-          if git diff --cached --quiet; then
-            echo "Nothing to commit (unexpected — weekly-rollup.mjs always writes a file)."
-          else
-            git commit -m "chore(digest): weekly rollup $(date -u +%Y-%m-%d)"
-            git push
-          fi
+          node scripts/publish-state.mjs --message "chore(digest): weekly rollup $(date -u +%Y-%m-%d)"

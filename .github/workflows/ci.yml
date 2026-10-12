@@ -36,6 +36,9 @@ jobs:
       - name: Secret scan of state/
         run: node scripts/check-secrets-in-state.mjs
 
+      - name: State schemas (every file under state/ matches a strict schema, no extra fields)
+        run: node scripts/check-state.mjs
+
       - name: Provider catalog (workflows, .env.example, dashboard copy agree with config/providers.catalog.json)
         run: node scripts/check-provider-catalog.mjs
 

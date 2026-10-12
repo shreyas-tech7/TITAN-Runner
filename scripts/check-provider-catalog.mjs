@@ -13,7 +13,7 @@
  * Usage: node scripts/check-provider-catalog.mjs
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { WORKFLOWS_WITH_PROVIDER_ENV, envExampleBlock, readCatalog, replaceBlock, workflowEnvBlock } from './lib/providerEnv.mjs';
+import { LEAST_PRIVILEGE_WORKFLOWS, WORKFLOWS_WITH_PROVIDER_ENV, envExampleBlock, readCatalog, replaceBlock, workflowEnvBlock } from './lib/providerEnv.mjs';
 
 const SECRET_NAME = /^[A-Z][A-Z0-9_]*$/;
 const PROVIDER_LOOKING = /^(?!TITAN_|GITHUB_|CLOUDFLARE_|GEV_)[A-Z0-9_]+_(?:API_KEY|MODEL|BASE_URL|CHAT_PATH|SPECIALIZATION|LABEL)$/;
@@ -81,6 +81,16 @@ export function checkProviderCatalog({ catalog, workflows, envExample, sources =
     else if (synced !== text) v.push(`${name}: the generated provider block is stale. Run npm run sync:providers`);
   }
 
+  // RT6: a job around an untrusted VM may hold only the secrets that its entry lists.
+  for (const [name, allowed] of Object.entries(LEAST_PRIVILEGE_WORKFLOWS)) {
+    const text = workflows[name];
+    if (text === undefined) continue;
+    for (const m of text.matchAll(/secrets\.([A-Z0-9_]+)/g)) {
+      if (secrets.has(m[1]) && !allowed.includes(m[1])) v.push(`${name}: holds the provider secret ${m[1]}. This workflow may hold only ${allowed.join(', ')}`);
+    }
+    for (const secret of allowed) if (!text.includes(`secrets.${secret}`)) v.push(`${name}: the Reviewer Gate needs ${secret}`);
+  }
+
   for (const secret of secrets) {
     if (!new RegExp(`^${secret}=`, 'm').test(envExample)) v.push(`.env.example: the catalog secret ${secret} is missing`);
   }
@@ -109,7 +119,7 @@ function main() {
   const root = process.cwd();
   const catalog = readCatalog(root);
   const workflows = {};
-  for (const name of WORKFLOWS_WITH_PROVIDER_ENV) {
+  for (const name of [...WORKFLOWS_WITH_PROVIDER_ENV, ...Object.keys(LEAST_PRIVILEGE_WORKFLOWS)]) {
     const path = `${root}/.github/workflows/${name}`;
     if (existsSync(path)) workflows[name] = readFileSync(path, 'utf8');
   }

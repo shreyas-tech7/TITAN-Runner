@@ -24,10 +24,9 @@ on:
     - cron: "0 6 * * *"
   workflow_dispatch: {}
 
+# Least privilege (RT2): nothing by default. Each job lists what it needs.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -37,6 +36,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write # actions/configure-pages reads and prepares the Pages site
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -84,6 +86,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write # publish the site
+      id-token: write # GitHub Pages needs an OIDC token to verify the deploy. No other workflow may ask for one.
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

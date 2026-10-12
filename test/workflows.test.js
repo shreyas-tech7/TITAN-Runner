@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkWorkflowsDir, checkWorkflowText } from '../scripts/check-workflows.mjs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { OUTSIDER_TRIGGERS, checkPlainScalars, checkWorkflowsDir, checkWorkflowText } from '../scripts/check-workflows.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -40,4 +41,146 @@ test('the checker catches an unpinned action, an interpolated event field in run
   assert.ok(v.some((x) => /no top-level permissions/.test(x)), v.join('\n'));
   // The env: passthrough on line 16 is the correct pattern and must not be flagged.
   assert.ok(!v.some((x) => /bad\.yml:16/.test(x)), v.join('\n'));
+});
+
+const wf = (lines) => lines.join('\n');
+const PIN = 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1';
+
+test('RT2: a trigger that a stranger can fire is refused, and the list holds the known ones', () => {
+  for (const trigger of ['issues', 'issue_comment', 'pull_request_target', 'discussion', 'fork', 'workflow_run', 'pull_request_review_comment']) {
+    const v = checkWorkflowText(wf(['name: x', 'on:', `  ${trigger}:`, '    types: [opened]', 'permissions:', '  contents: read', 'jobs: {}']), 'x.yml');
+    assert.ok(v.some((m) => new RegExp(`trigger "${trigger}"`).test(m)), `${trigger}: ${v.join('|')}`);
+  }
+  const inline = checkWorkflowText(wf(['name: x', 'on: [push, issues]', 'permissions:', '  contents: read', 'jobs: {}']), 'x.yml');
+  assert.ok(inline.some((m) => /trigger "issues"/.test(m)));
+  const fine = checkWorkflowText(wf(['name: x', 'on:', '  schedule:', '    - cron: "0 0 * * *"', '  workflow_dispatch: {}', '  repository_dispatch:', '    types: [a]', 'permissions:', '  contents: read', 'jobs: {}']), 'x.yml');
+  assert.deepEqual(fine, []);
+  assert.ok(OUTSIDER_TRIGGERS.includes('issue_comment'));
+});
+
+test('RT2: a pull_request workflow may not read a secret other than GITHUB_TOKEN', () => {
+  const bad = checkWorkflowText(wf(['name: x', 'on:', '  pull_request:', 'permissions:', '  contents: read', 'jobs:', '  j:', '    steps:', `      - uses: ${PIN}`, '      - run: echo hi', '        env:', '          K: ${{ secrets.GROQ_API_KEY }}']), 'x.yml');
+  assert.ok(bad.some((m) => /pull_request workflow reads the secret GROQ_API_KEY/.test(m)), bad.join('|'));
+  const ok = checkWorkflowText(wf(['name: x', 'on:', '  pull_request:', 'permissions:', '  contents: read', 'jobs:', '  j:', '    steps:', `      - uses: ${PIN}`, '      - run: echo hi', '        env:', '          T: ${{ secrets.GITHUB_TOKEN }}']), 'x.yml');
+  assert.deepEqual(ok, []);
+});
+
+test('RT2: the top-level permissions grant no write access, and write-all never appears', () => {
+  const top = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: write', '  issues: read', 'jobs: {}']), 'x.yml');
+  assert.ok(top.some((m) => /top-level permissions grant "contents: write"/.test(m)), top.join('|'));
+  const all = checkWorkflowText(wf(['name: x', 'on: push', 'permissions: write-all', 'jobs: {}']), 'x.yml');
+  assert.ok(all.some((m) => /write-all/.test(m)));
+  const job = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'jobs:', '  j:', '    permissions:', '      contents: write', '    steps: []']), 'x.yml');
+  assert.deepEqual(job, [], 'a job may ask for write access in its own block');
+});
+
+test('RT2: the branch name and the ref count as untrusted text, in run: and in script:', () => {
+  for (const expr of ['github.ref_name', 'github.head_ref', 'github.base_ref', 'github.ref', 'github.event.pull_request.title', 'inputs.x']) {
+    const v = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'jobs:', '  j:', '    steps:', `      - run: echo "\${{ ${expr} }}"`]), 'x.yml');
+    assert.ok(v.some((m) => /untrusted expression/.test(m)), `${expr}: ${v.join('|')}`);
+  }
+  const script = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'jobs:', '  j:', '    steps:', '      - uses: someone/act@3d3c42e5aac5ba805825da76410c181273ba90b1', '        with:', '          script: |', '            console.log("\${{ github.event.issue.title }}")']), 'x.yml');
+  assert.ok(script.some((m) => /untrusted expression/.test(m)), script.join('|'));
+  const viaEnv = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'jobs:', '  j:', '    steps:', '      - run: echo "$B"', '        env:', '          B: ${{ github.ref_name }}']), 'x.yml');
+  assert.deepEqual(viaEnv, [], 'env is the safe way');
+});
+
+test('RT2: a workflow that commits to state/ must join the group titan-state', () => {
+  const without = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'jobs:', '  j:', '    steps:', '      - run: node scripts/publish-state.mjs --message x']), 'x.yml');
+  assert.ok(without.some((m) => /titan-state/.test(m)), without.join('|'));
+  const withGroup = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'concurrency:', '  group: titan-state', 'jobs:', '  j:', '    steps:', '      - run: node scripts/publish-state.mjs --message x']), 'x.yml');
+  assert.deepEqual(withGroup, []);
+  const expression = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'concurrency:', "  group: ${{ cond && 'single' || 'titan-state' }}", 'jobs:', '  j:', '    steps:', '      - run: node scripts/publish-state.mjs --message x']), 'x.yml');
+  assert.deepEqual(expression, []);
+});
+
+test('RT3: a workflow never writes to GitHub by itself', () => {
+  const cases = ['git push', 'git commit -m x', 'gh issue create --title x', 'gh pr merge 3', 'gh api -X POST /repos/a/b/issues', 'gh api repos/a/b --method DELETE'];
+  for (const cmd of cases) {
+    const v = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'concurrency:', '  group: titan-state', 'jobs:', '  j:', '    steps:', `      - run: ${cmd}`]), 'x.yml');
+    assert.ok(v.length > 0, `${cmd} must be flagged`);
+  }
+  const action = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'jobs:', '  j:', '    steps:', '      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b']), 'x.yml');
+  assert.ok(action.some((m) => /github-script/.test(m)));
+  const read = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'jobs:', '  j:', '    steps:', '      - run: gh api repos/a/b/issues']), 'x.yml');
+  assert.deepEqual(read, [], 'a read is fine');
+});
+
+test('RT2: a step that makes a secret at run time must mask it', () => {
+  const bad = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'jobs:', '  j:', '    steps:', '      - run: |', '          node -e "process.stdout.write(require(\'node:crypto\').randomBytes(32).toString(\'hex\'))" > key', '          wrangler secret put K < key']), 'x.yml');
+  assert.ok(bad.some((m) => /::add-mask::/.test(m)), bad.join('|'));
+  const ok = checkWorkflowText(wf(['name: x', 'on: push', 'permissions:', '  contents: read', 'jobs:', '  j:', '    steps:', '      - run: |', '          node -e "process.stdout.write(require(\'node:crypto\').randomBytes(32).toString(\'hex\'))" > key', '          echo "::add-mask::$(cat key)"', '          wrangler secret put K < key']), 'x.yml');
+  assert.deepEqual(ok, []);
+});
+
+test('RT2: every committed workflow that commits state joins titan-state, and none runs git push', () => {
+  const dir = join(REPO_ROOT, '.github', 'workflows');
+  const committers = [];
+  for (const f of readdirSync(dir)) {
+    const text = readFileSync(join(dir, f), 'utf8');
+    assert.ok(!/^\s*(?:-\s+)?run:[\s\S]*?\bgit\s+(push|commit)\b/m.test(text.replace(/^\s*#.*$/gm, '')), `${f} runs git push or git commit`);
+    if (/publish-state\.mjs/.test(text)) committers.push(f);
+  }
+  assert.deepEqual(committers.sort(), ['keepalive.yml', 'ops-canary.yml', 'ops-eval.yml', 'ops-hosts.yml', 'provider-selftest.yml', 'state-maintenance.yml', 'titan-control.yml', 'titan-pulse.yml']);
+  for (const f of committers) assert.match(readFileSync(join(dir, f), 'utf8'), /titan-state/, f);
+});
+
+test('RT2: the only workflow with the OIDC permission is the Pages deploy, and the other triggers are safe', () => {
+  const dir = join(REPO_ROOT, '.github', 'workflows');
+  for (const f of readdirSync(dir)) {
+    const text = readFileSync(join(dir, f), 'utf8');
+    if (f !== 'pages-deploy.yml') assert.ok(!/id-token:\s*write/.test(text), f);
+    for (const t of OUTSIDER_TRIGGERS) assert.ok(!new RegExp(`^\\s{2}${t}:`, 'm').test(text.split(/^jobs:/m)[0]), `${f} has the trigger ${t}`);
+  }
+});
+
+test('RT6: the VM workflow holds the Reviewer Gate key and no other provider key', () => {
+  const text = readFileSync(join(REPO_ROOT, '.github', 'workflows', 'vm-agent.yml'), 'utf8');
+  const secrets = [...text.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((m) => m[1]).sort();
+  assert.deepEqual([...new Set(secrets)], ['GROQ_API_KEY', 'GROQ_MODEL', 'TITAN_ADMIN_TOKEN', 'TITAN_CALLBACK_TOKEN']);
+});
+
+test('RO6: the doorbell workflow has the five crons of the table, holds no write permission, and rings only with both secrets', async () => {
+  const { CRONS } = await import('../src/ops/doorbell.js');
+  const text = readFileSync(join(REPO_ROOT, '.github', 'workflows', 'doorbell.yml'), 'utf8');
+  const crons = [...text.matchAll(/^\s*-\s+cron:\s*"([^"]+)"/gm)].map((m) => m[1]).sort();
+  assert.deepEqual(crons, Object.keys(CRONS).sort());
+  assert.match(text, /^permissions:\n\s+contents: read$/m);
+  assert.ok(!/\bwrite\b/.test(text.replace(/^\s*#.*$/gm, '')), 'the doorbell holds no write permission');
+  assert.ok(!/publish-state|titan-state/.test(text.replace(/^\s*#.*$/gm, '')), 'the doorbell does not touch state');
+  // The secrets are checked before the code is checked out, so an unset secret costs a few seconds.
+  const checkAt = text.indexOf('Check the secrets');
+  assert.ok(checkAt > 0 && checkAt < text.indexOf('actions/checkout'));
+  assert.match(text, /if: steps\.secrets\.outputs\.ring == 'true'/);
+  // The event fields reach the script through env, never inline in a run: block.
+  for (const block of text.matchAll(/run: \|\n((?:\s{10}.*\n?)+)/g)) assert.ok(!/\$\{\{/.test(block[1]), block[1]);
+  assert.match(text, /::add-mask::\$TITAN_BACKEND_URL/);
+  assert.match(text, /::add-mask::\$DOORBELL_TOKEN/);
+});
+
+test('RT2: the linter finds a plain YAML value with a colon and a space, and leaves quoted values and block scalars alone', () => {
+  const lint = (...lines) => checkPlainScalars(lines, 'x.yml');
+  // The bug that actionlint found: the commit message holds "): ", and YAML reads it as a new key.
+  const bad = lint('      - name: Commit', '        run: node scripts/publish-state.mjs --message "chore(ops): host status $(date -u +%Y-%m-%d)"');
+  assert.equal(bad.length, 1);
+  assert.match(bad[0], /x\.yml:2: the plain value of "run" holds a colon and a space/);
+  assert.equal(lint('      - run: echo "a: b"').length, 1, 'quotes inside a plain value do not help');
+  assert.equal(lint('        name: Check: the secrets').length, 1);
+  // These parse fine.
+  assert.deepEqual(lint('        run: |', '          node a.mjs --message "chore(ops): host status"', '          echo "k: v"'), [], 'a block scalar may hold anything');
+  assert.deepEqual(lint('        run: >-', '          echo "k: v"'), []);
+  assert.deepEqual(lint('        run: "node a.mjs --message \'chore(ops): x\'"'), []);
+  assert.deepEqual(lint("        run: 'echo a: b'"), []);
+  assert.deepEqual(lint('    - cron: "0 8 * * *" # 03:00 CDT: summer'), [], 'a comment may hold a colon');
+  assert.deepEqual(lint('      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1'), []);
+  assert.deepEqual(lint('# note: this is a comment', '        timeout-minutes: 15'), []);
+  assert.deepEqual(lint('        TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}'), [], 'an expression value has no colon and space');
+  assert.deepEqual(lint('        run: node scripts/ops-hosts.mjs'), []);
+  // The block scalar ends at the next line with the indent of its key or less.
+  assert.equal(lint('        run: |', '          echo ok', '        name: a: b').length, 1);
+});
+
+test('RT2: no committed workflow has a plain YAML value with a colon and a space', () => {
+  const dir = join(REPO_ROOT, '.github', 'workflows');
+  for (const f of readdirSync(dir)) assert.deepEqual(checkPlainScalars(readFileSync(join(dir, f), 'utf8').split('\n'), f), [], f);
 });
