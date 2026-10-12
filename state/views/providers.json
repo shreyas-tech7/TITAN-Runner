@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-12T00:04:13.186Z",
+  "updatedAt": "2026-10-12T00:19:56.337Z",
   "providers": {
     "groq": {
-      "breaker": "open",
-      "until": "2026-10-12T00:08:56.219Z",
-      "reason": "error — cooling down after 1 consecutive failure(s)",
-      "explain": "groq: breaker open (error — cooling down after 1 consecutive failure(s)); p50 666 ms; error rate 55%; model canopylabs/orpheus-v1-english",
+      "breaker": "half-open",
+      "until": null,
+      "reason": "cooldown over after 1 failure(s); next call is a probe",
+      "explain": "groq: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 666 ms; error rate 55%; model canopylabs/orpheus-v1-english",
       "status": "error",
       "consecutiveFailures": 1,
       "lastFailureClass": null,
@@ -41,7 +41,7 @@
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 1,
+        "usedMinute": 0,
         "usedDay": 1,
         "dayLeft": 179,
         "perDay": 180
