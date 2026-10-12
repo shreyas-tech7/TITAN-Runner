@@ -34,13 +34,13 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 
 ## Phase 4: verify and ship
 
-- [ ] V1 All tests, checks, and the build pass at or above the baseline, plus new tests
-- [ ] V2 gitleaks clean on the full history (or every finding listed for rotation)
+- [x] V1 All tests, checks, and the build pass at or above the baseline, plus new tests. Root 666 (baseline 405), worker 303 (baseline 235), dashboard 118 (baseline 93), 15 new browser tests. `check-all` passes on the full tree and on the main-line branch alone (2026-10-12).
+- [x] V2 gitleaks 8.30.1 clean on the full history of every branch (1102 commits, 2026-10-12). One late finding was the fake session token of a test fixture. It has an exact value entry in the allowlist.
 - [ ] V3 Each new workflow ran once with `workflow_dispatch` and the output was checked
 - [ ] V4 Test host alert opened and closed an Issue
 - [ ] V5 PR from `claude/daily-assistant` to `main` merged with a merge commit
 - [ ] V6 After merge: Pages shows the panels, the mirror files exist, every `/ops` route returns 401 without a token
-- [ ] V7 README and runtime docs updated
+- [x] V7 README, runtime docs, ops docs, security docs, and config docs updated
 
 ## Handoff
 
@@ -64,3 +64,5 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 - D4 Tests run with `--test-concurrency=2` and `NODE_OPTIONS=--max-old-space-size=3072`.
 - D5 The `gh` token has no `workflow` scope. GitHub rejected a push that adds a workflow file (checked 2026-10-11). The fix needs a browser approval, so it goes to the Cowork handoff.
 - D6 Two branches. `claude/daily-assistant` holds all code, tests, and docs and is pushed. `claude/daily-assistant-wf` holds only workflow file commits, stays local, and sits on top of the first branch. Workflow files live untracked in `/workspaces/TITAN-Runner/.github/workflows/` while I work. A helper copies them into the worktree `/workspaces/TITAN-Runner-wf` and commits there. After the scope fix, one push sends the wf branch.
+- D7 Two pull requests. The first one carries the main-line branch, because it passes on its own. The second one carries the wf branch, after the `workflow` scope is fixed.
+- D8 The dashboard e2e stack sets `TITAN_DEV_ORIGINS=1`, because the RT5 CORS lock refuses local origins by default. The deployed Worker never sets it.

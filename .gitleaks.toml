@@ -83,4 +83,5 @@ regexes = [
   '''^gev1\.1\.2\.abcdefgh\.sig$''',
   '''^key-(one|two)-0123456789$''',
   '''^ZmFrZS1wdWJsaWMta2V5$''',
+  '''^sess_0123456789abcdef$''', # the fake session token of dashboard/test/session.test.ts
 ]
