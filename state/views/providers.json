@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-12T03:52:10.437Z",
+  "updatedAt": "2026-10-12T15:57:51.208Z",
   "providers": {
     "groq": {
       "breaker": "half-open",
       "until": null,
       "reason": "cooldown over after 3 failure(s); next call is a probe",
-      "explain": "groq: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 666 ms; error rate 78%; model canopylabs/orpheus-v1-english",
+      "explain": "groq: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 666 ms; error rate 78%; model qwen/qwen3.8-27b",
       "status": "error",
       "consecutiveFailures": 3,
       "lastFailureClass": null,
