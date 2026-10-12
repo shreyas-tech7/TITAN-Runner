@@ -68,6 +68,8 @@ Do not change any other setting on this page. Do not change branch protection.
 
 Report: the state of each row after your changes.
 
+Then open https://github.com/shreyas-tech7/TITAN-Runner/security/secret-scanning. Report how many open alerts there are, and the type of each one. Never write the secret itself. If an alert is open, say which provider the key belongs to, so that Shreyas rotates that key. Do not close an alert. Also open https://github.com/shreyas-tech7/TITAN-Runner/security/dependabot and report the number of open alerts and their severity.
+
 ### Step 3. The ops token `OPS_TOKEN`
 
 `OPS_TOKEN` is one random secret. It must be the same value in three places. TITAN and the workflows use it to call the `/ops` routes of the Worker.
@@ -84,7 +86,7 @@ Report: the names of the secrets that now exist on both pages. Never the value.
 
 ### Step 4. The doorbell secrets
 
-The doorbell workflow rings TITAN. It needs two secrets and one address.
+The doorbell workflow rings TITAN. It needs two secrets.
 
 1. `DOORBELL_TOKEN`: a second random secret, made like the first one. Add it as a GitHub Actions secret on the page of step 3.1. Shreyas also adds the same value to the environment of TITAN as `DOORBELL_TOKEN`.
 2. `TITAN_BACKEND_URL`: the public https address of the TITAN backend. Ask Shreyas for it. Add it as a GitHub Actions secret. It is also a secret, so do not show it. Shreyas also keeps it in his TITAN notes.
