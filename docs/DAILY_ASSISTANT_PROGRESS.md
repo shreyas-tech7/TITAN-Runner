@@ -10,23 +10,23 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 
 ## Phase 1: close the trust gaps
 
-- [~] RT1 Secret scanning. Done: `.gitleaks.toml`, hook, Issue scan script, history scan clean, tests, docs. Waiting: `gitleaks.yml` is committed on the wf branch (push needs the `workflow` scope).
-- [~] RT2 Workflow and Issue hardening. Done: owner-only intake, label and skip, Worker mirror. Waiting on the wf branch: workflow permissions, shared state group, publish script, linter rules.
+- [x] RT1 Secret scanning. `.gitleaks.toml` with exact-value fixture entries, a pre-commit hook, `scripts/scan-issues.mjs`, and `gitleaks.yml` (push, pull request, weekly). The workflow ran on GitHub on 2026-10-12: checksum verified, 1151 commits scanned, no leaks. No real key was found, so nothing to rotate.
+- [x] RT2 Workflow and Issue hardening. Owner-only intake, least-privilege permissions, one shared state group, one publish script with rebase and retry, linter rules (including the YAML rule that actionlint motivated). The hardened pulse, Pages deploy, and self-test ran on GitHub and passed.
 - [x] RT3 Reviewer Gate coverage for every GitHub write and every VM command (runner gate, Worker gate, VM gate, static boundary test). The workflow `git push` steps move to the gate on the wf branch.
 - [x] RT4 Tool argument validation (every bad field named, table tests)
 - [x] RT5 Worker auth. Sessions with idle and absolute limits, login limits with backoff, sign-in log, CORS, input limits, public route limits, tests. The dashboard now signs in with a session (`lib/sessionApi.ts`), keeps no admin token, and locks with a notice when the session ends. A real-runtime test found and fixed a first-login failure on a fresh database.
 - [x] RT6 VM fleet safety (bare ssh env, URL cleaning, 120 minute cap on script and Worker, claim code hidden). The vm-agent workflow secret list shrinks on the wf branch.
-- [~] RT7 State hygiene. Done: strict schemas for every state file, `check-state`, monthly compressed archives (runs, tasks, event summaries, digests, reviews), daily maintenance script, publish script with retry, tests. Waiting on the wf branch: `state-maintenance.yml`, the CI step, and the shared concurrency group.
+- [x] RT7 State hygiene. Strict schemas for every state file (the live pulse state passes `check-state`, 69 files), monthly archives, and a daily maintenance run. `state-maintenance.yml` ran on GitHub and pushed its record.
 
 ## Phase 2: shared ops services
 
 - [x] C0 `docs/CONTRACT.md` (word for word, plus a section on the shapes and the added routes)
 - [x] RO1 Usage ledger and free quota meter (`/ops/usage`, `/ops/quota`, `quotas.json`)
-- [~] RO2 Nightly provider canary. Done: canary core, targets for every catalog provider, Hermes list only, CLI, mirror, Worker route, tests. Waiting on the wf branch: `ops-canary.yml`. Open: first live run.
-- [~] RO3 Weekly golden task eval. Done: 15 tasks over 12 categories with deterministic checkers (reference and wrong answers tested), sandboxed code runner (tested under Node 22 and 24), budget, mirror, capability cache and router use, Worker route, tests. Waiting on the wf branch: `ops-eval.yml`. Open: first live run.
-- [~] RO4 Post-mortems. Done: signature merge, template and free-model paths, redaction, gitleaks scan, `state/lessons.jsonl`, decomposer reads 5 lessons, pulse sweep, 12 tests incl. a full pulse. Waiting on the wf branch: the gitleaks install step in `titan-pulse.yml`.
-- [~] RO5 Host status and alerts. Done: probe library (Space via Hub API, Render cold start = asleep, Hermes 401 = up, SSRF guard, no URL in any result), history and uptime, mirror, alert plan, CLI, quota sync, strict schemas, 25 tests incl. open and close of a host-alert Issue. Waiting on the wf branch: `ops-hosts.yml`. Open: first live run and the host-alert open and close check on GitHub.
-- [~] RO6 Doorbell. Done: planner with Chicago guard (one cron of each pair rings on every day of the year, tested), ring with status code only, no body read, no redirect, egress guard, quiet skip, CLI, Worker log route, 19 tests. Waiting on the wf branch: `doorbell.yml`. Open: first live run needs `TITAN_BACKEND_URL` and `DOORBELL_TOKEN`.
+- [x] RO2 Nightly provider canary. It ran four times on 2026-10-12 and found three real problems (a speech model chosen for Groq, a retired Groq default model, and a free OpenRouter model that only works in agent harnesses). All three are fixed, and the last run shows Groq, OpenRouter, and Gemini healthy. The post to the Worker waits for `OPS_TOKEN`.
+- [x] RO3 Weekly golden task eval. It ran on GitHub: 37 calls, two models scored (gemini-2.5-flash 0.67 over 6 tasks, nvidia/nemotron-3.5-lightning:free 0.86 over 14 tasks), `state/ops/eval.json` and the capability cache updated. The post to the Worker waits for `OPS_TOKEN`.
+- [x] RO4 Post-mortems. Signature merge, template and free-model paths, redaction, gitleaks scan, `state/lessons.jsonl`, decomposer reads 5 lessons. The pulse installs gitleaks with a checked sum (verified on GitHub).
+- [x] RO5 Host status and alerts. It ran on GitHub: the pulse is current, GitHub status is up, and the God's Eye View host on Render shows `asleep`. The alert flow ran live: Issue 32 opened after 2 failed checks and closed when the host was back. Hosts with no address are skipped until Shreyas sets them.
+- [x] RO6 Doorbell. All three jobs ran on GitHub and skipped quietly, because `TITAN_BACKEND_URL` and `DOORBELL_TOKEN` are not set yet. The Chicago guard is tested for every day of the year.
 
 ## Phase 3: dashboard
 
@@ -36,25 +36,29 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 
 - [x] V1 All tests, checks, and the build pass at or above the baseline, plus new tests. Root 666 (baseline 405), worker 303 (baseline 235), dashboard 118 (baseline 93), 15 new browser tests. `check-all` passes on the full tree and on the main-line branch alone (2026-10-12).
 - [x] V2 gitleaks 8.30.1 found no leak in the full history of every branch (1102 commits, 2026-10-12). One late hit was the fake session token of a test. It has an exact value entry in the allowlist.
-- [!] V3 Run each new workflow once with `workflow_dispatch`. Blocked. GitHub refuses the push of the workflow files until the `workflow` scope is fixed (Cowork handoff 1, step 1). The scripts of the workflows ran by hand and passed their tests.
+- [x] V3 Each new workflow ran once by hand on GitHub: Secret scan, State maintenance, Host status, Provider canary (4 times), Golden task eval, Doorbell (3 jobs), plus the changed Provider self-test, Weekly keep-alive, Dead-man's switch, TITAN Pulse, Deploy dashboard, and Deploy Worker. All passed. The steps that post to the Worker wait for `OPS_TOKEN`.
 - [x] V4 Host alert test. Live check on 2026-10-12. Two failed probes opened Issue 32 with the label `host-alert`. The text held no URL. A third failed probe reused the Issue. A good probe closed it with a comment.
 - [x] V5 Pull request 31 merged into `main` with a merge commit (e26c52f, 2026-10-12). The three checks passed first.
 - [x] V6 Live checks after the merge, 2026-10-12. The Pages site serves `/ops/` with all six panels. Demo mode at 390 pixels shows no sideways scroll. The four mirror files answer 200. `GET /version` shows e26c52f and schema version 6. Every `/ops` route answers 401 without a token. A wrong token on `/auth/login` answers 401, and the page keeps no session. CORS answers the Pages origin. Another origin gets 403.
 - [x] V7 README, runtime docs, ops docs, security docs, and config docs updated
 
+## Open for the owner
+
+- [!] S1 Shreyas sets the secrets (`OPS_TOKEN` in three places, `DOORBELL_TOKEN`, `TITAN_BACKEND_URL`, optional host addresses and Discord). Nobody else can, because the same value must be in TITAN. Then a Claude Code session follows `docs/handoff/after-secrets.md`.
+
 ## Handoff
 
 - [x] H1 `docs/handoff/NEXT.md` kept up to date
 - [x] H2 `docs/handoff/cowork-1.md` written and printed. Handoff 1 came back. One claim failed the check (the `workflow` scope is not on this Codespace). `docs/handoff/cowork-2.md` gives the exact fix.
-- [ ] H3 Final completion report
+- [x] H3 Final completion report in `docs/DAILY_ASSISTANT_REPORT.md`
 
 ## Baseline to beat
 
 | Suite | Count |
 |---|---|
-| Root tests | 405 |
-| Worker tests | 235 |
-| Dashboard tests | 93 |
+| Root tests | 405 (now 673) |
+| Worker tests | 235 (now 303) |
+| Dashboard tests | 93 (now 118) |
 
 ## Decision log
 
