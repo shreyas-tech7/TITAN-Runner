@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-12T15:44:08.458Z",
+  "updatedAt": "2026-10-12T15:50:59.383Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -15,16 +15,14 @@
       "consecutiveFailures": 3,
       "cooldownUntil": "2026-10-12T03:50:49.397Z",
       "lastError": "Groq rejected the request (400): The model `canopylabs/orpheus-v1-english` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com/playground?model=canopylabs%2Forpheus-v1-english",
-      "model": "canopylabs/orpheus-v1-english",
+      "model": "qwen/qwen3.8-27b",
       "discoveredModels": [
-        "canopylabs/orpheus-v1-english",
-        "canopylabs/orpheus-arabic-saudi",
         "qwen/qwen3.8-27b",
+        "allam-2-7b",
         "openai/gpt-oss-20b",
-        "openai/gpt-oss-120b",
-        "allam-2-7b"
+        "openai/gpt-oss-120b"
       ],
-      "modelsDiscoveredAt": "2026-10-11T13:13:10.308Z",
+      "modelsDiscoveredAt": "2026-10-12T15:50:58.740Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -82,7 +80,7 @@
         "nvidia/nemotron-3-super-120b-a12b:free",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-10-12T03:30:49.551Z",
+      "modelsDiscoveredAt": "2026-10-12T15:50:59.244Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -135,7 +133,7 @@
         "lyria-3-pro-preview",
         "deep-research-pro-preview-12-2025"
       ],
-      "modelsDiscoveredAt": "2026-10-12T03:30:53.126Z",
+      "modelsDiscoveredAt": "2026-10-12T15:50:59.382Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -174,7 +172,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
