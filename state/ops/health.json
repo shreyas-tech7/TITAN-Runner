@@ -1,5 +1,118 @@
 {
   "contract": "1",
-  "generated_at": "2026-10-11T23:38:09.226Z",
-  "providers": {}
+  "generated_at": "2026-10-12T03:24:34.444Z",
+  "providers": {
+    "custom_1": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:34.443Z",
+        "error_class": "no_key"
+      }
+    },
+    "custom_2": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:34.443Z",
+        "error_class": "no_key"
+      }
+    },
+    "custom_3": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:34.443Z",
+        "error_class": "no_key"
+      }
+    },
+    "freebuff": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:34.443Z",
+        "error_class": "no_public_api"
+      }
+    },
+    "gemini": {
+      "gemini-2.5-flash": {
+        "status": "healthy",
+        "latency_ms": 692,
+        "checked_at": "2026-10-12T03:24:33.751Z",
+        "error_class": null
+      }
+    },
+    "groq": {
+      "canopylabs/orpheus-v1-english": {
+        "status": "down",
+        "latency_ms": 58,
+        "checked_at": "2026-10-12T03:24:30.158Z",
+        "error_class": "error"
+      }
+    },
+    "hermes_1": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:34.443Z",
+        "error_class": "no_key"
+      }
+    },
+    "hermes_2": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:34.443Z",
+        "error_class": "no_key"
+      }
+    },
+    "hermes_3": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:34.443Z",
+        "error_class": "no_key"
+      }
+    },
+    "huggingface": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:34.443Z",
+        "error_class": "no_key"
+      }
+    },
+    "omniroute": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:34.443Z",
+        "error_class": "no_key"
+      }
+    },
+    "opencode": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:34.443Z",
+        "error_class": "no_key"
+      }
+    },
+    "openrouter": {
+      "inclusionai/ling-3.1-flash": {
+        "status": "healthy",
+        "latency_ms": 1372,
+        "checked_at": "2026-10-12T03:24:32.379Z",
+        "error_class": null
+      }
+    },
+    "together": {
+      "*": {
+        "status": "not_configured",
+        "latency_ms": null,
+        "checked_at": "2026-10-12T03:24:32.379Z",
+        "error_class": "no_key"
+      }
+    }
+  }
 }
