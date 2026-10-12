@@ -9,6 +9,8 @@
  * reports not_configured) or an orchestration tuning knob.
  */
 
+import { isChatModelId } from './providers/nonChat.js';
+
 function credential(raw) {
   if (typeof raw !== 'string') return '';
   const value = raw.trim();
@@ -184,7 +186,8 @@ export const DEFAULT_MODELS = Object.freeze({
 export function resolveModel(id, cachedModel) {
   const pinned = config[id]?.model;
   if (pinned) return pinned;
-  if (cachedModel) return cachedModel;
+  // A cached model that is not a chat model (a speech model that discovery once chose) is never used.
+  if (cachedModel && isChatModelId(cachedModel)) return cachedModel;
   return DEFAULT_MODELS[id] ?? '';
 }
 
