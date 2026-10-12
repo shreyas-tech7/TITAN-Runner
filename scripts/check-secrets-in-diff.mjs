@@ -16,11 +16,13 @@
  *     canary is built by string concatenation in source so the literal never
  *     appears, but the exclusion keeps the gate from arguing with the tests)
  *   - package-lock.json integrity hashes (sha512 base64 runs)
+ *   - docs/CONTRACT.md. The shared contract is quoted word for word. It writes "Authorization: Bearer OPS_TOKEN", where
+ *     OPS_TOKEN is the NAME of a secret, not a value. gitleaks still scans the file.
  */
 import { execFileSync } from 'node:child_process';
 import { SECRET_PATTERNS } from '../src/lib/redact.js';
 
-const EXCLUDED_PATHS = [/^src\/lib\/redact\.js$/, /^scripts\/check-secrets-in-(diff|state)\.mjs$/, /^test\//, /^worker\/test\//, /^connectors\/[^/]+\/fixtures\//, /^bench\//, /package-lock\.json$/];
+const EXCLUDED_PATHS = [/^docs\/CONTRACT\.md$/, /^src\/lib\/redact\.js$/, /^scripts\/check-secrets-in-(diff|state)\.mjs$/, /^test\//, /^worker\/test\//, /^connectors\/[^/]+\/fixtures\//, /^bench\//, /package-lock\.json$/];
 // The generic base64/hex catch-alls (the last two patterns) fire on every
 // lockfile hash and SHA-pinned action; a real key of an unknown provider
 // still trips the issuer-specific and header/URL patterns above them.

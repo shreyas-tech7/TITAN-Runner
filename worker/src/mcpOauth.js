@@ -8,6 +8,7 @@
  */
 import { MCP_SCOPES, TOKEN_PREFIX } from './mcpServer.js';
 import { equalConstantTime } from './lib/hmac.js';
+import { clientKey, hitRateLimit } from './lib/rateLimit.js';
 import { json, jsonError, nowIso, randomBytes, readJson, sha256Hex, toBase64Url } from './lib/util.js';
 
 export const CLAUDE_CALLBACK_URLS = Object.freeze([
@@ -84,7 +85,22 @@ export function handleAuthServerMeta(c) {
 }
 
 /** POST /oauth/mcp/register (public dynamic client registration with redirect URI allowlist) */
+/** The most registered clients the table holds (RT5). The route is public, so it has a cap and a rate limit. */
+export const MAX_MCP_CLIENTS = 50;
+
+function tooMany(limit) {
+  const res = jsonError(429, 'rate_limited', 'Too many requests. Try again later.', { retryAfterSeconds: limit.retryAfterSeconds });
+  res.headers.set('Retry-After', String(limit.retryAfterSeconds));
+  return res;
+}
+
 export async function handleMcpRegister(c) {
+  // RT5: this route writes and needs no token, because the OAuth flow requires open registration. A registered client
+  // can do nothing until the owner approves it on the consent screen. So the route has a rate limit and a cap.
+  const limit = await hitRateLimit(c.env, await clientKey(c.request, c.env, 'mcp-register'), { max: 10, windowMs: 3_600_000 });
+  if (!limit.allowed) return tooMany(limit);
+  const clients = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM mcp_oauth_clients').first();
+  if ((clients?.n ?? 0) >= MAX_MCP_CLIENTS) return jsonError(429, 'too_many_clients', 'The Worker holds the most clients that it allows. Try again after old ones expire.');
   const parsed = await readJson(c.request, 8192);
   if (!parsed.ok) return parsed.response;
   const body = parsed.value ?? {};
@@ -213,6 +229,8 @@ async function readTokenRequestParams(request) {
 
 /** POST /oauth/mcp/token: exchanges an authorization code (with PKCE) or refresh token for an MCP token pair. */
 export async function handleMcpTokenExchange(c) {
+  const limit = await hitRateLimit(c.env, await clientKey(c.request, c.env, 'mcp-token'), { max: 60, windowMs: 3_600_000 });
+  if (!limit.allowed) return tooMany(limit);
   const params = await readTokenRequestParams(c.request);
   const grantType = String(params.grant_type ?? '');
 

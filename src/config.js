@@ -43,12 +43,12 @@ export const config = Object.freeze({
 
   // Who may hand Runner work and steer it (see src/security/authorization.js
   // and docs/runner-upgrade/THREAT_MODEL.md). The repository owner is always
-  // trusted; TITAN_TASK_AUTHORS adds explicit logins; TITAN_TRUST_COLLABORATORS=0
-  // makes the allowlist the only source of truth (GitHub's OWNER/MEMBER/
-  // COLLABORATOR association is trusted by default).
+  // trusted; TITAN_TASK_AUTHORS adds explicit logins. GitHub's OWNER/MEMBER/
+  // COLLABORATOR association is NOT trusted unless TITAN_TRUST_COLLABORATORS=1
+  // (owner only by default, RT2).
   authorization: {
     taskAuthors: loginList(process.env.TITAN_TASK_AUTHORS),
-    trustCollaborators: process.env.TITAN_TRUST_COLLABORATORS !== '0',
+    trustCollaborators: process.env.TITAN_TRUST_COLLABORATORS === '1',
   },
 
   groq: {
@@ -125,6 +125,8 @@ export const config = Object.freeze({
 
   retention: {
     maxRunFiles: positiveInt(process.env.TITAN_MAX_RUN_FILES, 60),
+    // Run records older than this many days, beyond the newest maxRunFiles, move into the monthly archive (RT7).
+    keepRunDays: positiveInt(process.env.TITAN_RUNS_KEEP_DAYS, 14),
     maxReviewLines: positiveInt(process.env.TITAN_MAX_REVIEW_LINES, 5000),
   },
 });

@@ -8,19 +8,28 @@
  *   - hook:     inbound webhooks. A secret for one hook. It opens that one `/hooks/...` route only.
  * The route table that gives each route its group is in `routes.js` and in docs/RUNTIME.md.
  */
+import { lookupSession, SESSION_PREFIX } from './sessions.js';
 import { nowIso, sha256Hex, timingSafeEqual } from './util.js';
 
 export const ADMIN_HEADER = 'X-Titan-Auth';
 export const CALLBACK_HEADER = 'X-Titan-Callback';
 
-/** Wrong token attempts: 10 in 10 minutes lock the client out of that route group for 15 minutes. */
-export const LOCKOUT = Object.freeze({ maxFailures: 10, windowMs: 10 * 60_000, lockMs: 15 * 60_000 });
+/**
+ * Wrong token attempts: 10 in 10 minutes lock the client out of that route group for 15 minutes.
+ * Each new lock doubles (RT5 backoff): 15 minutes, 30, 60, and so on, to a ceiling of 24 hours.
+ */
+export const LOCKOUT = Object.freeze({ maxFailures: 10, windowMs: 10 * 60_000, lockMs: 15 * 60_000, maxLockMs: 24 * 3600_000 });
 
-export const DEFAULT_ALLOWED_ORIGINS = Object.freeze(['https://shreyas-tech7.github.io', 'http://localhost:3000', 'http://127.0.0.1:3000']);
+/** The dashboard origin. CORS allows this origin only (RT5). */
+export const DEFAULT_ALLOWED_ORIGINS = Object.freeze(['https://shreyas-tech7.github.io']);
+
+/** Local dashboard origins. They count only when `TITAN_DEV_ORIGINS` is `1`. The deployed Worker never sets it. */
+export const DEV_ORIGINS = Object.freeze(['http://localhost:3000', 'http://127.0.0.1:3000']);
 
 export function allowedOrigins(env) {
   const extra = typeof env?.TITAN_ALLOWED_ORIGINS === 'string' ? env.TITAN_ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean) : [];
-  return [...DEFAULT_ALLOWED_ORIGINS, ...extra];
+  const dev = env?.TITAN_DEV_ORIGINS === '1' ? DEV_ORIGINS : [];
+  return [...DEFAULT_ALLOWED_ORIGINS, ...dev, ...extra];
 }
 
 /**
@@ -31,7 +40,7 @@ export function allowedOrigins(env) {
  */
 export function corsHeaders(request, env, group) {
   const headers = { Vary: 'Origin' };
-  if (group === 'hook' || group === 'oauth') return headers;
+  if (group === 'hook' || group === 'oauth' || group === 'ops') return headers;
   const origin = request.headers.get('Origin');
   if (origin && allowedOrigins(env).includes(origin)) {
     headers['Access-Control-Allow-Origin'] = origin;
@@ -64,6 +73,24 @@ export function isAuthed(request, env) {
   return checkAdminToken(request, env) === 'ok';
 }
 
+/**
+ * The admin check for the `admin` routes. The header X-Titan-Auth holds either the admin token (scripts, curl) or a
+ * session token that starts with `tsn_` (the dashboard). An expired session is not a wrong token, so it does not
+ * count toward the lockout.
+ * @returns {Promise<{ status: 'ok'|'missing'|'wrong'|'expired', kind?: 'token'|'session', sessionId?: string, reason?: string }>}
+ */
+export async function authenticateAdmin(request, env, now = new Date()) {
+  const token = request.headers.get(ADMIN_HEADER);
+  if (!token) return { status: 'missing' };
+  if (token.startsWith(SESSION_PREFIX)) {
+    if (!env?.DB) return { status: 'wrong' };
+    const session = await lookupSession(env, token, now);
+    if (session.ok) return { status: 'ok', kind: 'session', sessionId: session.id };
+    return session.reason === 'unknown' ? { status: 'wrong', reason: 'unknown_session' } : { status: 'expired', reason: `session_${session.reason}` };
+  }
+  return checkAdminToken(request, env) === 'ok' ? { status: 'ok', kind: 'token' } : { status: 'wrong', reason: 'wrong_token' };
+}
+
 // ---------------------------------------------------------------------
 // Lockout (S2)
 // ---------------------------------------------------------------------
@@ -91,21 +118,30 @@ export async function checkLockout(request, env, group, now = new Date()) {
   return { locked: false, retryAfterSeconds: 0 };
 }
 
-/** Count one wrong token. After 10 in 10 minutes the client is locked for 15 minutes. */
+/**
+ * Count one wrong token. After 10 in 10 minutes the client is locked for 15 minutes. Each new lock in the same day
+ * doubles the time, to a ceiling of 24 hours.
+ */
 export async function recordAuthFailure(request, env, group, now = new Date()) {
   if (!env?.DB) return;
   const key = await lockoutKey(request, env, group);
-  const row = await env.DB.prepare('SELECT window_start, failures FROM auth_failures WHERE key = ?').bind(key).first();
+  const row = await env.DB.prepare('SELECT window_start, failures, strikes FROM auth_failures WHERE key = ?').bind(key).first();
   const t = now.getTime();
   const inWindow = row && t - Date.parse(row.window_start) <= LOCKOUT.windowMs;
-  const failures = inWindow ? row.failures + 1 : 1;
+  let failures = inWindow ? row.failures + 1 : 1;
   const windowStart = inWindow ? row.window_start : nowIso(now);
-  const lockedUntil = failures >= LOCKOUT.maxFailures ? nowIso(new Date(t + LOCKOUT.lockMs)) : null;
+  let strikes = row?.strikes ?? 0;
+  let lockedUntil = null;
+  if (failures >= LOCKOUT.maxFailures) {
+    lockedUntil = nowIso(new Date(t + Math.min(LOCKOUT.maxLockMs, LOCKOUT.lockMs * 2 ** Math.min(strikes, 10))));
+    strikes += 1;
+    failures = 0;
+  }
   await env.DB.prepare(
-    `INSERT INTO auth_failures (key, route_group, window_start, failures, locked_until, updated_at) VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT(key) DO UPDATE SET window_start = excluded.window_start, failures = excluded.failures, locked_until = excluded.locked_until, updated_at = excluded.updated_at`,
+    `INSERT INTO auth_failures (key, route_group, window_start, failures, locked_until, updated_at, strikes) VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET window_start = excluded.window_start, failures = excluded.failures, locked_until = excluded.locked_until, updated_at = excluded.updated_at, strikes = excluded.strikes`,
   )
-    .bind(key, group, windowStart, failures, lockedUntil, nowIso(now))
+    .bind(key, group, windowStart, failures, lockedUntil, nowIso(now), strikes)
     .run();
 }
 

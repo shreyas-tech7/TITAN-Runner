@@ -41,7 +41,7 @@ function staticServer() {
  * With `vault: false` the Worker has no CONNECTOR_KEK, so the vault routes answer 503 and the page shows the setup card.
  */
 export async function startStack({ vault = true } = {}) {
-  if (!existsSync(join(OUT, 'index.html'))) throw new Error('Build the dashboard first: GITHUB_PAGES_BASE_PATH=/TITAN-Runner NEXT_PUBLIC_TITAN_WORKER_URL=http://127.0.0.1:8788 npm run build');
+  if (!existsSync(join(OUT, 'index.html'))) throw new Error('Build the dashboard first: GITHUB_PAGES_BASE_PATH=/TITAN-Runner NEXT_PUBLIC_TITAN_WORKER_URL=http://127.0.0.1:8788 NEXT_PUBLIC_COMMIT=e2e1234 npm run build');
   const world = new FakeWorld();
   world.providers.host('api.groq.com').valid.add(FAKE_GROQ_KEY);
   world.providers.host('generativelanguage.googleapis.com').valid.add(FAKE_GEMINI_KEY);
@@ -53,6 +53,8 @@ export async function startStack({ vault = true } = {}) {
       TITAN_ADMIN_TOKEN: ADMIN,
       GITHUB_PAT: 'fake-pat-for-e2e',
       TITAN_TEST_MODE: '1',
+      // RT5 locked CORS to the Pages origin. The local dashboard origins count only with this flag, which the deployed Worker never sets.
+      TITAN_DEV_ORIGINS: '1',
       TITAN_TEST_HOST_MAP: JSON.stringify(fake.hostMap),
       TITAN_PROVIDER_CHECK_TIMEOUT_MS: '2000',
       DASHBOARD_URL: DASH_URL,

@@ -484,3 +484,21 @@ test('M1: titan_notify sends to every channel, titan_lessons reads the memory, a
   const everything = JSON.stringify([await call('titan_status', {}), await call('titan_keys_status', {}), await call('titan_list_tasks', {})]);
   assert.ok(!everything.includes(tok.token));
 });
+
+test('RT4: tools/call names every bad field, rejects arguments that are not an object, and lists tools for an unknown name', async (t) => {
+  const { api } = setup(t);
+  const made = await token(api, ['status:read', 'tasks:write']);
+  const bad = await api.post('/mcp', rpc('tools/call', { name: 'titan_queue_task', arguments: { brief: 5, task_type: 'Bad Type!', extra: 1, more: 2 } }), bearer(made.token));
+  assert.equal(bad.body.result.isError, true);
+  const out = JSON.parse(bad.body.result.content[0].text);
+  assert.equal(out.error, 'invalid_arguments');
+  for (const field of ['brief', 'task_type', 'extra', 'more']) assert.ok(out.fields.includes(field), `names ${field}: ${JSON.stringify(out.fields)}`);
+  for (const value of ['text', 7, null, ['a']]) {
+    const res = await api.post('/mcp', rpc('tools/call', { name: 'titan_queue_task', arguments: value }), bearer(made.token));
+    assert.deepEqual(JSON.parse(res.body.result.content[0].text).fields, ['arguments'], JSON.stringify(value));
+  }
+  const unknown = await api.post('/mcp', rpc('tools/call', { name: 'delete_everything', arguments: {} }), bearer(made.token));
+  assert.equal(unknown.body.error.code, -32602);
+  assert.match(unknown.body.error.message, /Available tools: .*titan_status/);
+  assert.match(unknown.body.error.message, /^name:/);
+});

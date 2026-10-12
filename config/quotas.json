@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-10-11",
+  "about": "Free daily and monthly limits for each provider and model. Each entry names the official page where the limit was read, and the day it was read. A limit that the docs do not state is null with the confidence unknown. Nobody guesses a limit. A model entry is an exact model id, a pattern that starts with * (a suffix match), or * for every other model. The scope says what one count covers: a model, or the whole provider account.",
+  "resetRules": {
+    "utc-midnight": "The day limit resets at 00:00 UTC. This is the default when a provider's docs say nothing.",
+    "pacific-midnight": "The day limit resets at midnight Pacific time, and the clock follows daylight saving time."
+  },
+  "providers": {
+    "groq": {
+      "reset": "utc-midnight",
+      "resetSource": null,
+      "resetNote": "The Groq docs do not state a reset time, so UTC midnight applies.",
+      "remainingSemantics": {
+        "requests": "day",
+        "tokens": "minute"
+      },
+      "models": {
+        "*": {
+          "scope": "model",
+          "limit_day": null,
+          "limit_month": null,
+          "limit_source": "https://console.groq.com/docs/rate-limits",
+          "limit_confidence": "unknown",
+          "checkedOn": "2026-10-11",
+          "note": "The page shows the Developer plan table only. It gives no free plan numbers. The response header x-ratelimit-remaining-requests counts requests left in the day (RPD), so Runner can observe the daily limit from it."
+        }
+      }
+    },
+    "gemini": {
+      "reset": "pacific-midnight",
+      "resetSource": "https://ai.google.dev/gemini-api/docs/rate-limits",
+      "resetNote": "The docs say that the daily requests quota resets at midnight Pacific time.",
+      "remainingSemantics": {},
+      "models": {
+        "*": {
+          "scope": "model",
+          "limit_day": null,
+          "limit_month": null,
+          "limit_source": "https://ai.google.dev/gemini-api/docs/rate-limits",
+          "limit_confidence": "unknown",
+          "checkedOn": "2026-10-11",
+          "note": "The page sends the reader to Google AI Studio for the numbers of the project. It does not list the free tier numbers."
+        }
+      }
+    },
+    "openrouter": {
+      "reset": "utc-midnight",
+      "resetSource": "https://openrouter.ai/docs/api-reference/limits",
+      "resetNote": "The docs count the daily requests in the current UTC day. They do not state the reset time in words.",
+      "remainingSemantics": {},
+      "models": {
+        "*:free": {
+          "scope": "provider",
+          "limit_day": 50,
+          "limit_month": null,
+          "limit_source": "https://openrouter.ai/docs/api-reference/limits",
+          "limit_confidence": "official",
+          "checkedOn": "2026-10-11",
+          "note": "Free model variants (ids that end in :free): 20 requests a minute, and 50 requests a day for an account that bought fewer than 10 credits. An account that bought 10 credits or more gets 1000 requests a day. All free models share one daily count. Runner has bought no credits."
+        },
+        "*": {
+          "scope": "model",
+          "limit_day": null,
+          "limit_month": null,
+          "limit_source": "https://openrouter.ai/docs/api-reference/limits",
+          "limit_confidence": "unknown",
+          "checkedOn": "2026-10-11",
+          "note": "A model that is not a :free variant is paid. The docs state no free limit for it."
+        }
+      }
+    },
+    "together": {
+      "reset": "utc-midnight",
+      "resetSource": null,
+      "resetNote": "The docs state no reset time, so UTC midnight applies.",
+      "remainingSemantics": {},
+      "models": {
+        "*": {
+          "scope": "model",
+          "limit_day": null,
+          "limit_month": null,
+          "limit_source": "https://docs.together.ai/docs/rate-limits",
+          "limit_confidence": "unknown",
+          "checkedOn": "2026-10-11",
+          "note": "The page gives no limit for a free account or a free model. It does not mention a free tier."
+        }
+      }
+    },
+    "huggingface": {
+      "reset": "utc-midnight",
+      "resetSource": null,
+      "resetNote": "The docs state no reset time for requests. Credits of a paid plan renew each month.",
+      "remainingSemantics": {},
+      "models": {
+        "*": {
+          "scope": "provider",
+          "limit_day": null,
+          "limit_month": null,
+          "limit_source": "https://huggingface.co/docs/inference-providers/pricing",
+          "limit_confidence": "unknown",
+          "checkedOn": "2026-10-11",
+          "note": "The pricing page says that free users get no monthly credits for Inference Providers. A free user must buy credits, or move to PRO. The page states no request limit."
+        }
+      }
+    },
+    "opencode": {
+      "reset": "utc-midnight",
+      "resetSource": null,
+      "resetNote": "The docs state no reset time, so UTC midnight applies.",
+      "remainingSemantics": {},
+      "models": {
+        "*": {
+          "scope": "model",
+          "limit_day": null,
+          "limit_month": null,
+          "limit_source": "https://opencode.ai/docs/zen/",
+          "limit_confidence": "unknown",
+          "checkedOn": "2026-10-11",
+          "note": "The page lists models that cost nothing, and says that several are free for a limited time. It states no request limit for them."
+        }
+      }
+    },
+    "omniroute": {
+      "reset": "utc-midnight",
+      "resetSource": null,
+      "resetNote": "OmniRoute is a gateway that Runner starts itself. The limit is the limit of the provider behind it.",
+      "remainingSemantics": {},
+      "models": {
+        "*": {
+          "scope": "model",
+          "limit_day": null,
+          "limit_month": null,
+          "limit_source": null,
+          "limit_confidence": "unknown",
+          "checkedOn": "2026-10-11",
+          "note": "A gateway adds no limit of its own. The limit comes from the upstream provider, which varies by route."
+        }
+      }
+    },
+    "hermes": {
+      "reset": "utc-midnight",
+      "resetSource": null,
+      "resetNote": "A Hermes instance is a server that the owner runs. It has no provider quota.",
+      "remainingSemantics": {},
+      "models": {
+        "*": {
+          "scope": "model",
+          "limit_day": null,
+          "limit_month": null,
+          "limit_source": null,
+          "limit_confidence": "unknown",
+          "checkedOn": "2026-10-11",
+          "note": "A self-hosted instance. Its capacity is the capacity of its host and of the model that it calls."
+        }
+      }
+    },
+    "custom": {
+      "reset": "utc-midnight",
+      "resetSource": null,
+      "resetNote": "A custom slot points at a provider that the owner chose. Runner knows no limit for it.",
+      "remainingSemantics": {},
+      "models": {
+        "*": {
+          "scope": "model",
+          "limit_day": null,
+          "limit_month": null,
+          "limit_source": null,
+          "limit_confidence": "unknown",
+          "checkedOn": "2026-10-11",
+          "note": "An OpenAI compatible endpoint of the owner's choice. The limit depends on that provider."
+        }
+      }
+    }
+  }
+}

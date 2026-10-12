@@ -38,6 +38,23 @@ export const DENYLIST = Object.freeze([
   // this repo's safety net without ever touching src/reviewer/ itself.
   'worker/',
   'scripts/run-subagent-task.mjs',
+  // Secret scanning (RT1). A self-authored change must never loosen the scan, the allowlist, or the hook.
+  '.gitleaks.toml',
+  '.githooks/',
+  'scripts/scan-issues.mjs',
+  'scripts/install-hooks.mjs',
+  // VM safety limits (RT6).
+  'src/lib/vmSafety.js',
+  // State hygiene (RT7): the strict schemas, the checker, the publisher, and the archives.
+  'src/state/strict.js',
+  'src/state/archive.js',
+  'src/state/maintenance.js',
+  'scripts/check-state.mjs',
+  'scripts/publish-state.mjs',
+  'scripts/state-maintenance.mjs',
+  // The ops routing rules and the quota limits (RO1).
+  'src/ops/',
+  'config/quotas.json',
 ]);
 
 /**

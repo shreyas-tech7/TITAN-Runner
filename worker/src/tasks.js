@@ -101,10 +101,17 @@ export async function handleCancelTask(c, id) {
 /** GitHub-computed `author_association` values this Worker trusts. A label is not authorization on a public repo. */
 export const TRUSTED_ASSOCIATIONS = Object.freeze(['OWNER', 'MEMBER', 'COLLABORATOR']);
 
+/**
+ * Owner only by default (RT2). `TITAN_TASK_AUTHORS` adds logins. `TITAN_TRUST_COLLABORATORS=1` also trusts the
+ * GitHub author association OWNER, MEMBER, and COLLABORATOR. Bots never count.
+ */
 export function isTrustedIssueAuthor(issue, env) {
   const login = typeof issue?.user?.login === 'string' ? issue.user.login.toLowerCase() : '';
   if (!login || issue?.user?.type === 'Bot') return false;
   if (env?.GITHUB_OWNER && login === String(env.GITHUB_OWNER).toLowerCase()) return true;
+  const allow = String(env?.TITAN_TASK_AUTHORS ?? '').toLowerCase().split(/[,\s]+/).map((l) => l.replace(/^@/, '')).filter(Boolean);
+  if (allow.includes(login)) return true;
+  if (String(env?.TITAN_TRUST_COLLABORATORS ?? '') !== '1') return false;
   return TRUSTED_ASSOCIATIONS.includes(String(issue?.author_association ?? '').toUpperCase());
 }
 

@@ -1,0 +1,87 @@
+# gitleaks configuration for TITAN-Runner (a public repository).
+#
+# Every file is scanned. The allowlist at the end is narrow on purpose. It lists the exact fake
+# values that tests and fixtures use. Each entry matches the whole secret, so a real key in the
+# same file still fails the scan. A new fake value needs a new entry in a pull request.
+#
+# Do not add a "paths" key to an allowlist. gitleaks then skips the whole file, even with
+# condition = "AND", and a real key in that file would pass. Do not allowlist a real key.
+# Rotate a real key instead.
+
+title = "TITAN-Runner gitleaks config"
+
+[extend]
+useDefault = true
+
+# Provider rules. They match the patterns in src/lib/redact.js, so a key that the pulse would
+# scrub is also a key that CI refuses to merge.
+
+[[rules]]
+id = "titan-groq-key"
+description = "Groq API key"
+regex = '''\bgsk_[A-Za-z0-9]{20,}'''
+keywords = ["gsk_"]
+
+[[rules]]
+id = "titan-openrouter-key"
+description = "OpenRouter API key"
+regex = '''\bsk-or-v1-[A-Za-z0-9_-]{16,}'''
+keywords = ["sk-or-v1-"]
+
+[[rules]]
+id = "titan-huggingface-token"
+description = "Hugging Face access token"
+regex = '''\bhf_[A-Za-z0-9]{16,}'''
+keywords = ["hf_"]
+
+[[rules]]
+id = "titan-google-ai-key"
+description = "Google AI console key (AQ. form)"
+regex = '''\bAQ\.[A-Za-z0-9_-]{20,}'''
+keywords = ["aq."]
+
+[[rules]]
+id = "titan-mcp-token"
+description = "TITAN MCP token"
+regex = '''\btitan_mcp_[A-Za-z0-9_-]{40,}'''
+keywords = ["titan_mcp_"]
+
+[[rules]]
+id = "titan-render-key"
+description = "Render API key"
+regex = '''\brnd_[A-Za-z0-9]{20,}\b'''
+keywords = ["rnd_"]
+
+[[rules]]
+id = "titan-telegram-bot-token"
+description = "Telegram bot token"
+regex = '''\b\d{8,10}:[A-Za-z0-9_-]{35}\b'''
+keywords = [":"]
+
+[[rules]]
+id = "titan-ntfy-topic-url"
+description = "ntfy topic URL (the topic name is the secret)"
+regex = '''https?://ntfy\.sh/[A-Za-z0-9_-]{6,}'''
+keywords = ["ntfy.sh"]
+
+[[rules]]
+id = "titan-discord-webhook-url"
+description = "Discord webhook URL (the URL is the secret)"
+regex = '''https://(?:ptb\.|canary\.)?discord(?:app)?\.com/api/webhooks/\d{15,}/[A-Za-z0-9_-]{20,}'''
+keywords = ["discord"]
+
+# Fake values in tests and fixtures. The target is the secret, and each pattern is anchored.
+
+[[allowlists]]
+description = "Exact fake values used by tests and connector fixtures"
+regexTarget = "secret"
+regexes = [
+  '''^https://hooks\.slack\.com/services/T0AAAAAA/B0BBBBBB/TESTVALUENOTAREALSECRET00$''',
+  '''^https://discord\.com/api/webhooks/123456789012345678/TEST_VALUE_NOT_A_REAL_SECRET$''',
+  '''^https://ntfy\.sh/titan-test-topic-0000$''',
+  '''^123456789:A{35}$''',
+  '''^gev1\.1\.2\.abcdefgh\.sig$''',
+  '''^key-(one|two)-0123456789$''',
+  '''^ZmFrZS1wdWJsaWMta2V5$''',
+  '''^sess_0123456789abcdef$''', # the fake session token of dashboard/test/session.test.ts
+]

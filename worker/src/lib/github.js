@@ -6,6 +6,7 @@
  * GitHub does not return one.
  */
 import { SafeFetchError, safeFetch } from './safeFetch.js';
+import { WorkerGateError, gateOwnRepoWrite } from './githubGate.js';
 
 export const GITHUB_API = 'https://api.github.com';
 const GITHUB_HOSTS = ['api.github.com', 'raw.githubusercontent.com'];
@@ -82,6 +83,15 @@ export function githubClient(env) {
 
   async function call(label, method, path, { body, permission = null, expect = [200] } = {}) {
     if (!env.GITHUB_PAT) throw new GitHubError('GITHUB_PAT is not configured on this Worker yet. See docs/RUNTIME.md.', { status: 503, code: 'pat_missing' });
+    // RT3: every write passes the Reviewer Gate first. The gate may clean the body.
+    if (method !== 'GET') {
+      try {
+        body = gateOwnRepoWrite(env, { method, path, body }).body;
+      } catch (err) {
+        if (err instanceof WorkerGateError) throw new GitHubError(`${label} blocked: ${err.reason}`, { status: 403, code: 'gate_blocked' });
+        throw err;
+      }
+    }
     let res;
     try {
       res = await safeFetch(

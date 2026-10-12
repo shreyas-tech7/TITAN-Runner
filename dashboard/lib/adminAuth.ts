@@ -15,8 +15,17 @@ import type { Where } from "./secretStore";
  * own origin as the `X-Titan-Auth` header.
  */
 
-const STORAGE_KEY = "titan-runner:admin-token:v1";
+/** The key of the session token. The long-lived admin token is typed once and is not kept (RT5). */
+const STORAGE_KEY = "titan-runner:session:v1";
+/** Where the admin token itself was kept before sessions. It is removed when the page loads. */
+const LEGACY_KEY = "titan-runner:admin-token:v1";
 
+/** Remove an admin token that an older version of this page kept in the browser. */
+export function clearLegacyAdminToken(): void {
+  clearSecret(LEGACY_KEY, browserStores());
+}
+
+/** The token that the page sends as `X-Titan-Auth`: a session token, or the admin token on an older Worker. */
 export function getAdminToken(): string | null {
   return readSecret(STORAGE_KEY, browserStores());
 }

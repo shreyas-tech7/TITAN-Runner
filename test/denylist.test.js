@@ -18,3 +18,9 @@ test('findDenylistViolations returns exactly the offending subset', () => {
   const changed = ['src/pulse.js', '.github/workflows/titan-pulse.yml', 'README.md'];
   assert.deepEqual(findDenylistViolations(changed), ['.github/workflows/titan-pulse.yml']);
 });
+
+test('the secret scan configuration and hooks are denylisted (RT1)', () => {
+  for (const p of ['.gitleaks.toml', '.githooks/pre-commit', 'scripts/scan-issues.mjs', 'scripts/install-hooks.mjs']) {
+    assert.equal(isDenylisted(p), true, p);
+  }
+});

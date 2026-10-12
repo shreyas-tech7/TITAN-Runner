@@ -39,6 +39,7 @@
  * `TITAN_CHECKPOINT=git` (the workflow's setting).
  */
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { config, isProviderConfigured } from '../config.js';
@@ -55,6 +56,9 @@ import { runOrchestration, newCheckpoint, usageOf } from './orchestrate.js';
 import { QuotaLedger } from '../reliability/quota.js';
 import { QUOTA_SCHEMA } from '../state/schema.js';
 import { registry as defaultRegistry, FAILOVER_ORDER } from '../providers/registry.js';
+import { OpsGate } from '../ops/gate.js';
+import { UsageReporter } from '../ops/usageReporter.js';
+import { lessonsBlock, readLessons, relevantLessons, runPostmortems } from '../ops/postmortem.js';
 import { onAdapterCall } from '../agents/AgentAdapter.js';
 import { now as clockNow } from '../lib/clock.js';
 import { ToolRegistry } from '../tools/registry.js';
@@ -65,8 +69,9 @@ import { runDailyResearch, researchEnabledFromEnv } from '../research/dailyResea
 import { ApprovalLog } from '../policy/approvalLog.js';
 import { writeViews } from '../observability/views.js';
 
-import { syncIssuesIntoTasks, reconcileIssueState, addManualTask } from '../issueSync.js';
+import { syncIssuesIntoTasks, reconcileIssueState, addManualTask, IGNORED_LABEL } from '../issueSync.js';
 import { defaultGitHubClient } from '../github.js';
+import { authorizationContextFrom } from '../security/authorization.js';
 import { proposeSelfImprovement, checkSelfImprovePrStatus } from '../selfImprove.js';
 import { reviewAction } from '../reviewer/reviewer.js';
 import { capabilityRegistry } from '../orchestrator/capabilityRegistry.js';
@@ -273,9 +278,14 @@ export async function runPulse(deps = {}) {
       tried: d.tried, skipped: d.skipped.map((x) => x.id), failureClass: d.failureClass ?? null, durationMs: Math.round(d.ms),
     });
   };
+  // RO1 and RO2: report every call to the Worker in one batch, and follow the routing rules of contract v1.
+  const usageReporter = deps.ops?.usage ?? new UsageReporter({ events, now });
+  const opsGate = deps.ops?.gate ?? OpsGate.fromState(store.paths.stateDir, { now, modelOf: (id) => providerHealth.get(id)?.model ?? null, failureRecord: (id) => providerHealth.get(id) });
   for (const r of registries) {
     r.useQuota(quota);
     r.useDecisionSink(decisionSink);
+    r.useOps(opsGate);
+    r.useUsage(usageReporter);
   }
   const offAdapterCalls = onAdapterCall((call) => {
     usage.modelCalls += 1;
@@ -287,6 +297,8 @@ export async function runPulse(deps = {}) {
     for (const r of registries) {
       r.useQuota(null);
       r.useDecisionSink(null);
+      r.useOps(null);
+      r.useUsage(null);
     }
   };
 
@@ -338,7 +350,26 @@ export async function runPulse(deps = {}) {
       log.warn('kill switch is on — reconciled state, claiming nothing', { by: control.updatedBy, reason: control.reason });
     } else {
       if (!dryRun) {
-        const intake = await syncIssuesIntoTasks(tasksFile, { listIssues: github.listOpenTaskIssues.bind(github), now, events, maxAttempts });
+        // The owner is the owner of the repository that this client talks to (RT2).
+        const intakeAuthz = deps.authz ?? authorizationContextFrom({
+          taskAuthors: config.authorization.taskAuthors,
+          repository: github.repository || config.github.repository,
+          trustCollaborators: config.authorization.trustCollaborators,
+        });
+        const intake = await syncIssuesIntoTasks(tasksFile, {
+          listIssues: github.listOpenTaskIssues.bind(github),
+          authz: intakeAuthz,
+          now,
+          events,
+          maxAttempts,
+          // RT2: a stranger's Issue gets the titan-ignored label and loses titan-task. Nothing else.
+          labelIgnored: github.addLabels
+            ? async (number) => {
+                await github.addLabels(number, [IGNORED_LABEL]);
+                await github.removeLabel?.(number, 'titan-task');
+              }
+            : undefined,
+        });
         if (intake.added > 0) log.info('synced issues into task queue', { added: intake.added });
         if (intake.ignored > 0) log.info('ignored issues from unauthorized authors', { ignored: intake.ignored });
         for (const dupId of intake.duplicates) {
@@ -348,7 +379,7 @@ export async function runPulse(deps = {}) {
             await ledger.comment(dup.issueNumber, `dup:${dup.id}`, `TITAN-Runner did not run this task: it is a duplicate of ${dup.duplicateOf}${dup.error ? '' : '.'}\n\n${dup.error ?? ''}`);
           }
         }
-        const controls = await reconcileIssueState(tasksFile, intake.issues, { listComments: github.listIssueComments.bind(github), now, events, approvalLog: ctx.approvalLog });
+        const controls = await reconcileIssueState(tasksFile, intake.issues, { listComments: github.listIssueComments.bind(github), authz: intakeAuthz, now, events, approvalLog: ctx.approvalLog });
         if (controls.cancelled > 0) log.info('cancelled tasks whose issue was closed', { cancelled: controls.cancelled });
         if (controls.commands > 0) log.info('applied authorized control commands', { commands: controls.commands, retried: controls.retried });
       }
@@ -366,6 +397,23 @@ export async function runPulse(deps = {}) {
         await claimAndRun(tasksFile, ctx, counts, control);
       } else {
         events.append('pulse.draining', { reason: control.reason ?? 'drain control is on', outcome: 'no-claims', audit: true });
+      }
+
+      // RO4: a short post-mortem for each task that failed. A free model writes it when one is free. A template is the
+      // fallback. It never fails the pulse, and it writes nothing in a dry run or with the kill switch on.
+      if (!dryRun && process.env.TITAN_POSTMORTEM !== '0' && !budget.shouldDrain()) {
+        try {
+          const usesFakes = Boolean(deps.pools || deps.github);
+          const pm = await runPostmortems({
+            tasks: tasksFile.tasks, lessonsPath: join(store.paths.stateDir, 'lessons.jsonl'), now: now(), events,
+            readRun: (runId) => { try { return JSON.parse(readFileSync(join(store.paths.runs, `${runId}.json`), 'utf8')); } catch { return null; } },
+            chat: deps.postmortem?.chat ?? (usesFakes ? null : defaultRegistry.chat.bind(defaultRegistry)),
+            scan: deps.postmortem?.scan,
+          });
+          if (pm.written + pm.merged > 0) log.info('wrote post-mortems', pm);
+        } catch (err) {
+          log.warn('post-mortem failed, so the pulse goes on', { error: String(err).slice(0, 200) });
+        }
       }
 
       // Daily research digest: at most one low-priority model call per UTC
@@ -393,9 +441,10 @@ export async function runPulse(deps = {}) {
       if (typeof pool.flush === 'function') pool.flush();
     }
     quota.save();
+    await usageReporter.flush();
 
-    const pruneResult = pruneRuns({ maxFiles: config.retention.maxRunFiles, runsDir: store.paths.runs, digestsDir: store.paths.digests });
-    if (pruneResult.prunedCount > 0) log.info('pruned old run records into a digest', pruneResult);
+    const pruneResult = pruneRuns({ maxFiles: config.retention.maxRunFiles, keepDays: config.retention.keepRunDays, runsDir: store.paths.runs, archiveDir: store.archiveDir });
+    if (pruneResult.prunedCount > 0) log.info('rolled old run records into the monthly archive', pruneResult);
     const archived = store.archiveOldTasks(tasksFile, { maxAgeDays: positiveInt(process.env.TITAN_TASK_RETENTION_DAYS, 30) });
     if (archived > 0) events.append('retention.tasks-archived', { count: archived });
     const compacted = events.compact();
@@ -669,6 +718,8 @@ async function processTaskInner(task, ctx, control) {
       onCheckpoint: (checkpoint, reason) => persist(checkpoint, reason),
       taskTimeoutMs: config.orchestrator.taskTimeoutMs,
       maxSubtasks: config.orchestrator.maxSubtasksPerRun,
+      // RO4: the 5 most relevant post-mortems go to the decomposer before it plans.
+      lessons: lessonsBlock(relevantLessons(readLessons(join(ctx.stateDir, 'lessons.jsonl')), task.prompt, 5, now())),
       tools: ctx.tools, toolContext, maxToolCalls: limits.maxToolCalls,
       judge, maxRemediations: limits.maxRemediations, scratchDir: join(ctx.stateDir, 'workspaces'),
       onJudgeCall: () => { ctx.usage.modelCalls += 1; live.calls += 1; },

@@ -18,7 +18,7 @@ const withIp = (ip, headers = {}) => ({ 'CF-Connecting-IP': ip, ...headers });
 test('S1: every route has exactly one known group, and no method and path appear twice', () => {
   const seen = new Set();
   for (const r of ROUTES) {
-    assert.ok(['public', 'admin', 'internal', 'mcp', 'hook', 'oauth'].includes(r.group), `${r.method} ${r.path}`);
+    assert.ok(['public', 'admin', 'internal', 'mcp', 'hook', 'oauth', 'ops'].includes(r.group), `${r.method} ${r.path}`);
     const key = `${r.method} ${r.path}`;
     assert.ok(!seen.has(key), `duplicate ${key}`);
     seen.add(key);
@@ -69,7 +69,7 @@ test('S2: the table holds a hash and not the address, a missing token is not cou
   const rows = (await env.DB.prepare('SELECT * FROM auth_failures').all()).results;
   assert.equal(rows.length, 1, 'only the wrong token counts');
   assert.match(rows[0].key, /^[0-9a-f]{64}$/);
-  assert.ok(!JSON.stringify(env.DB.dump()).includes('203.0.113'), 'the raw address is never stored');
+  assert.ok(!JSON.stringify(rows).includes('203.0.113'), 'the lockout table never holds the raw address (the sign-in log does, and it is shown only behind a sign-in)');
   await env.DB.prepare("UPDATE auth_failures SET updated_at = '2020-01-01T00:00:00.000Z'").run();
   const { pruneAuthFailures } = await import('../src/lib/auth.js');
   assert.equal(await pruneAuthFailures(env), 1);
@@ -81,9 +81,15 @@ test('S2: the table holds a hash and not the address, a missing token is not cou
   assert.equal(window.locked, false);
 });
 
-test('S3: CORS allows the Pages origin and the two dev origins, sends Vary: Origin, and refuses another origin', async (t) => {
+test('S3: CORS allows the Pages origin only by default (RT5), allows the dev origins when TITAN_DEV_ORIGINS=1, sends Vary: Origin, and refuses another origin', async (t) => {
   const { env } = setup(t);
-  for (const origin of [ORIGIN, 'http://localhost:3000', 'http://127.0.0.1:3000']) {
+  for (const origin of ['http://localhost:3000', 'http://127.0.0.1:3000']) {
+    const pre = await worker.fetch(new Request('https://worker.example/admin/keys', { method: 'OPTIONS', headers: { Origin: origin, 'Access-Control-Request-Method': 'POST' } }), env);
+    assert.equal(pre.status, 403, `${origin} is refused by default`);
+    const dev = await worker.fetch(new Request('https://worker.example/admin/keys', { method: 'OPTIONS', headers: { Origin: origin, 'Access-Control-Request-Method': 'POST' } }), { ...env, TITAN_DEV_ORIGINS: '1' });
+    assert.equal(dev.status, 204, `${origin} is allowed with TITAN_DEV_ORIGINS=1`);
+  }
+  for (const origin of [ORIGIN]) {
     const pre = await worker.fetch(new Request('https://worker.example/admin/keys', { method: 'OPTIONS', headers: { Origin: origin, 'Access-Control-Request-Method': 'POST' } }), env);
     assert.equal(pre.status, 204);
     assert.equal(pre.headers.get('access-control-allow-origin'), origin);

@@ -85,7 +85,33 @@ export const MIGRATIONS = [
       "CREATE TABLE IF NOT EXISTS mcp_oauth_codes (\n  code_hash TEXT PRIMARY KEY,\n  client_id TEXT NOT NULL,\n  client_name TEXT NOT NULL,\n  redirect_uri TEXT NOT NULL,\n  scopes TEXT NOT NULL,\n  code_challenge TEXT NOT NULL,\n  code_challenge_method TEXT NOT NULL DEFAULT 'S256',\n  created_at TEXT NOT NULL,\n  expires_at TEXT NOT NULL,\n  used_at TEXT\n)",
       "ALTER TABLE mcp_tokens ADD COLUMN refresh_token_hash TEXT"
     ]
+  },
+  {
+    "name": "0005_sessions_signin_log.sql",
+    "statements": [
+      "CREATE TABLE IF NOT EXISTS sessions (\n  id TEXT PRIMARY KEY,\n  created_at TEXT NOT NULL,\n  last_seen_at TEXT NOT NULL,\n  expires_at TEXT NOT NULL,\n  ip TEXT,\n  user_agent TEXT\n)",
+      "CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)",
+      "CREATE TABLE IF NOT EXISTS signin_log (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  at TEXT NOT NULL,\n  ip TEXT NOT NULL,\n  user_agent TEXT,\n  route TEXT NOT NULL,\n  result TEXT NOT NULL,\n  reason TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_signin_log_at ON signin_log(at)",
+      "CREATE TABLE IF NOT EXISTS login_limits (\n  key TEXT PRIMARY KEY,\n  window_start TEXT NOT NULL,\n  failures INTEGER NOT NULL,\n  strikes INTEGER NOT NULL DEFAULT 0,\n  locked_until TEXT,\n  updated_at TEXT NOT NULL\n)",
+      "CREATE TABLE IF NOT EXISTS rate_limits (\n  key TEXT PRIMARY KEY,\n  window_start TEXT NOT NULL,\n  count INTEGER NOT NULL,\n  updated_at TEXT NOT NULL\n)",
+      "ALTER TABLE auth_failures ADD COLUMN strikes INTEGER NOT NULL DEFAULT 0"
+    ]
+  },
+  {
+    "name": "0006_ops_services.sql",
+    "statements": [
+      "CREATE TABLE IF NOT EXISTS usage_log (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  dedupe TEXT NOT NULL UNIQUE,\n  source TEXT NOT NULL,\n  provider TEXT NOT NULL,\n  model TEXT NOT NULL,\n  requests INTEGER NOT NULL,\n  tokens_in INTEGER NOT NULL,\n  tokens_out INTEGER NOT NULL,\n  status TEXT NOT NULL,\n  ts TEXT NOT NULL,\n  remaining_requests INTEGER,\n  remaining_tokens INTEGER,\n  received_at TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_usage_log_pm_ts ON usage_log(provider, model, ts)",
+      "CREATE INDEX IF NOT EXISTS idx_usage_log_ts ON usage_log(ts)",
+      "CREATE TABLE IF NOT EXISTS quota_state (\n  provider TEXT NOT NULL,\n  model TEXT NOT NULL,\n  blocked_until TEXT,\n  last_429_at TEXT,\n  observed_remaining_requests INTEGER,\n  observed_remaining_tokens INTEGER,\n  observed_at TEXT,\n  used_day_at_observation INTEGER,\n  PRIMARY KEY (provider, model)\n)",
+      "CREATE TABLE IF NOT EXISTS ops_health (\n  provider TEXT NOT NULL,\n  model TEXT NOT NULL,\n  status TEXT NOT NULL,\n  latency_ms INTEGER,\n  checked_at TEXT NOT NULL,\n  error_class TEXT,\n  PRIMARY KEY (provider, model)\n)",
+      "CREATE TABLE IF NOT EXISTS ops_eval (\n  model TEXT NOT NULL,\n  category TEXT NOT NULL,\n  score REAL NOT NULL,\n  tasks_run INTEGER NOT NULL,\n  run_at TEXT NOT NULL,\n  eval_version TEXT NOT NULL,\n  PRIMARY KEY (model, category)\n)",
+      "CREATE TABLE IF NOT EXISTS ops_hosts (\n  host TEXT PRIMARY KEY,\n  status TEXT NOT NULL,\n  last_check TEXT NOT NULL,\n  uptime_24h REAL,\n  uptime_7d REAL,\n  uptime_30d REAL,\n  last_pulse_at TEXT,\n  updated_at TEXT NOT NULL\n)",
+      "CREATE TABLE IF NOT EXISTS doorbell_log (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  job TEXT NOT NULL,\n  status_code INTEGER,\n  at TEXT NOT NULL\n)",
+      "CREATE INDEX IF NOT EXISTS idx_doorbell_log_at ON doorbell_log(at)"
+    ]
   }
 ];
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 6;

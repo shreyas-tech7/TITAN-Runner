@@ -410,8 +410,31 @@ export class CapabilityRegistry {
     this.load();
     const existing = this.#records.get(record.modelId);
     const merged = { ...record, observed: existing?.observed ?? record.observed ?? {} };
+    // Measured eval scores (RO3) survive a re-probe too. They only exist once the weekly eval has run.
+    const measured = existing?.measured ?? record.measured;
+    if (measured && Object.keys(measured).length > 0) merged.measured = measured;
     this.#records.set(record.modelId, merged);
     return merged;
+  }
+
+  /**
+   * Store the scores that the weekly golden task eval measured for a model (RO3). A measured score beats an assumed
+   * strength: the router reads `measured` first.
+   * @param {string} modelId
+   * @param {Record<string, { score: number, tasksRun: number, runAt: string, evalVersion: string }>} scores By taxonomy category.
+   * @returns {object} The updated record.
+   */
+  setMeasured(modelId, scores) {
+    this.load();
+    const record = this.get(modelId);
+    const clean = {};
+    for (const [category, v] of Object.entries(scores ?? {})) {
+      if (!isAspectCategory(category) || !Number.isFinite(v?.score) || !(v.tasksRun > 0)) continue;
+      clean[category] = { score: Math.min(1, Math.max(0, Math.round(v.score * 1000) / 1000)), tasksRun: Math.round(v.tasksRun), runAt: String(v.runAt), evalVersion: String(v.evalVersion) };
+    }
+    record.measured = { ...(record.measured ?? {}), ...clean };
+    this.#records.set(modelId, record);
+    return record;
   }
 
   /**

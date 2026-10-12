@@ -8,14 +8,14 @@
  * attacker-controlled input and acts only when GitHub itself vouches for the
  * author:
  *
- *   - `author_association` is computed by GitHub for every issue/comment
- *     payload and cannot be forged by the author: OWNER, MEMBER (org member),
- *     and COLLABORATOR (explicit write access) are trusted; CONTRIBUTOR
- *     ("has a merged PR"), FIRST_TIMER, NONE, and anything unknown are not.
+ *   - The repository owner (from `GITHUB_REPOSITORY`) is always allowed.
  *   - An explicit login allowlist (`TITAN_TASK_AUTHORS`, comma separated)
- *     lets a maintainer name additional accounts (or restrict to exactly one)
- *     without touching code. The repository owner (from `GITHUB_REPOSITORY`)
- *     is always allowed.
+ *     lets the owner name additional accounts without touching code.
+ *   - `author_association` is computed by GitHub for every issue/comment
+ *     payload and cannot be forged by the author. By default Runner does NOT
+ *     trust it (owner only, decision RT2). `TITAN_TRUST_COLLABORATORS=1`
+ *     opts in: OWNER, MEMBER (org member), and COLLABORATOR (explicit write
+ *     access) then count; CONTRIBUTOR, FIRST_TIMER, NONE, and unknown never do.
  *
  * Everything unauthorized is ignored at zero model calls and zero comments —
  * replying to a stranger's issue would turn the bot into a spam amplifier.
@@ -51,8 +51,8 @@ export function parseLoginList(raw) {
  * @property {string[]} allowlist Lower-cased logins that are always trusted.
  * @property {string|null} repoOwner Lower-cased owner of `GITHUB_REPOSITORY`.
  * @property {boolean} trustAssociations Whether OWNER/MEMBER/COLLABORATOR
- *   associations count on their own. `false` means the allowlist is the only
- *   source of truth.
+ *   associations count on their own. `false` (the default) means the owner and
+ *   the allowlist are the only source of truth.
  */
 
 /**
@@ -96,7 +96,7 @@ export function authorizationContextFrom(cfg) {
   return {
     allowlist: (cfg.taskAuthors ?? []).map((l) => String(l).toLowerCase()),
     repoOwner: owner,
-    trustAssociations: cfg.trustCollaborators !== false,
+    trustAssociations: cfg.trustCollaborators === true,
   };
 }
 

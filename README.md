@@ -1,6 +1,6 @@
 # TITAN-Runner
 
-![TITAN Pulse Status](https://titan-runner-brain.workers.dev/badge/pulse)
+![TITAN Pulse Status](https://titan-runner-brain.titan-runner.workers.dev/badge/pulse)
 
 A free, zero-maintenance GitHub Actions "pulse" runner for a multi-agent
 orchestrator. No server, no credit card, nothing to keep running on your own
@@ -58,6 +58,12 @@ flowchart LR
 - [Connectors guide](docs/CONNECTORS.md) covers the 15 built-in connectors, the vault, and the personal data wall.
 - [MCP guide](docs/MCP.md) covers Claude Code Bearer setup and Claude app OAuth 2.1 with PKCE.
 - [Health Center guide](docs/HEALTH.md) covers the setup checklist, callback tokens, and the pulse keeper.
+
+## Daily assistant guides
+
+- [Ops services](docs/OPS.md) covers the usage ledger and free quota meter, the nightly provider canary, the weekly golden task eval, the post-mortems, the host status and alerts, the doorbell, and the Ops page of the dashboard.
+- [Shared contract](docs/CONTRACT.md) is the contract with TITAN. Both sides build to it.
+- [Security](docs/SECURITY.md) covers secret scanning, workflow and Issue hardening, the Reviewer Gate for every GitHub write, Worker sessions, the VM fleet, and state hygiene.
 
 ## How it works, in one paragraph
 
@@ -193,17 +199,19 @@ src/security/     intake authorization
 src/fakes/        scripted fake provider and fake GitHub (simulation, harness, tests)
 src/orchestrator/ decomposer, scheduler, router, synthesizer, capability registry, Hermes cluster client
 src/providers/    the five free-tier adapters, registry failover, health/breakers
+src/ops/          the shared ops services: quota and routing rules, canary, golden task eval, post-mortems, host probe, doorbell
 src/reviewer/     the Reviewer Gate
 bin/titan.js      the operator CLI
 bench/            the benchmark harness, scenarios, results (before/after)
-config/           safety-rules.yml, research-topics.yml (read by the pulse)
+config/           safety-rules.yml, research-topics.yml (read by the pulse), quotas.json (free limits with their source and date)
 schemas/          the data contract (exported from src/state/schema.js)
 state/            the database (see docs/DATA_CONTRACT.md)
 dashboard/        static Next.js export published to GitHub Pages
 scripts/          CI gates (denylist, secret scans, workflow lint, schema check), rollup, dead-man
 worker/           the Cloudflare Worker sub-agent coordinator + Railway VM-fleet routes
 test/             unit, integration, crash, concurrency, security, contract tests (node:test)
-.github/          workflows: pulse, control, CI, Pages deploy, keep-alive, dead-man, self-test, spawn-subagent, worker-deploy, vm-agent
+.github/          workflows: pulse, control, CI, gitleaks, state maintenance, Pages deploy, keep-alive, dead-man, self-test, spawn-subagent,
+                  worker-deploy, vm-agent, and the ops workflows (canary, eval, host status, doorbell)
 docs/             RUNTIME.md (how it works), RUNBOOK.md (when it breaks), CONFIG.md (every knob),
                   DATA_CONTRACT.md (every file), ZAPIER_MAKE.md (wiring Zapier/Make to the issue queue),
                   runner-upgrade/ (the upgrade's own record)

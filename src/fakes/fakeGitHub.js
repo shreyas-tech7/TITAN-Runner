@@ -158,6 +158,44 @@ export class FakeGitHub {
     return this.createIssue(title, body, [label]);
   }
 
+  async addLabels(number, labels) {
+    this.#log('addLabels', { number, labels });
+    const issue = this.#issue(number);
+    if (!issue) return null;
+    const have = new Set((issue.labels ?? []).map((l) => (typeof l === 'string' ? l : l.name)));
+    for (const name of labels) have.add(name);
+    issue.labels = [...have].map((name) => ({ name }));
+    this.#persist();
+    return issue.labels;
+  }
+
+  async removeLabel(number, name) {
+    this.#log('removeLabel', { number, name });
+    const issue = this.#issue(number);
+    if (!issue) return null;
+    issue.labels = (issue.labels ?? []).filter((l) => (typeof l === 'string' ? l : l.name) !== name);
+    this.#persist();
+    return issue.labels;
+  }
+
+  async reopenIssue(number) {
+    this.#log('reopenIssue', { number });
+    const issue = this.#issue(number);
+    if (issue) issue.state = 'open';
+    this.#persist();
+    return issue ?? null;
+  }
+
+  async getLastSuccessfulRun(workflowFile) {
+    this.#log('getLastSuccessfulRun', { workflowFile });
+    return this.data._control?.lastSuccessfulRun ?? { lastSuccessAt: null };
+  }
+
+  async listIssuesByLabel(label, state = 'open') {
+    this.#log('listIssuesByLabel', { label, state });
+    return this.data.issues.filter((i) => (state === 'all' || i.state === state) && (i.labels ?? []).some((l) => (typeof l === 'string' ? l : l.name) === label));
+  }
+
   /** Test helper: count mutating calls by op. */
   counts() {
     const out = {};

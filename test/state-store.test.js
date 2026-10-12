@@ -1,3 +1,4 @@
+import { readArchive } from '../src/state/archive.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, readdirSync, cpSync } from 'node:fs';
@@ -146,8 +147,9 @@ test('archiveOldTasks moves old terminal tasks to a monthly archive and keeps th
     const archived = store.archiveOldTasks(file, { maxAgeDays: 30, keepMin: 2 });
     assert.equal(archived, 25);
     assert.deepEqual(file.tasks.map((t) => t.id), ['recent', 'live']);
-    const lines = readFileSync(join(dir, 'archive', 'tasks-2025-11.jsonl'), 'utf8').trim().split('\n');
-    assert.equal(lines.length, 25);
+    const records = readArchive(join(dir, 'archive', 'tasks-2025-11.jsonl.gz'));
+    assert.equal(records.length, 25, 'one compressed file for the month holds every task');
+    assert.ok(!existsSync(join(dir, 'archive', 'tasks-2025-11.jsonl')), 'no uncompressed copy');
     assert.ok(existsSync(join(dir, 'archive')));
   } finally {
     cleanup();

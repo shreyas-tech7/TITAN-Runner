@@ -11,6 +11,7 @@
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { gunzipSync } from 'node:zlib';
 import { SECRET_PATTERNS } from '../src/lib/redact.js';
 
 const STATE_DIR = join(process.cwd(), 'state');
@@ -35,7 +36,8 @@ let findings = 0;
 for (const file of walk(STATE_DIR)) {
   let text;
   try {
-    text = readFileSync(file, 'utf8');
+    // A monthly archive is gzip. Scan the text inside it, not the compressed bytes (RT7).
+    text = file.endsWith('.gz') ? gunzipSync(readFileSync(file)).toString('utf8') : readFileSync(file, 'utf8');
   } catch {
     continue;
   }

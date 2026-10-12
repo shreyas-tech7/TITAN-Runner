@@ -97,6 +97,10 @@ function findDuplicate(tasks, key, nowMs, windowMs) {
  * @param {IntakeDeps} [deps]
  * @returns {Promise<{ state: object, added: number, ignored: number, ignoredIssues: number[], duplicates: string[], issues: object[] }>}
  */
+/** The label that marks an Issue from an author that Runner does not trust. */
+export const IGNORED_LABEL = 'titan-ignored';
+const MAX_IGNORE_LABELS_PER_PULSE = 10;
+
 export async function syncIssuesIntoTasks(tasksState, deps = {}) {
   const listIssues = deps.listIssues ?? listOpenTaskIssues;
   const authz = deps.authz ?? defaultAuthz();
@@ -107,6 +111,7 @@ export async function syncIssuesIntoTasks(tasksState, deps = {}) {
   const known = new Set(tasksState.tasks.map((t) => t.id));
   let added = 0;
   const ignoredIssues = [];
+  const ignoredObjects = [];
   const duplicates = [];
 
   for (const issue of issues) {
@@ -119,6 +124,7 @@ export async function syncIssuesIntoTasks(tasksState, deps = {}) {
     const auth = authorizeActor(issue, authz);
     if (!auth.ok) {
       ignoredIssues.push(issue.number);
+      ignoredObjects.push(issue);
       continue;
     }
 
@@ -189,6 +195,22 @@ export async function syncIssuesIntoTasks(tasksState, deps = {}) {
     // filer, which would let a stranger put text into this repo's logs.
     log.warn('ignored issues from unauthorized authors (no model call, no comment)', { count: ignoredIssues.length, issues: ignoredIssues });
     events?.append('intake.ignored', { count: ignoredIssues.length, issues: ignoredIssues, outcome: 'unauthorized' });
+    // RT2: label and skip. The label hides the Issue from the queue. It is the only thing Runner does to a stranger's Issue.
+    if (deps.labelIgnored) {
+      let labelled = 0;
+      for (const issue of ignoredObjects) {
+        if (labelled >= MAX_IGNORE_LABELS_PER_PULSE) break;
+        const names = (issue.labels ?? []).map((l) => (typeof l === 'string' ? l : l.name));
+        if (names.includes(IGNORED_LABEL)) continue;
+        try {
+          await deps.labelIgnored(issue.number);
+          labelled += 1;
+        } catch (err) {
+          log.warn('could not label an ignored issue', { issue: issue.number, error: String(err).slice(0, 200) });
+        }
+      }
+      if (labelled > 0) events?.append('intake.labelled', { count: labelled, outcome: 'labelled' });
+    }
   }
 
   return { state: tasksState, added, ignored: ignoredIssues.length, ignoredIssues, duplicates, issues };

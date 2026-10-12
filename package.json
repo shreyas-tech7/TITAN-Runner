@@ -13,7 +13,7 @@
     "simulate": "node bin/titan.js simulate",
     "doctor": "node bin/titan.js doctor",
     "bench": "node --max-old-space-size=512 bench/harness.mjs",
-    "test": "node --test test/*.test.js",
+    "test": "node --test --test-concurrency=2 test/*.test.js",
     "check:denylist": "node scripts/check-denylist.mjs",
     "check:secrets": "node scripts/check-secrets-in-state.mjs",
     "check:secrets:diff": "node scripts/check-secrets-in-diff.mjs --staged",
@@ -29,7 +29,12 @@
     "check:test-mode": "node scripts/check-test-mode.mjs",
     "connectors:new": "node scripts/new-connector.mjs",
     "connectors:check": "node scripts/check-connectors.mjs",
-    "check:all": "node scripts/check-all.mjs"
+    "check:all": "node scripts/check-all.mjs",
+    "hooks:install": "node scripts/install-hooks.mjs",
+    "prepare": "node scripts/install-hooks.mjs",
+    "scan:issues": "node scripts/scan-issues.mjs",
+    "check:state": "node scripts/check-state.mjs",
+    "state:maintain": "node scripts/state-maintenance.mjs"
   },
   "license": "MIT",
   "bin": {

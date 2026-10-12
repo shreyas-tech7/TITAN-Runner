@@ -73,6 +73,16 @@ export async function describeConnectors(opts = {}) {
  * @param {{ env?: NodeJS.ProcessEnv, fetchImpl?: typeof fetch }} [opts]
  * @returns {import('./registry.js').ToolDefinition[]}
  */
+/** The arguments of the `connector_call` tool. The tool registry and the connector loop both check against it (RT4). */
+export const CONNECTOR_CALL_SCHEMA = Object.freeze({
+  type: 'object', required: ['connector', 'action'], additionalProperties: false,
+  properties: {
+    connector: { type: 'string', minLength: 2, maxLength: 64, pattern: '^[a-z][a-z0-9_]{1,63}$|^c_[0-9a-f]{16}$' },
+    action: { type: 'string', minLength: 2, maxLength: 41, pattern: '^[a-z][a-z0-9_]{1,40}$' },
+    input: { type: 'object', additionalProperties: true },
+  },
+});
+
 export function connectorTools(opts = {}) {
   return [
     {
@@ -89,14 +99,7 @@ export function connectorTools(opts = {}) {
       id: 'connector_call',
       description: 'Call one action of a connected tool through the broker. A read action runs. A write action waits for a person to approve it.',
       effect: 'external', riskLevel: 'medium', idempotent: false, timeoutMs: 27_000,
-      schema: {
-        type: 'object', required: ['connector', 'action'], additionalProperties: false,
-        properties: {
-          connector: { type: 'string', minLength: 2, maxLength: 64, pattern: '^[a-z][a-z0-9_]{1,63}$|^c_[0-9a-f]{16}$' },
-          action: { type: 'string', minLength: 2, maxLength: 41, pattern: '^[a-z][a-z0-9_]{1,40}$' },
-          input: { type: 'object', additionalProperties: true },
-        },
-      },
+      schema: CONNECTOR_CALL_SCHEMA,
       async run(args, ctx) {
         const out = await callConnector(args, { env: opts.env, fetchImpl: opts.fetchImpl, taskId: ctx?.taskId });
         if (!out.ok) throw new Error(out.text);

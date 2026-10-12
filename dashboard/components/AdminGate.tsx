@@ -16,9 +16,9 @@
  * and couldn't check" spirit as `NewTaskModal`'s no-token fallback.
  */
 import { useEffect, useState } from "react";
-import { getAdminToken, setAdminToken, clearAdminToken } from "@/lib/adminAuth";
+import { getAdminToken, setAdminToken, clearAdminToken, clearLegacyAdminToken } from "@/lib/adminAuth";
 import { exitDemoMode, isDemoMode } from "@/lib/demoFixtures";
-import { fetchStatus, isWorkerConfigured, WorkerApiError } from "@/lib/workerApi";
+import { logout, unlock } from "@/lib/sessionApi";
 
 export default function AdminGate({
   children,
@@ -35,6 +35,8 @@ export default function AdminGate({
   const [remember, setRemember] = useState(false);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Why the page locked itself: the session ended. It shows on the sign-in screen, once. */
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [demo, setDemo] = useState(false);
 
@@ -45,6 +47,8 @@ export default function AdminGate({
       setReady(true);
       return;
     }
+    // An older version of this page kept the admin token itself. A session replaces it, so the old copy goes.
+    clearLegacyAdminToken();
     setTokenState(getAdminToken());
     setReady(true);
   }, []);
@@ -53,33 +57,32 @@ export default function AdminGate({
     const trimmed = draft.trim();
     if (!trimmed) return;
     setError(null);
-
-    if (isWorkerConfigured()) {
-      setChecking(true);
-      try {
-        await fetchStatus(trimmed);
-      } catch (err) {
-        setChecking(false);
-        if (err instanceof WorkerApiError && err.status === 401) {
-          setError("That token was rejected by the Worker.");
-          return;
-        }
-        // Worker unreachable for some other reason (network, cold start) —
-        // don't lock someone out of their own dashboard over a transient
-        // fetch failure; accept the token and let the panels themselves
-        // show the connection error.
-      }
-      setChecking(false);
+    setNotice(null);
+    setChecking(true);
+    const result = await unlock(trimmed);
+    setChecking(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
     }
-
-    setAdminToken(trimmed, remember);
-    setTokenState(trimmed);
+    // The page keeps the session token. The admin token that was typed is not kept.
+    setAdminToken(result.token, remember);
+    setTokenState(result.token);
     setDraft("");
   }
 
+  /** The "Lock dashboard" button. It ends the session on the Worker too. */
   function handleLock() {
+    if (token) void logout(token);
     clearAdminToken();
     setTokenState(null);
+  }
+
+  /** A panel got a 401: the session ended (idle or absolute limit), or the token was rotated. */
+  function handleExpired() {
+    clearAdminToken();
+    setTokenState(null);
+    setNotice("Your session ended. Sign in again.");
   }
 
   if (!ready) return null;
@@ -92,6 +95,11 @@ export default function AdminGate({
           <div className="brand-sub" style={{ marginBottom: 20 }}>
             Private by default — paste the admin token to unlock this dashboard.
           </div>
+          {notice ? (
+            <div className="banner" role="status" data-testid="session-ended" style={{ marginBottom: 12 }}>
+              <span>{notice}</span>
+            </div>
+          ) : null}
           <div className="field">
             <label htmlFor="admin-token-input">Admin token</label>
             <input
@@ -115,10 +123,12 @@ export default function AdminGate({
             {checking ? "Checking…" : "Unlock"}
           </button>
           <p className="field-hint" style={{ marginTop: 16 }}>
-            The token is kept for this tab only and forgotten when you close it, unless you tick Remember. Remembering
-            keeps it on this device, where any page on this site can read it. It is sent only as a header to the
-            titan-runner-brain Worker, never logged, never committed. This lock hides the dashboard in your browser. The
-            data it shows is also public in the repository, so do not treat it as privacy for what you file.
+            The token you type starts a session on the titan-runner-brain Worker. The page keeps the session, not the
+            token. The session ends after a time with no use and after a fixed time in all, and then you sign in again.
+            It stays for this tab only, unless you tick Remember. Remembering keeps the session on this device, where
+            any page on this site can read it. It goes only to the Worker, never to a log, never to a commit. This lock
+            hides the dashboard in your browser. The data it shows is also public in the repository, so do not treat it
+            as privacy for what you file.
           </p>
         </div>
       </main>
@@ -138,9 +148,9 @@ export default function AdminGate({
           </button>
         </div>
       ) : null}
-      {children(token, handleLock)}
+      {children(token, handleExpired)}
       <aside className="admin-lock-row" aria-label="Dashboard lock">
-        <button className="btn btn-quiet admin-lock-btn" onClick={demo ? exitDemoMode : handleLock} title="Forget the admin token and lock this dashboard again">
+        <button className="btn btn-quiet admin-lock-btn" onClick={demo ? exitDemoMode : handleLock} title="End the session and lock this dashboard again">
           {demo ? "Exit demo" : "Lock dashboard"}
         </button>
       </aside>

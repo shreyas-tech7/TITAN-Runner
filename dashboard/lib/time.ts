@@ -1,6 +1,6 @@
-export function relative(iso: string | null): string {
+export function relative(iso: string | null, now: number = Date.now()): string {
   if (!iso) return "never";
-  const ms = Date.now() - Date.parse(iso);
+  const ms = now - Date.parse(iso);
   if (!Number.isFinite(ms)) return iso;
   if (ms < 0) return "just now";
   const s = Math.round(ms / 1000);

@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 import { readJson, writeJsonAtomic, loadPulseHistory, appendPulseHistory, MAX_PULSE_HISTORY } from '../src/state/io.js';
 import { pruneRuns } from '../src/state/prune.js';
+import { readArchive } from '../src/state/archive.js';
 
 test('writeJsonAtomic + readJson round-trip, and a missing file returns the fallback', () => {
   const dir = mkdtempSync(join(tmpdir(), 'titan-state-'));
@@ -51,23 +52,52 @@ test('appendPulseHistory caps at MAX_PULSE_HISTORY, dropping the oldest entries 
   }
 });
 
-test('pruneRuns rolls the oldest runs into a dated digest and deletes them once over the cap', () => {
+test('pruneRuns rolls the oldest runs into a monthly compressed archive and deletes them once over the cap', () => {
   const dir = mkdtempSync(join(tmpdir(), 'titan-prune-'));
   const runsDir = join(dir, 'runs');
-  const digestsDir = join(dir, 'digests');
+  const archiveDir = join(dir, 'archive');
   mkdirSync(runsDir, { recursive: true });
   try {
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < 14; i += 1) {
       writeFileSync(
         join(runsDir, `run-${i}.json`),
-        JSON.stringify({ runId: `run-${i}`, taskTitle: `Task ${i}`, state: 'complete', tasks: [] }),
+        JSON.stringify({ runId: `run-${i}`, taskTitle: `Task ${i}`, state: 'complete', createdAt: new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString(), tasks: [] }),
       );
     }
-    const result = pruneRuns({ maxFiles: 3, runsDir, digestsDir });
-    assert.equal(result.prunedCount, 2);
+    const now = new Date('2026-10-02T00:00:00Z');
+    const result = pruneRuns({ maxFiles: 12, keepDays: 14, runsDir, archiveDir, now });
+    assert.equal(result.prunedCount, 2, 'the two oldest are beyond the cap of 12');
     assert.equal(existsSync(join(runsDir, 'run-0.json')), false);
-    assert.equal(existsSync(join(runsDir, 'run-4.json')), true);
-    assert.ok(existsSync(digestsDir));
+    assert.equal(existsSync(join(runsDir, 'run-13.json')), true);
+    const records = readArchive(join(archiveDir, 'runs-2026-10.jsonl.gz'));
+    assert.deepEqual(records.map((r) => r.runId), ['run-0', 'run-1'], 'the whole record is in the archive');
+    // A second run changes nothing and adds nothing.
+    const again = pruneRuns({ maxFiles: 12, keepDays: 14, runsDir, archiveDir, now });
+    assert.equal(again.prunedCount, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('pruneRuns also archives a run that is older than keepDays, whatever the count, and keeps the newest 10', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'titan-prune-'));
+  const runsDir = join(dir, 'runs');
+  const archiveDir = join(dir, 'archive');
+  mkdirSync(runsDir, { recursive: true });
+  try {
+    const mk = (id, iso) => writeFileSync(join(runsDir, `${id}.json`), JSON.stringify({ runId: id, createdAt: iso, tasks: [] }));
+    mk('may-1', '2026-05-01T00:00:00.000Z');
+    mk('sep-1', '2026-09-01T00:00:00.000Z');
+    mk('oct-1', '2026-10-09T00:00:00.000Z');
+    const now = new Date('2026-10-11T00:00:00Z');
+    // Only 3 files exist, so the newest 10 rule keeps all of them.
+    assert.equal(pruneRuns({ maxFiles: 60, keepDays: 14, runsDir, archiveDir, now }).prunedCount, 0);
+    for (let i = 0; i < 10; i += 1) mk(`new-${i}`, `2026-10-10T00:${String(i).padStart(2, '0')}:00.000Z`);
+    const res = pruneRuns({ maxFiles: 60, keepDays: 14, runsDir, archiveDir, now });
+    assert.deepEqual(res.prunedIds.sort(), ['may-1', 'sep-1']);
+    assert.deepEqual(readArchive(join(archiveDir, 'runs-2026-05.jsonl.gz')).map((r) => r.runId), ['may-1']);
+    assert.deepEqual(readArchive(join(archiveDir, 'runs-2026-09.jsonl.gz')).map((r) => r.runId), ['sep-1']);
+    assert.equal(existsSync(join(runsDir, 'oct-1.json')), true, 'a run from 2 days ago stays');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

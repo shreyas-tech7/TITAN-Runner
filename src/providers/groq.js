@@ -5,7 +5,7 @@
 import { config, resolveModel } from '../config.js';
 import { guardedFetch } from '../lib/net.js';
 import { providerHealth } from './health.js';
-import { BaseProvider, networkErrorFrom, openAiChatBody, parseOpenAiChat, readJsonResponse, upstreamErrorFrom } from './base.js';
+import { BaseProvider, networkErrorFrom, openAiChatBody, parseOpenAiChat, rateLimitFrom, readJsonResponse, upstreamErrorFrom } from './base.js';
 
 const API_BASE = 'https://api.groq.com/openai/v1';
 
@@ -35,7 +35,7 @@ export class GroqProvider extends BaseProvider {
     });
     if (!res.ok) throw await upstreamErrorFrom(res, { service: this.id, label: this.label });
     const json = await readJsonResponse(res, { service: this.id, label: this.label });
-    return parseOpenAiChat(json, { service: this.id, label: this.label, model: this.model });
+    return { ...parseOpenAiChat(json, { service: this.id, label: this.label, model: this.model }), rate: rateLimitFrom(res.headers) };
   }
 }
 

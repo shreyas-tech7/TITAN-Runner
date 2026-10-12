@@ -68,7 +68,7 @@ test('registry: policy gates by effect and autonomy, approval parks with a key, 
   try {
     const r = registryFor(root);
     let runs = 0;
-    r.register({ id: 'send_thing', description: 'external, not idempotent', effect: 'external', idempotent: false, schema: { type: 'object' }, run: async () => { runs += 1; return `sent #${runs}`; } });
+    r.register({ id: 'send_thing', description: 'external, not idempotent', effect: 'external', idempotent: false, schema: { type: 'object', properties: { to: { type: 'string' } } }, run: async () => { runs += 1; return `sent #${runs}`; } });
     const ledger = {};
     const events = [];
     const ev = { append: (type, data) => events.push({ type, ...data }) };
