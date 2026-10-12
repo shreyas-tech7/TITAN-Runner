@@ -45,7 +45,7 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 ## Handoff
 
 - [x] H1 `docs/handoff/NEXT.md` kept up to date
-- [ ] H2 `docs/handoff/cowork-1.md` written and printed
+- [x] H2 `docs/handoff/cowork-1.md` written and printed. Handoff 1 came back. One claim failed the check (the `workflow` scope is not on this Codespace). `docs/handoff/cowork-2.md` gives the exact fix.
 - [ ] H3 Final completion report
 
 ## Baseline to beat
@@ -67,3 +67,5 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 - D7 Two pull requests. The first one carries the main-line branch, because it passes on its own. The later one carries the wf branch, after the `workflow` scope is fixed.
 - D8 The dashboard e2e stack sets `TITAN_DEV_ORIGINS=1`, because the RT5 CORS lock refuses local origins by default. The deployed Worker never sets it.
 - D9 actionlint 1.7.7 (checksum checked) found a real bug in the unpushed workflows. A `run:` line held `): ` in a commit message, and YAML fails to parse that. Seven workflows were broken. The wf branch has the fix, and the workflow linter now has a rule for it with tests.
+- D10 Cowork reported the `workflow` scope on 2026-10-12. Claude Code checked and found that the stored login has no such scope. A push was refused. Claude Code started its own device login and waited for an approval that did not come in time. Handoff 2 names the Codespace and the exact commands.
+- D11 Dependabot pull requests 34 and 35 are identical. Claude Code tested 34 and 36 in scratch worktrees and merged none, as the handoff said.
