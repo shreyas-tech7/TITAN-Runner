@@ -36,6 +36,80 @@
         "successRate": 0,
         "avgMs": 0
       }
+    },
+    "measured": {
+      "architecture": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "code-generation": {
+        "score": 0,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "refactoring": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "testing": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "debugging": {
+        "score": 0.5,
+        "tasksRun": 2,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "documentation": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "security-review": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "performance": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "data-modeling": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "devops": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "ui-implementation": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "research": {
+        "score": 1,
+        "tasksRun": 2,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      }
     }
   },
   "phase2:together": {
@@ -72,6 +146,38 @@
         "runs": 2,
         "successRate": 0,
         "avgMs": 0
+      }
+    },
+    "measured": {
+      "architecture": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "code-generation": {
+        "score": 0.5,
+        "tasksRun": 2,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "refactoring": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "testing": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
+      },
+      "debugging": {
+        "score": 0,
+        "tasksRun": 1,
+        "runAt": "2026-10-12T03:25:58.166Z",
+        "evalVersion": "v1"
       }
     }
   },

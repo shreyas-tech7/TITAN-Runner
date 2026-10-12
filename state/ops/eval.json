@@ -1,5 +1,113 @@
 {
   "contract": "1",
-  "generated_at": "2026-10-11T23:38:09.226Z",
-  "models": {}
+  "generated_at": "2026-10-12T03:28:14.002Z",
+  "eval_version": "v1",
+  "models": {
+    "gemini-2.5-flash": {
+      "architecture": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "code-generation": {
+        "score": 0.5,
+        "tasks_run": 2,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "debugging": {
+        "score": 0,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "refactoring": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "testing": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      }
+    },
+    "nvidia/nemotron-3.5-lightning:free": {
+      "architecture": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "code-generation": {
+        "score": 0,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "data-modeling": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "debugging": {
+        "score": 0.5,
+        "tasks_run": 2,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "devops": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "documentation": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "performance": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "refactoring": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "research": {
+        "score": 1,
+        "tasks_run": 2,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "security-review": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "testing": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      },
+      "ui-implementation": {
+        "score": 1,
+        "tasks_run": 1,
+        "run_at": "2026-10-12T03:25:58.166Z",
+        "eval_version": "v1"
+      }
+    }
+  }
 }
