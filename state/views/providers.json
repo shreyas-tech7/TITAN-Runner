@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-12T03:36:12.048Z",
+  "updatedAt": "2026-10-12T03:52:10.437Z",
   "providers": {
     "groq": {
-      "breaker": "open",
-      "until": "2026-10-12T03:50:49.397Z",
-      "reason": "error — cooling down after 3 consecutive failure(s)",
-      "explain": "groq: breaker open (error — cooling down after 3 consecutive failure(s)); p50 666 ms; error rate 78%; model canopylabs/orpheus-v1-english",
+      "breaker": "half-open",
+      "until": null,
+      "reason": "cooldown over after 3 failure(s); next call is a probe",
+      "explain": "groq: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 666 ms; error rate 78%; model canopylabs/orpheus-v1-english",
       "status": "error",
       "consecutiveFailures": 3,
       "lastFailureClass": null,
@@ -33,10 +33,10 @@
       }
     },
     "openrouter": {
-      "breaker": "open",
-      "until": "2026-10-12T03:40:52.997Z",
-      "reason": "error — cooling down after 2 consecutive failure(s)",
-      "explain": "openrouter: breaker open (error — cooling down after 2 consecutive failure(s)); p50 18987 ms; error rate 67%; model inclusionai/ling-3.1-flash",
+      "breaker": "half-open",
+      "until": null,
+      "reason": "cooldown over after 2 failure(s); next call is a probe",
+      "explain": "openrouter: breaker half-open (cooldown over after 2 failure(s); next call is a probe); p50 18987 ms; error rate 67%; model inclusionai/ling-3.1-flash",
       "status": "error",
       "consecutiveFailures": 2,
       "lastFailureClass": null,
