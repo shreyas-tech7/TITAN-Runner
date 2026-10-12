@@ -68,6 +68,8 @@ The result holds a provider name, a model name, a status, a latency, a time, and
 
 Run it by hand: `node scripts/ops-canary.mjs --only groq,gemini --no-post`.
 
+The log of the workflow shows a short error text next to each provider that is down or degraded, for example "The model requires terms acceptance". The text is cut of secrets and line breaks, and it has at most 160 characters. It stays in the log. It never goes to the mirror or to the Worker.
+
 ## Golden task eval (RO3)
 
 The workflow `ops-eval.yml` runs every Sunday, and by hand. It sends 15 small tasks to every configured model. The tasks cover all 12 categories of the shared taxonomy (`src/orchestrator/taxonomy.js`): architecture, code generation (2 tasks), refactoring, testing, debugging (2), documentation, security review, performance, data modeling, devops, UI implementation, and research (2).

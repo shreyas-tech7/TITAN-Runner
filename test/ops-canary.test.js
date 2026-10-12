@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  CANARY_EXPECTED_SUM, SLOW_MS, healthMirror, judgeAnswer, judgeError, probeTarget, runCanary,
+  CANARY_EXPECTED_SUM, SLOW_MS, describeError, healthMirror, judgeAnswer, judgeError, probeTarget, runCanary,
 } from '../src/ops/canary.js';
 import { buildTargets } from '../src/ops/canaryTargets.js';
 import { UsageReporter } from '../src/ops/usageReporter.js';
@@ -39,7 +39,7 @@ test('RO2 judge: errors map to a status and a class', () => {
 
 test('RO2 status: healthy when the answer is right, the JSON is valid, and the call is fast', async () => {
   const r = await probeTarget(chatTarget(ok()), deps({ clock: stepClock(0, 420) }));
-  assert.deepEqual(r, { provider: 'groq', model: 'llama', status: 'healthy', latency_ms: 420, checked_at: '2026-10-12T08:00:00.000Z', error_class: null });
+  assert.deepEqual(r, { provider: 'groq', model: 'llama', status: 'healthy', latency_ms: 420, checked_at: '2026-10-12T08:00:00.000Z', error_class: null, detail: null });
 });
 
 test('RO2 status: degraded when the call is slow, the format is wrong, or the answer is wrong', async () => {
@@ -128,4 +128,23 @@ test('RO2 run: it probes each target in turn, reports usage, and builds the mirr
   assert.deepEqual(Object.keys(mirror.providers.groq.llama), ['status', 'latency_ms', 'checked_at', 'error_class']);
   assert.deepEqual(checkStateFile('ops/health.json', Buffer.from(JSON.stringify(mirror))), []);
   assert.ok(!JSON.stringify(mirror).includes('sum'), 'no answer text in the mirror');
+});
+
+test('RO2 detail: a failed probe keeps a short redacted error text for the log, and the mirror never holds it', async () => {
+  const secret = ['gsk', 'Fake'.repeat(8)].join('_'); // built at run time, so the file holds no key shape
+  const err = Object.assign(new Error(`Groq rejected the request (400): The model \`orpheus\`\nrequires terms acceptance. key ${secret}`), { status: 404 });
+  const r = await probeTarget(chatTarget(async () => { throw err; }), deps({ clock: stepClock(0, 90) }));
+  assert.equal(r.status, 'down');
+  assert.match(r.detail, /^Groq rejected the request \(400\): The model `orpheus` requires terms acceptance\./, 'one line, from the provider');
+  assert.ok(!r.detail.includes(secret), 'the secret is cut out');
+  assert.ok(r.detail.length <= 160);
+  const mirror = healthMirror([r], NOW());
+  assert.ok(!JSON.stringify(mirror).includes('requires terms'), 'the detail is not in the mirror');
+  assert.deepEqual(Object.keys(mirror.providers.groq.llama), ['status', 'latency_ms', 'checked_at', 'error_class']);
+  assert.deepEqual(checkStateFile('ops/health.json', Buffer.from(JSON.stringify(mirror))), []);
+  // A healthy probe, and a provider that is not set up, have no detail.
+  assert.equal((await probeTarget(chatTarget(ok()), deps({ clock: stepClock(0, 90) }))).detail, null);
+  assert.equal((await probeTarget({ id: 'together', model: null, kind: 'none', skip: 'no_key' }, deps())).detail, null);
+  assert.equal(describeError(new Error('')), null);
+  assert.equal(describeError(undefined), null);
 });
