@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-12T16:29:08.466Z",
+  "updatedAt": "2026-10-12T16:45:08.279Z",
   "providers": {
     "groq": {
       "breaker": "closed",
@@ -33,10 +33,10 @@
       }
     },
     "openrouter": {
-      "breaker": "open",
-      "until": "2026-10-12T16:42:39.150Z",
-      "reason": "error — cooling down after 3 consecutive failure(s)",
-      "explain": "openrouter: breaker open (error — cooling down after 3 consecutive failure(s)); p50 18987 ms; error rate 77%; model inclusionai/ling-3.1-flash",
+      "breaker": "half-open",
+      "until": null,
+      "reason": "cooldown over after 3 failure(s); next call is a probe",
+      "explain": "openrouter: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 18987 ms; error rate 77%; model inclusionai/ling-3.1-flash",
       "status": "error",
       "consecutiveFailures": 3,
       "lastFailureClass": null,
