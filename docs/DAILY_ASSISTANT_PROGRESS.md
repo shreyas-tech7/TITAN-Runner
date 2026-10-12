@@ -35,16 +35,16 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 ## Phase 4: verify and ship
 
 - [x] V1 All tests, checks, and the build pass at or above the baseline, plus new tests. Root 666 (baseline 405), worker 303 (baseline 235), dashboard 118 (baseline 93), 15 new browser tests. `check-all` passes on the full tree and on the main-line branch alone (2026-10-12).
-- [x] V2 gitleaks 8.30.1 clean on the full history of every branch (1102 commits, 2026-10-12). One late finding was the fake session token of a test fixture. It has an exact value entry in the allowlist.
-- [ ] V3 Each new workflow ran once with `workflow_dispatch` and the output was checked
-- [ ] V4 Test host alert opened and closed an Issue
-- [ ] V5 PR from `claude/daily-assistant` to `main` merged with a merge commit
-- [ ] V6 After merge: Pages shows the panels, the mirror files exist, every `/ops` route returns 401 without a token
+- [x] V2 gitleaks 8.30.1 found no leak in the full history of every branch (1102 commits, 2026-10-12). One late hit was the fake session token of a test. It has an exact value entry in the allowlist.
+- [!] V3 Run each new workflow once with `workflow_dispatch`. Blocked. GitHub refuses the push of the workflow files until the `workflow` scope is fixed (Cowork handoff 1, step 1). The scripts of the workflows ran by hand and passed their tests.
+- [x] V4 Host alert test. Live check on 2026-10-12. Two failed probes opened Issue 32 with the label `host-alert`. The text held no URL. A third failed probe reused the Issue. A good probe closed it with a comment.
+- [x] V5 Pull request 31 merged into `main` with a merge commit (e26c52f, 2026-10-12). The three checks passed first.
+- [x] V6 Live checks after the merge, 2026-10-12. The Pages site serves `/ops/` with all six panels. Demo mode at 390 pixels shows no sideways scroll. The four mirror files answer 200. `GET /version` shows e26c52f and schema version 6. Every `/ops` route answers 401 without a token. A wrong token on `/auth/login` answers 401, and the page keeps no session. CORS answers the Pages origin. Another origin gets 403.
 - [x] V7 README, runtime docs, ops docs, security docs, and config docs updated
 
 ## Handoff
 
-- [ ] H1 `docs/handoff/NEXT.md` kept up to date
+- [x] H1 `docs/handoff/NEXT.md` kept up to date
 - [ ] H2 `docs/handoff/cowork-1.md` written and printed
 - [ ] H3 Final completion report
 
@@ -64,5 +64,6 @@ Legend: `[x]` done and verified. `[~]` partly done. `[ ]` open. `[!]` blocked (r
 - D4 Tests run with `--test-concurrency=2` and `NODE_OPTIONS=--max-old-space-size=3072`.
 - D5 The `gh` token has no `workflow` scope. GitHub rejected a push that adds a workflow file (checked 2026-10-11). The fix needs a browser approval, so it goes to the Cowork handoff.
 - D6 Two branches. `claude/daily-assistant` holds all code, tests, and docs and is pushed. `claude/daily-assistant-wf` holds only workflow file commits, stays local, and sits on top of the first branch. Workflow files live untracked in `/workspaces/TITAN-Runner/.github/workflows/` while I work. A helper copies them into the worktree `/workspaces/TITAN-Runner-wf` and commits there. After the scope fix, one push sends the wf branch.
-- D7 Two pull requests. The first one carries the main-line branch, because it passes on its own. The second one carries the wf branch, after the `workflow` scope is fixed.
+- D7 Two pull requests. The first one carries the main-line branch, because it passes on its own. The later one carries the wf branch, after the `workflow` scope is fixed.
 - D8 The dashboard e2e stack sets `TITAN_DEV_ORIGINS=1`, because the RT5 CORS lock refuses local origins by default. The deployed Worker never sets it.
+- D9 actionlint 1.7.7 (checksum checked) found a real bug in the unpushed workflows. A `run:` line held `): ` in a commit message, and YAML fails to parse that. Seven workflows were broken. The wf branch has the fix, and the workflow linter now has a rule for it with tests.
