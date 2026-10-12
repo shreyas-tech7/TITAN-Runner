@@ -41,7 +41,7 @@ export function SecurityView({ log, run, error, loading, now }: { log: SigninLog
       {log && log.entries.length === 0 ? <p className="e-dim">No sign-in is logged yet.</p> : null}
       {log && log.entries.length > 0 ? (
         <div className="ops-table-wrap" role="region" aria-label="The sign-in log, scrolls sideways on a narrow screen" tabIndex={0}>
-          <table className="keys-table ops-table">
+          <table className="ops-table">
             <caption className="sr-only">The latest sign-in attempts</caption>
             <thead>
               <tr>

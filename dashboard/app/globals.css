@@ -1830,8 +1830,9 @@ button {
 .ops-uptime-bar .e-num { text-align: right; color: var(--text-body); }
 .ops-security-scan { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 12px; }
 .ops-table-wrap { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
-.ops-table { min-width: 460px; }
-.ops-table td, .ops-table th { white-space: nowrap; }
+.ops-table { width: 100%; min-width: 440px; border-collapse: collapse; font-size: 13px; }
+.ops-table th { text-align: left; font-weight: 600; color: var(--text-dim); padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+.ops-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line-subtle); vertical-align: top; white-space: nowrap; }
 .ops-page .e-row-name { overflow-wrap: anywhere; text-transform: none; }
 @media (max-width: 640px) {
   .ops-uptime-bar { grid-template-columns: 54px minmax(0, 1fr) 46px; gap: 6px; }
