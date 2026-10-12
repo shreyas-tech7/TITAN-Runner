@@ -68,7 +68,7 @@ The result holds a provider name, a model name, a status, a latency, a time, and
 
 Run it by hand: `node scripts/ops-canary.mjs --only groq,gemini --no-post`.
 
-The log of the workflow shows a short error text next to each provider that is down or degraded, for example "The model requires terms acceptance". The text is cut of secrets and line breaks, and it has at most 160 characters. It stays in the log. It never goes to the mirror or to the Worker.
+The log of the workflow shows a short error text next to each provider that is down or degraded. The text has at most 160 characters. The code removes secrets and line breaks from it. The text stays in the log. It never goes to the mirror or to the Worker.
 
 ## Golden task eval (RO3)
 
