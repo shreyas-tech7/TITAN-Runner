@@ -4,7 +4,7 @@ This file lists the steps for the Cowork handoff. Claude Code adds a step when i
 
 ## Blocked now
 
-1. **Push access for workflow files.** The `gh` token in the Codespace has the scopes `gist`, `read:org`, and `repo`. GitHub rejects any push that changes `.github/workflows/` without the `workflow` scope. The workflow commits wait on the local branch `claude/daily-assistant-wf` in the Codespace folder `/workspaces/TITAN-Runner-wf`. Fix: in the Codespace terminal, run `gh auth refresh -h github.com -s workflow`. Open https://github.com/login/device. Enter the one-time code. Approve for the account `shreyas-tech7` only. After that, Claude Code pushes the branch, opens a new pull request, and merges it.
+1. **Push access for workflow files.** Cowork handoff 1 reported that the `workflow` scope was added. Claude Code checked on 2026-10-12 at 03:17 UTC. The stored login in the Codespace `jubilant-space-waffle-96w7gpxrj76937xgw` still lists only `gist`, `read:org`, and `repo`, and a push was refused. Cowork probably used another Codespace. Fix: open that exact Codespace and run `env -u GITHUB_TOKEN -u GH_TOKEN gh auth refresh -h github.com -s workflow`. Open https://github.com/login/device. Enter the one-time code. Approve for the account `shreyas-tech7` only. Then run `env -u GITHUB_TOKEN -u GH_TOKEN gh auth status` and look for `workflow`. The workflow commits wait on the local branch `claude/daily-assistant-wf` in `/workspaces/TITAN-Runner-wf`. See `docs/handoff/cowork-2.md`.
 
 ## Repository settings (the repo rule forbids Claude Code from changing them)
 
@@ -19,6 +19,12 @@ This file lists the steps for the Cowork handoff. Claude Code adds a step when i
 7. **Host addresses (optional).** Actions secrets `HOST_URL_HF_SPACE`, `HOST_URL_RENDER_1` to `3`, and `HOST_URL_HERMES_1` to `3`. The probe skips a host with no address. The repository variable `GEV_URL` already names the God's Eye View host.
 8. **Discord (optional).** The Actions secret `DISCORD_WEBHOOK_URL` sends a short message when a host alert opens or closes.
 9. The Actions secret `GROK_API_KEY` is not used by any provider in the catalog. Shreyas can delete it, or add a provider for it.
+
+## Dependabot (checked 2026-10-12)
+
+11. Pull requests 34 and 35 are the same change. Their branches have no difference. Both lift `wrangler` in `/worker` to 4.149.0, with `sharp` 0.35.5 and `undici` 7.29.1. The Worker tests (303 of 303) and a dry run of the deploy pass. Merge one and close the other.
+12. Pull request 36 lifts `next` in `/dashboard` from 15.5.24 to 15.5.27. The type check, 118 tests, the build, and 15 browser tests pass. It is safe to merge.
+13. The alerts for `postcss` and `source-map-js` stay open, because `next` ships its own `postcss` 8.4.31. They affect the build, not the live site. They close when `next` ships a fix.
 
 ## Rotation
 
