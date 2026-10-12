@@ -14,6 +14,7 @@
  * class. It never holds a key or an answer text.
  */
 import { classifyFailure } from '../reliability/failures.js';
+import { redactString } from '../lib/redact.js';
 
 export const CANARY_PROMPT = 'Add 17 and 25. Reply with only this JSON and nothing else: {"sum": <the number>}';
 export const CANARY_EXPECTED_SUM = 42;
@@ -50,6 +51,12 @@ export function judgeAnswer(text) {
   return { ok: false, errorClass: 'bad_format' };
 }
 
+/** A short error text for the workflow log. Secrets are cut out, and so are line breaks. It is never stored. */
+export function describeError(err) {
+  const text = String(err?.message ?? err ?? '').replace(/\s+/g, ' ').trim();
+  return String(redactString(text)).slice(0, 160) || null;
+}
+
 /** Map a thrown error to the status and the error class of the canary. */
 export function judgeError(err) {
   const f = classifyFailure(err);
@@ -82,7 +89,8 @@ export async function probeTarget(target, deps = {}) {
   const clock = deps.clock ?? (() => performance.now());
   const slowMs = deps.slowMs ?? SLOW_MS;
   const base = { provider: target.id, model: target.model || '*', checked_at: now().toISOString() };
-  const done = (status, latency, errorClass, model) => ({ ...base, model: model || base.model, status, latency_ms: latency, error_class: errorClass });
+  // `detail` is a short, redacted error text for the log of the workflow. It never goes to the mirror or to the Worker.
+  const done = (status, latency, errorClass, model, detail = null) => ({ ...base, model: model || base.model, status, latency_ms: latency, error_class: errorClass, detail });
 
   if (target.kind === 'none') return done('not_configured', null, target.skip ?? 'no_key');
 
@@ -103,7 +111,7 @@ export async function probeTarget(target, deps = {}) {
       const latency = Math.round(clock() - started);
       const j = judgeError(err);
       if (target.kind === 'chat') deps.usage?.record({ provider: target.id, model: target.model, status: j.errorClass === 'rate_limited' ? 'rate_limited' : 'error' });
-      attempts.push({ ok: false, latency, errorClass: j.errorClass, status: j.status, model: null, kind: 'error' });
+      attempts.push({ ok: false, latency, errorClass: j.errorClass, status: j.status, model: null, kind: 'error', detail: describeError(err) });
       // A key that was rejected, a spent quota, and a rate limit do not get better in two seconds. Do not retry them.
       if (['auth', 'quota', 'rate_limited', 'model_invalid'].includes(j.errorClass)) break;
     }
@@ -120,8 +128,8 @@ export async function probeTarget(target, deps = {}) {
     return done('healthy', last.latency, null, model);
   }
   if (last.kind === 'answer') return done('degraded', last.latency, last.errorClass, model);
-  if (last.status === 'degraded') return done('degraded', last.latency, last.errorClass, model);
-  return done('down', last.latency, last.errorClass, model);
+  if (last.status === 'degraded') return done('degraded', last.latency, last.errorClass, model, last.detail);
+  return done('down', last.latency, last.errorClass, model, last.detail);
 }
 
 /**

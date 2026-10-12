@@ -31,7 +31,8 @@ async function main() {
   const usage = new UsageReporter();
   const targets = await buildTargets({ only });
   const results = await runCanary(targets, { usage });
-  for (const r of results) console.log(`${r.provider.padEnd(14)} ${r.status.padEnd(15)} ${String(r.latency_ms ?? '-').padStart(6)} ms  ${r.error_class ?? ''}`);
+  // The detail is for this log only. It is cut of secrets, and it never goes to the mirror or to the Worker.
+  for (const r of results) console.log(`${r.provider.padEnd(14)} ${r.status.padEnd(15)} ${String(r.latency_ms ?? '-').padStart(6)} ms  ${r.error_class ?? ''}${r.detail ? `  (${r.detail})` : ''}`);
 
   const mirror = healthMirror(results);
   mkdirSync(dirname(out), { recursive: true });
@@ -43,7 +44,7 @@ async function main() {
     try {
       const res = await fetch(`${workerUrl}/ops/health`, {
         method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ results }), signal: AbortSignal.timeout(10_000),
+        body: JSON.stringify({ results: results.map(({ detail, ...rest }) => rest) }), signal: AbortSignal.timeout(10_000),
       });
       console.log(`ops-canary: POST /ops/health answered ${res.status}`);
     } catch (err) {
