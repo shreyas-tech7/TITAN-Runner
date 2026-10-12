@@ -105,3 +105,17 @@ test('a network failure (fetch throws) is swallowed into an empty candidate list
   const ids = await discoverGroqModels({ apiKey: 'k', baseUrl: 'https://api.groq.com/openai/v1' });
   assert.deepEqual(ids, []);
 });
+
+test('resolveModel ignores a stored model that is not a chat model, so a bad choice of the past cannot stick', async () => {
+  const { resolveModel } = await import('../src/config.js');
+  const { isChatModelId } = await import('../src/providers/nonChat.js');
+  // The stored model of Groq on 2026-10-12. Groq answered 400 to every chat call on it.
+  assert.equal(resolveModel('groq', 'canopylabs/orpheus-v1-english'), resolveModel('groq', null), 'falls back to the default');
+  assert.equal(resolveModel('groq', 'playai-tts'), resolveModel('groq', undefined));
+  assert.equal(resolveModel('groq', 'qwen/qwen3.8-27b'), 'qwen/qwen3.8-27b', 'a chat model is kept');
+  assert.equal(resolveModel('gemini', 'gemini-2.5-flash'), 'gemini-2.5-flash');
+  assert.equal(isChatModelId('whisper-large-v3'), false);
+  assert.equal(isChatModelId('llama-3.3-70b-versatile'), true);
+  assert.equal(isChatModelId(''), false);
+  assert.equal(isChatModelId(null), false);
+});
