@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-12T15:57:51.208Z",
+  "updatedAt": "2026-10-12T16:29:08.466Z",
   "providers": {
     "groq": {
-      "breaker": "half-open",
+      "breaker": "closed",
       "until": null,
-      "reason": "cooldown over after 3 failure(s); next call is a probe",
-      "explain": "groq: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 666 ms; error rate 78%; model qwen/qwen3.8-27b",
-      "status": "error",
-      "consecutiveFailures": 3,
+      "reason": "healthy",
+      "explain": "groq: breaker closed (healthy); p50 454 ms; error rate 55%; model allam-2-7b",
+      "status": "ok",
+      "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
@@ -33,12 +33,12 @@
       }
     },
     "openrouter": {
-      "breaker": "half-open",
-      "until": null,
-      "reason": "cooldown over after 2 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 2 failure(s); next call is a probe); p50 18987 ms; error rate 67%; model inclusionai/ling-3.1-flash",
+      "breaker": "open",
+      "until": "2026-10-12T16:42:39.150Z",
+      "reason": "error — cooling down after 3 consecutive failure(s)",
+      "explain": "openrouter: breaker open (error — cooling down after 3 consecutive failure(s)); p50 18987 ms; error rate 77%; model inclusionai/ling-3.1-flash",
       "status": "error",
-      "consecutiveFailures": 2,
+      "consecutiveFailures": 3,
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
@@ -51,7 +51,7 @@
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "gemini: breaker closed (healthy); p50 1580 ms; error rate 8%; model gemini-2.5-flash",
+      "explain": "gemini: breaker closed (healthy); p50 985 ms; error rate 6%; model gemini-2.5-flash",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
