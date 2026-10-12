@@ -33,8 +33,12 @@ const log = createLogger('providers:modelDiscovery');
  *  provider should stall the rest. */
 const DISCOVERY_TIMEOUT_MS = 15_000;
 
-/** Ids that are never a real chat completion target, whatever provider lists them. */
-const NON_CHAT_ID_PATTERN = /whisper|tts|guard|moderation|embed|rerank|speech|audio|vision-only|image|dall-e|stt/i;
+/**
+ * Ids that are never a real chat completion target, whatever provider lists them. The Groq text-to-speech models
+ * (canopylabs/orpheus-*, playai-tts) were found by the nightly canary: discovery took the first one as the chat model,
+ * and every Groq call failed with a 400 until the filter knew the name.
+ */
+const NON_CHAT_ID_PATTERN = /whisper|tts|guard|moderation|embed|rerank|speech|audio|vision-only|image|dall-e|stt|orpheus|playai|canopylabs|voice|transcri/i;
 
 async function fetchJson(url, headers) {
   const res = await guardedFetch(url, { headers, timeoutMs: DISCOVERY_TIMEOUT_MS });

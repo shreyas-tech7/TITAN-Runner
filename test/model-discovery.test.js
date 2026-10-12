@@ -37,6 +37,19 @@ test('discoverGroqModels filters inactive and non-chat models, keeps the preferr
   assert.deepEqual(ids, ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']);
 });
 
+test('discoverGroqModels leaves out the text to speech models, so a chat model comes first (found live by the canary)', async (t) => {
+  // The ids and their order are the ones that Groq listed on 2026-10-11. The first one used to win,
+  // and Groq answered 400 "requires terms acceptance" to every chat call.
+  t.mock.method(globalThis, 'fetch', async () =>
+    jsonResponse({
+      data: ['canopylabs/orpheus-v1-english', 'canopylabs/orpheus-arabic-saudi', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'allam-2-7b', 'playai-tts', 'whisper-large-v3-turbo']
+        .map((id) => ({ id, active: true })),
+    }),
+  );
+  const ids = await discoverGroqModels({ apiKey: 'k', baseUrl: 'https://api.groq.com/openai/v1' });
+  assert.deepEqual(ids, ['qwen/qwen3.8-27b', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'allam-2-7b']);
+});
+
 test('discoverTogetherModels prefers -Free-suffixed / zero-priced entries over the full catalog', async (t) => {
   t.mock.method(globalThis, 'fetch', async () =>
     jsonResponse([
