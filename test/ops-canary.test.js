@@ -27,6 +27,14 @@ test('RO2 judge: a wrong sum is wrong_answer, and text that is not the JSON is b
   for (const text of ['42', 'The sum is 42', '', undefined, '{"total": 42}', '[42]', '{sum: 42', '```\nnot json\n```']) assert.deepEqual(judgeAnswer(text), { ok: false, errorClass: 'bad_format' }, String(text));
 });
 
+test('RO2 judge: a 403 that names the model is model_invalid, and a plain 403 is still auth', () => {
+  const e = (status, message) => Object.assign(new Error(message), { status });
+  assert.deepEqual(judgeError(e(403, 'OpenRouter rejected the request (403): thinkingmachines/inkling-small:free is only available on agentic harnesses.')), { status: 'down', errorClass: 'model_invalid' });
+  assert.equal(judgeError(e(403, 'The model requires terms acceptance. Please have the org admin accept the terms.')).errorClass, 'model_invalid');
+  assert.equal(judgeError(e(403, 'Forbidden')).errorClass, 'auth');
+  assert.equal(judgeError(e(401, 'This model is only available to paying users')).errorClass, 'auth', 'a 401 is always the key');
+});
+
 test('RO2 judge: errors map to a status and a class', () => {
   assert.deepEqual(judgeError(Object.assign(new Error('x'), { status: 429, code: 'RATE_LIMITED' })), { status: 'degraded', errorClass: 'rate_limited' });
   assert.deepEqual(judgeError(Object.assign(new Error('x'), { status: 401 })), { status: 'down', errorClass: 'auth' });
