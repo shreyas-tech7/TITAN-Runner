@@ -90,11 +90,15 @@ These are variables and secrets of the `titan-runner-brain` Worker, not of the p
 
 | Name | Kind | Meaning |
 |---|---|---|
-| `TITAN_ADMIN_TOKEN` | secret | The token for people. It opens the `admin` routes. |
+| `TITAN_ADMIN_TOKEN` | secret | The token for people. It opens the `admin` routes, and `POST /auth/login` trades it for a session. |
+| `OPS_TOKEN` | secret | The token of the `/ops` routes (contract v1). TITAN and the workflows send it as a bearer token. At least 24 characters. Until it is set, every `/ops` route answers 401. |
+| `TITAN_SESSION_IDLE_MINUTES`, `TITAN_SESSION_ABSOLUTE_HOURS` | variable | The idle limit (default 30) and the absolute limit (default 12) of a dashboard session. |
+| `TITAN_LOGIN_MAX_FAILURES`, `TITAN_LOGIN_GLOBAL_MAX` | variable | Wrong tokens before one client is locked (default 5), and before the overall throttle starts (default 60). |
 | `GITHUB_PAT` | secret | A fine-grained token. It needs Secrets (read and write), Contents (read and write), Issues (read and write), Actions (read), and Variables (read). |
 | `CONNECTOR_KEK` | secret | The vault key, 32 random bytes as hex. A workflow makes it. Do not set it by hand. |
 | `GEV_SIGNING_KEY` | secret | The signing key for the God's Eye View tab. |
-| `TITAN_ALLOWED_ORIGINS` | variable | More CORS origins, separated by commas. The defaults are the Pages origin and the two local origins. |
+| `TITAN_ALLOWED_ORIGINS` | variable | More CORS origins, separated by commas. The default is the Pages origin only. |
+| `TITAN_DEV_ORIGINS` | test only | `1` also allows the two local dashboard origins. Only the browser test stack sets it. The deployed Worker never does. |
 | `DASHBOARD_URL` | variable | The address of the dashboard. OAuth sends a person back here. |
 | `TITAN_COMMIT`, `TITAN_BUILD_TIME` | variable | Set by `worker-deploy.yml` with `--var`. `GET /version` shows them. |
 | `TITAN_TEST_MODE`, `TITAN_TEST_HOST_MAP`, `TITAN_PROVIDER_CHECK_TIMEOUT_MS` | test only | Local tests only. Never set them in `wrangler.toml`. A CI check fails if you do. |
@@ -129,3 +133,16 @@ The 6-hour cron removes old rows with these limits:
 | `subagents` with status `failed` | 180 days |
 | revoked rows in `worker_tokens` | 30 days |
 
+## Ops services
+
+| Name | Kind | Meaning |
+|---|---|---|
+| `OPS_TOKEN` | Actions secret and Worker secret | The same value in both places, and in the environment of TITAN. The workflows send it to the `/ops` routes. |
+| `DOORBELL_TOKEN`, `TITAN_BACKEND_URL` | Actions secret | The doorbell rings `TITAN_BACKEND_URL` with `DOORBELL_TOKEN`. Without them the doorbell workflow skips every run. |
+| `HOST_URL_HF_SPACE`, `HOST_URL_RENDER_1` to `3`, `HOST_URL_HERMES_1` to `3` | Actions secret | The addresses that the host probe checks. A host with no address is skipped. |
+| `DISCORD_WEBHOOK_URL` | Actions secret | Optional. One short message when a host alert opens or closes. |
+| `GEV_URL` | Actions variable | The God's Eye View host. The host probe checks it as `titan_gev`. |
+| `TITAN_POSTMORTEM` | variable | `0` turns off the post-mortems of failed tasks. |
+| `config/quotas.json` | file | The free limit of each provider and model, with its official source and the date that someone read it. A limit that no page states is `null`. |
+
+See `docs/OPS.md` for what each service does.
