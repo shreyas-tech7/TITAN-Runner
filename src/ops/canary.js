@@ -18,7 +18,8 @@ import { redactString } from '../lib/redact.js';
 
 export const CANARY_PROMPT = 'Add 17 and 25. Reply with only this JSON and nothing else: {"sum": <the number>}';
 export const CANARY_EXPECTED_SUM = 42;
-export const CANARY_MAX_TOKENS = 64;
+/** A reasoning model spends part of this budget on thinking, so a small number leaves it with no answer. One call a night is cheap. */
+export const CANARY_MAX_TOKENS = 512;
 /** A call slower than this counts as degraded. */
 export const SLOW_MS = 8_000;
 export const RETRY_DELAY_MS = 2_000;
@@ -106,7 +107,7 @@ export async function probeTarget(target, deps = {}) {
       if (target.kind === 'chat') {
         deps.usage?.record({ provider: target.id, model: out.model ?? target.model, status: 'ok', tokensIn: out.tokensIn, tokensOut: out.tokensOut, remainingRequests: out.rate?.remainingRequests, remainingTokens: out.rate?.remainingTokens });
         const verdict = judgeAnswer(out.text);
-        attempts.push({ ok: verdict.ok, latency, errorClass: verdict.errorClass, model: out.model ?? null, kind: 'answer' });
+        attempts.push({ ok: verdict.ok, latency, errorClass: verdict.errorClass, model: out.model ?? null, kind: 'answer', detail: verdict.ok ? null : `the answer was: ${describeError(out.text ?? '') ?? '(empty)'}`.slice(0, 160) });
       } else {
         attempts.push({ ok: true, latency, errorClass: null, model: out.model ?? null, kind: 'list' });
       }
@@ -130,7 +131,7 @@ export async function probeTarget(target, deps = {}) {
     if (last.latency > slowMs) return done('degraded', last.latency, 'slow', model);
     return done('healthy', last.latency, null, model);
   }
-  if (last.kind === 'answer') return done('degraded', last.latency, last.errorClass, model);
+  if (last.kind === 'answer') return done('degraded', last.latency, last.errorClass, model, last.detail);
   if (last.status === 'degraded') return done('degraded', last.latency, last.errorClass, model, last.detail);
   return done('down', last.latency, last.errorClass, model, last.detail);
 }

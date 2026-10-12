@@ -120,7 +120,7 @@ test('RO2 coverage: a configured provider gets the fixed task, with a low temper
   assert.equal(r.status, 'healthy');
   assert.equal(seen[0].messages.length, 1);
   assert.match(seen[0].messages[0].content, /17 and 25/);
-  assert.deepEqual([seen[0].opts.maxTokens, seen[0].opts.temperature], [64, 0]);
+  assert.deepEqual([seen[0].opts.maxTokens, seen[0].opts.temperature], [512, 0]);
 });
 
 test('RO2 run: it probes each target in turn, reports usage, and builds the mirror of contract v1 that passes the strict state check', async () => {
@@ -155,4 +155,16 @@ test('RO2 detail: a failed probe keeps a short redacted error text for the log, 
   assert.equal((await probeTarget({ id: 'together', model: null, kind: 'none', skip: 'no_key' }, deps())).detail, null);
   assert.equal(describeError(new Error('')), null);
   assert.equal(describeError(undefined), null);
+});
+
+test('RO2 detail: a wrong answer keeps its first characters for the log, and a right answer keeps none', async () => {
+  const wrong = await probeTarget(chatTarget(ok('Let me think about 17 plus 25 step by step. First I add the tens and then the ones. It is the')), deps({ clock: stepClock(0, 90) }));
+  assert.equal(wrong.status, 'degraded');
+  assert.equal(wrong.error_class, 'bad_format');
+  assert.match(wrong.detail, /^the answer was: Let me think about 17 plus 25/);
+  assert.ok(wrong.detail.length <= 160);
+  const empty = await probeTarget(chatTarget(ok('')), deps({ clock: stepClock(0, 90) }));
+  assert.match(empty.detail, /^the answer was: \(empty\)$/);
+  assert.equal((await probeTarget(chatTarget(ok()), deps({ clock: stepClock(0, 90) }))).detail, null);
+  assert.ok(!JSON.stringify(healthMirror([wrong, empty], NOW())).includes('Let me think'), 'not in the mirror');
 });
