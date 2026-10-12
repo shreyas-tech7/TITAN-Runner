@@ -42,4 +42,5 @@ jobs:
         run: node scripts/weekly-rollup.mjs
 
       - name: Commit the weekly summary
-        run: node scripts/publish-state.mjs --message "chore(digest): weekly rollup $(date -u +%Y-%m-%d)"
+        run: |
+          node scripts/publish-state.mjs --message "chore(digest): weekly rollup $(date -u +%Y-%m-%d)"

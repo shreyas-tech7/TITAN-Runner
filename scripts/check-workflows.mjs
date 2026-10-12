@@ -46,6 +46,39 @@ const MAKES_SECRET = /randomBytes\(|openssl\s+rand|ssh-keygen|generateKey\(/;
  * @param {string} name
  * @returns {string[]} violations
  */
+/**
+ * (11) A plain YAML value must not hold a colon and a space. YAML reads the colon as a new key, and the whole file then
+ * fails to parse: "mapping values are not allowed in this context". A commit message like "chore(ops): host status" in a
+ * `run:` line caused this once. Quote the value, or use a block scalar (`run: |`). This is a line check, not a YAML parser,
+ * so it skips the body of a block scalar and any value that starts with a quote, a bracket, or a block marker.
+ * @param {string[]} lines
+ * @param {string} name
+ */
+export function checkPlainScalars(lines, name) {
+  const out = [];
+  let blockIndent = -1;
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (line.trim() === '') continue;
+    const indent = line.length - line.trimStart().length;
+    if (blockIndent >= 0) {
+      if (indent > blockIndent) continue;
+      blockIndent = -1;
+    }
+    if (/^\s*#/.test(line)) continue;
+    const m = line.match(/^(\s*)(?:-\s+)?([A-Za-z0-9_.\/-]+):[ \t]+(\S.*)$/);
+    if (!m) continue;
+    const value = m[3].replace(/\s+#.*$/, '');
+    if (/^[|>][+-]?\d*$/.test(value)) {
+      blockIndent = indent;
+      continue;
+    }
+    if (/^["'\[{&*!%@`|>]/.test(value)) continue;
+    if (/:[ \t]/.test(value) || /:$/.test(value)) out.push(`${name}:${i + 1}: the plain value of "${m[2]}" holds a colon and a space, so YAML fails to parse the file. Quote the value, or use a block scalar (run: |)`);
+  }
+  return out;
+}
+
 export function checkWorkflowText(text, name) {
   const violations = [];
   const lines = text.split('\n');
@@ -83,6 +116,8 @@ export function checkWorkflowText(text, name) {
   if (/^\s*-?\s*(run|script):[\s\S]*?\bgit\s+(push|commit)\b/m.test(text) && /\bgit\s+(push|commit)\b/.test(text.replace(/^\s*#.*$/gm, ''))) violations.push(`${name}: runs git push or git commit. Use scripts/publish-state.mjs`);
   if (/\bgh\s+(issue|pr|release|repo)\s+(create|comment|close|edit|merge|delete)\b|\bgh\s+api\b[^\n]*(-X|--method)\s*(POST|PUT|PATCH|DELETE)/.test(text.replace(/^\s*#.*$/gm, ''))) violations.push(`${name}: writes to GitHub with the gh tool. Use a script that goes through the Reviewer Gate`);
   if (/uses:\s*actions\/github-script/.test(text)) violations.push(`${name}: uses actions/github-script. Writes to GitHub go through the Reviewer Gate (scripts/alert-issue.mjs)`);
+
+  violations.push(...checkPlainScalars(lines, name));
 
   let inRun = false;
   let runIndent = -1;

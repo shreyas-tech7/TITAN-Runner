@@ -119,4 +119,5 @@ jobs:
 
       - name: Commit and push the mirror
         if: steps.gate.outputs.proceed == 'true'
-        run: node scripts/publish-state.mjs --message "chore(ops): provider canary $(date -u +%Y-%m-%d)"
+        run: |
+          node scripts/publish-state.mjs --message "chore(ops): provider canary $(date -u +%Y-%m-%d)"

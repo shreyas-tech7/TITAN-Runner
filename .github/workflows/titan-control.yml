@@ -81,4 +81,5 @@ jobs:
         run: node scripts/check-secrets-in-state.mjs
 
       - name: Commit the change
-        run: node scripts/publish-state.mjs --message "chore(control): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        run: |
+          node scripts/publish-state.mjs --message "chore(control): $(date -u +%Y-%m-%dT%H:%M:%SZ)"

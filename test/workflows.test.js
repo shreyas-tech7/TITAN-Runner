@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync, readdirSync } from 'node:fs';
-import { OUTSIDER_TRIGGERS, checkWorkflowsDir, checkWorkflowText } from '../scripts/check-workflows.mjs';
+import { OUTSIDER_TRIGGERS, checkPlainScalars, checkWorkflowsDir, checkWorkflowText } from '../scripts/check-workflows.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -156,4 +156,31 @@ test('RO6: the doorbell workflow has the five crons of the table, holds no write
   for (const block of text.matchAll(/run: \|\n((?:\s{10}.*\n?)+)/g)) assert.ok(!/\$\{\{/.test(block[1]), block[1]);
   assert.match(text, /::add-mask::\$TITAN_BACKEND_URL/);
   assert.match(text, /::add-mask::\$DOORBELL_TOKEN/);
+});
+
+test('RT2: the linter finds a plain YAML value with a colon and a space, and leaves quoted values and block scalars alone', () => {
+  const lint = (...lines) => checkPlainScalars(lines, 'x.yml');
+  // The bug that actionlint found: the commit message holds "): ", and YAML reads it as a new key.
+  const bad = lint('      - name: Commit', '        run: node scripts/publish-state.mjs --message "chore(ops): host status $(date -u +%Y-%m-%d)"');
+  assert.equal(bad.length, 1);
+  assert.match(bad[0], /x\.yml:2: the plain value of "run" holds a colon and a space/);
+  assert.equal(lint('      - run: echo "a: b"').length, 1, 'quotes inside a plain value do not help');
+  assert.equal(lint('        name: Check: the secrets').length, 1);
+  // These parse fine.
+  assert.deepEqual(lint('        run: |', '          node a.mjs --message "chore(ops): host status"', '          echo "k: v"'), [], 'a block scalar may hold anything');
+  assert.deepEqual(lint('        run: >-', '          echo "k: v"'), []);
+  assert.deepEqual(lint('        run: "node a.mjs --message \'chore(ops): x\'"'), []);
+  assert.deepEqual(lint("        run: 'echo a: b'"), []);
+  assert.deepEqual(lint('    - cron: "0 8 * * *" # 03:00 CDT: summer'), [], 'a comment may hold a colon');
+  assert.deepEqual(lint('      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1'), []);
+  assert.deepEqual(lint('# note: this is a comment', '        timeout-minutes: 15'), []);
+  assert.deepEqual(lint('        TITAN_WORKER_URL: ${{ vars.TITAN_WORKER_URL }}'), [], 'an expression value has no colon and space');
+  assert.deepEqual(lint('        run: node scripts/ops-hosts.mjs'), []);
+  // The block scalar ends at the next line with the indent of its key or less.
+  assert.equal(lint('        run: |', '          echo ok', '        name: a: b').length, 1);
+});
+
+test('RT2: no committed workflow has a plain YAML value with a colon and a space', () => {
+  const dir = join(REPO_ROOT, '.github', 'workflows');
+  for (const f of readdirSync(dir)) assert.deepEqual(checkPlainScalars(readFileSync(join(dir, f), 'utf8').split('\n'), f), [], f);
 });

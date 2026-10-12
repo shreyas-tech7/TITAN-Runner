@@ -44,7 +44,8 @@ jobs:
       # The archives and maintenance.json are committed even when a schema check failed, so the daily commit
       # still happens. The last step then fails the run, which shows the problem.
       - name: Commit and push
-        run: node scripts/publish-state.mjs --no-validate --message "chore(state): daily maintenance $(date -u +%Y-%m-%d)"
+        run: |
+          node scripts/publish-state.mjs --no-validate --message "chore(state): daily maintenance $(date -u +%Y-%m-%d)"
 
       - name: Fail the run if a state file broke its schema
         if: env.MAINTENANCE_FAILED == '1'

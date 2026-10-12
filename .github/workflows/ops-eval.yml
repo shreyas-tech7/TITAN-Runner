@@ -145,4 +145,5 @@ jobs:
         run: node scripts/check-secrets-in-state.mjs
 
       - name: Commit and push
-        run: node scripts/publish-state.mjs --message "chore(ops): golden task eval $(date -u +%Y-%m-%d)"
+        run: |
+          node scripts/publish-state.mjs --message "chore(ops): golden task eval $(date -u +%Y-%m-%d)"

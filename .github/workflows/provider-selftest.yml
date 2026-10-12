@@ -112,4 +112,5 @@ jobs:
 
       - name: Commit and push the result
         if: env.TITAN_SELFTEST_PROVIDER == ''
-        run: node scripts/publish-state.mjs --message "chore(providers): self-test $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        run: |
+          node scripts/publish-state.mjs --message "chore(providers): self-test $(date -u +%Y-%m-%dT%H:%M:%SZ)"

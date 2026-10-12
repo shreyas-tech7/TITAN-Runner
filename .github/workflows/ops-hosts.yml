@@ -85,4 +85,5 @@ jobs:
         run: node scripts/check-secrets-in-state.mjs
 
       - name: Commit and push the mirrors
-        run: node scripts/publish-state.mjs --message "chore(ops): host status $(date -u +%Y-%m-%dT%H:%MZ)"
+        run: |
+          node scripts/publish-state.mjs --message "chore(ops): host status $(date -u +%Y-%m-%dT%H:%MZ)"
