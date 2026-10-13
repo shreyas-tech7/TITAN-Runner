@@ -1,0 +1,16 @@
+{
+  "date": "2026-09-29",
+  "events": 12,
+  "byType": {
+    "pulse.started": 4,
+    "pulse.finished": 4,
+    "checkpoint.written": 4
+  },
+  "byOutcome": {
+    "ok": 4,
+    "pushed": 4
+  },
+  "byFailureClass": {},
+  "calls": 0,
+  "tokens": 0
+}

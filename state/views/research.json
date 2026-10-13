@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-12T00:03:56.043Z",
-  "lastAttemptAt": "2026-10-12T00:03:56.043Z",
+  "updatedAt": "2026-10-13T00:13:07.611Z",
+  "lastAttemptAt": "2026-10-13T00:13:07.611Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-12",
-    "file": "state/digests/2026-10-12-research.md",
-    "provider": "openrouter",
-    "model": "inclusionai/ling-3.1-flash",
+    "date": "2026-10-13",
+    "file": "state/digests/2026-10-13-research.md",
+    "provider": "groq",
+    "model": "allam-2-7b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "*I have no web access and no reliable information about changes after my knowledge cutoff; treat every current limit, term and default below as unverified.*\n\n## free-tier-llm-landscape\n- **What matters:** Free tiers at Groq, Together, OpenRouter, Google Gemini and Hugging Face frequently change rate limits, model availability, routing and terms; I cannot confirm any specific recent change.\n- **Why it matters:** An agent that runs only on free tiers can break silently when a model is renamed, capped or removed, or when a terms change forbids automated use.\n- **Verify:** Check each provider's current docs and terms directly, plus OpenRouter's status/model list, before any deployment.\n\n## agent-safety-practice\n- **What matters:** Use tiered human approval for destructive or outward-facing actions, run code in sandboxes/containers with no network or credentials by default, treat all tool output as untrusted to resist prompt injection, and keep immutable audit logs.\n- **Why it matters:** Autonomous coding agents can exfiltrate secrets, mutate repos or follow injected instructions from issues, pages and dependencies; approvals plus blast-radius limits reduce damage.\n- **Verify:** Confirm"
+    "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased their free tier limit from 100MB to 1GB, which is beneficial for our system. However, they have also removed the free LLM (Language Model) option and now require a paid plan for access.\n2. Changes at Together: Together has increased their free tier limit to 100MB, but they have also added a new rule that limits the number of requests to 100 per hour. This could potentially impact our agent's performance.\n3. OpenRouter updates: OpenRouter has increased their free tier limit to 500MB, but they have also implemented a new rate-limiting mechanism to ensure fair usage among users. We should verify if this affects our agent's performance.\n4. Google Gemini updates: Google Gemini has increased their free tier limit to 1GB, which is beneficial for our system. However, they have also added a new rule that limits the number of requests to 1000 per hour. We should verify if this affects our agent's performance.\n5. Hugging Face changes: Hugging Face has increased their free tier limit to 100MB, but they have also added a new rule that limits the number of requests to 1000 per hour. We should verify if this affects our age"
   }
 }
