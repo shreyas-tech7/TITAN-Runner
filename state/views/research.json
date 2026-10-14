@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-13T00:13:07.611Z",
-  "lastAttemptAt": "2026-10-13T00:13:07.611Z",
+  "updatedAt": "2026-10-14T00:09:10.521Z",
+  "lastAttemptAt": "2026-10-14T00:09:10.521Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-13",
-    "file": "state/digests/2026-10-13-research.md",
+    "date": "2026-10-14",
+    "file": "state/digests/2026-10-14-research.md",
     "provider": "groq",
-    "model": "allam-2-7b",
+    "model": "qwen/qwen3.8-27b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased their free tier limit from 100MB to 1GB, which is beneficial for our system. However, they have also removed the free LLM (Language Model) option and now require a paid plan for access.\n2. Changes at Together: Together has increased their free tier limit to 100MB, but they have also added a new rule that limits the number of requests to 100 per hour. This could potentially impact our agent's performance.\n3. OpenRouter updates: OpenRouter has increased their free tier limit to 500MB, but they have also implemented a new rate-limiting mechanism to ensure fair usage among users. We should verify if this affects our agent's performance.\n4. Google Gemini updates: Google Gemini has increased their free tier limit to 1GB, which is beneficial for our system. However, they have also added a new rule that limits the number of requests to 1000 per hour. We should verify if this affects our agent's performance.\n5. Hugging Face changes: Hugging Face has increased their free tier limit to 100MB, but they have also added a new rule that limits the number of requests to 1000 per hour. We should verify if this affects our age"
+    "preview": "## free-tier-llm-landscape\n*   **What matters:** Free-tier providers frequently adjust rate limits, model availability, and acceptable use policies without extensive notice, often shifting from per-minute to per-day quotas or removing specific open-weight models.\n*   **Why it matters:** An agent relying solely on free tiers faces immediate operational failure if a primary model is deprecated or if usage spikes trigger silent throttling, breaking autonomous workflows.\n*   **One thing worth verifying:** Check the current \"fair use\" definitions and specific model deprecation schedules in the latest terms of service for your primary providers, as these change more often than API documentation.\n\n## agent-safety-practice\n*   **What matters:** Best practices now emphasize strict separation of concerns: agents should propose actions rather than execute them directly, with human-in-the-loop approval for high-risk operations like file deletion or network calls.\n*   **Why it matters:** Autonomous coding agents are prime targets for prompt injection; without sandboxing and tiered permissions, a malicious input can lead to data exfiltration or system compromise.\n*   **One thing worth verifying:"
   }
 }
