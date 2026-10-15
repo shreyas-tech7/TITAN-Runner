@@ -36,7 +36,8 @@ test('findPii ignores ordinary numbers, dates, and short ids', () => {
 });
 
 test('scanText flags a personal email address and a key, and allows a public bot address', () => {
-  const hits = scanText('from shreyas@example-person.net and key gsk_abcdefghijklmnopqrstuvwx');
+  const fakeKey = ['gsk', 'a'.repeat(24)].join('_');
+  const hits = scanText(`from shreyas@example-person.net and key ${fakeKey}`);
   assert.ok(hits.length >= 2);
   assert.deepEqual(scanText('noreply@github.com 12345+bot@users.noreply.github.com'), []);
 });
