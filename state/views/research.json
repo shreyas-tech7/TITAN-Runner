@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-14T00:09:10.521Z",
-  "lastAttemptAt": "2026-10-14T00:09:10.521Z",
+  "updatedAt": "2026-10-15T00:07:53.804Z",
+  "lastAttemptAt": "2026-10-15T00:07:53.804Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-14",
-    "file": "state/digests/2026-10-14-research.md",
+    "date": "2026-10-15",
+    "file": "state/digests/2026-10-15-research.md",
     "provider": "groq",
     "model": "qwen/qwen3.8-27b",
     "topics": [
@@ -14,6 +14,6 @@
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n*   **What matters:** Free-tier providers frequently adjust rate limits, model availability, and acceptable use policies without extensive notice, often shifting from per-minute to per-day quotas or removing specific open-weight models.\n*   **Why it matters:** An agent relying solely on free tiers faces immediate operational failure if a primary model is deprecated or if usage spikes trigger silent throttling, breaking autonomous workflows.\n*   **One thing worth verifying:** Check the current \"fair use\" definitions and specific model deprecation schedules in the latest terms of service for your primary providers, as these change more often than API documentation.\n\n## agent-safety-practice\n*   **What matters:** Best practices now emphasize strict separation of concerns: agents should propose actions rather than execute them directly, with human-in-the-loop approval for high-risk operations like file deletion or network calls.\n*   **Why it matters:** Autonomous coding agents are prime targets for prompt injection; without sandboxing and tiered permissions, a malicious input can lead to data exfiltration or system compromise.\n*   **One thing worth verifying:"
+    "preview": "## free-tier-llm-landscape\n*   **What matters:** Free-tier providers frequently adjust rate limits, model availability, and data retention policies without long-term contractual guarantees.\n*   **Why it matters:** An agent relying solely on free tiers is vulnerable to sudden service interruptions or policy shifts that could halt operations or violate new data usage terms.\n*   **One thing worth verifying:** Check the current specific token limits and data retention clauses for each provider, as these change frequently and directly impact agent uptime and compliance.\n\n## agent-safety-practice\n*   **What matters:** Best practices now emphasize strict sandboxing, tiered approval systems for high-risk actions, and robust prompt-injection defenses.\n*   **Why it matters:** Autonomous coding agents can execute destructive commands or leak data if not properly constrained; safety measures prevent catastrophic failures and security breaches.\n*   **One thing worth verifying:** Ensure your sandboxing environment isolates network access and file system writes, and that audit logs capture all agent decisions for post-incident analysis.\n\n## actions-automation\n*   **What matters:** GitHub Actions "
   }
 }
