@@ -36,6 +36,9 @@ jobs:
       - name: Secret scan of state/
         run: node scripts/check-secrets-in-state.mjs
 
+      - name: Public repository check (personal data and keys in state/)
+        run: node scripts/check-public-pii.mjs
+
       - name: State schemas (every file under state/ matches a strict schema, no extra fields)
         run: node scripts/check-state.mjs
 

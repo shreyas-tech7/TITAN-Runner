@@ -77,6 +77,9 @@ jobs:
           NEXT_PUBLIC_COMMIT: ${{ github.sha }}
         run: npm run build
 
+      - name: Public repository check of the built site (no personal data may reach Pages)
+        run: node scripts/check-public-pii.mjs --dir dashboard/out
+
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
 
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
