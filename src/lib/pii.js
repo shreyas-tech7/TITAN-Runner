@@ -1,5 +1,5 @@
 /**
- * @file Personal data patterns for the public repository (Jarvis wave, rule 0.7).
+ * @file Personal data patterns for the public repository (overnight wave, rule 0.7).
  *
  * This repository is public. A secret pattern list already exists in `redact.js`. This file adds the
  * patterns for personal data that is not a credential: phone numbers, a Telegram user or chat id,

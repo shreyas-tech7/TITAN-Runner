@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * @file CI gate for the public repository (Jarvis wave, rule 0.7).
+ * @file CI gate for the public repository (overnight wave, rule 0.7).
  *
  * It scans three places for personal data and for key-shaped text:
  *   1. `state/`, the files that the pulse commits.

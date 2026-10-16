@@ -1,6 +1,6 @@
 # Changelog
 
-## Wave 13 (Jarvis wave)
+## Wave 13 (overnight wave)
 
 - Add the public repository check `scripts/check-public-pii.mjs`. It finds personal data and keys in `state/`, in the built Pages site, and in Issues.
 
