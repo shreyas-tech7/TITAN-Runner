@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-16T00:28:55.003Z",
+  "updatedAt": "2026-10-16T11:59:35.716Z",
   "providers": {
     "groq": {
       "breaker": "closed",
@@ -36,7 +36,7 @@
       "breaker": "half-open",
       "until": null,
       "reason": "cooldown over after 3 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 18987 ms; error rate 77%; model dots-studio/dots-3-note-preview:free",
+      "explain": "openrouter: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 18987 ms; error rate 77%; model nvidia/nemotron-3.5-super-vl:free",
       "status": "error",
       "consecutiveFailures": 3,
       "lastFailureClass": null,
