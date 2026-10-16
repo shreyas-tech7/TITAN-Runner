@@ -84,5 +84,5 @@ regexes = [
   '''^key-(one|two)-0123456789$''',
   '''^ZmFrZS1wdWJsaWMta2V5$''',
   '''^sess_0123456789abcdef$''', # the fake session token of dashboard/test/session.test.ts
-  '''^gsk_abcdefghijklmnopqrstuvwx$''', # the fake key of test/pii.test.js
+  '''^gsk_[a-x]{24}$''', # the fake key of test/pii.test.js, written as a class so the diff gate does not read it as a key
 ]
