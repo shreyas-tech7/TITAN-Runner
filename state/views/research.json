@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-15T00:07:53.804Z",
-  "lastAttemptAt": "2026-10-15T00:07:53.804Z",
+  "updatedAt": "2026-10-16T00:12:52.907Z",
+  "lastAttemptAt": "2026-10-16T00:12:52.907Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-15",
-    "file": "state/digests/2026-10-15-research.md",
+    "date": "2026-10-16",
+    "file": "state/digests/2026-10-16-research.md",
     "provider": "groq",
-    "model": "qwen/qwen3.8-27b",
+    "model": "openai/gpt-oss-20b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n*   **What matters:** Free-tier providers frequently adjust rate limits, model availability, and data retention policies without long-term contractual guarantees.\n*   **Why it matters:** An agent relying solely on free tiers is vulnerable to sudden service interruptions or policy shifts that could halt operations or violate new data usage terms.\n*   **One thing worth verifying:** Check the current specific token limits and data retention clauses for each provider, as these change frequently and directly impact agent uptime and compliance.\n\n## agent-safety-practice\n*   **What matters:** Best practices now emphasize strict sandboxing, tiered approval systems for high-risk actions, and robust prompt-injection defenses.\n*   **Why it matters:** Autonomous coding agents can execute destructive commands or leak data if not properly constrained; safety measures prevent catastrophic failures and security breaches.\n*   **One thing worth verifying:** Ensure your sandboxing environment isolates network access and file system writes, and that audit logs capture all agent decisions for post-incident analysis.\n\n## actions-automation\n*   **What matters:** GitHub Actions "
+    "preview": "## free-tier-llm-landscape\n- **What matters:** Providers are tightening free‑tier quotas, shrinking available model sizes, and adding stricter usage clauses that can interrupt continuous agent runs.  \n- **Why it matters:** An agent that relies on free tiers may hit rate limits or lose access to the models it needs, causing failures or degraded performance.  \n- **One thing worth verifying:** Check each provider’s current free‑tier documentation for quota limits, model availability, and any new terms that restrict automated usage.\n\n## agent-safety-practice\n- **What matters:** Implementing multi‑tier approval, sandboxed execution, prompt‑injection defenses, and comprehensive audit logs is essential to prevent unintended actions.  \n- **Why it matters:** Autonomous coding agents can generate harmful code or access sensitive data; safety layers reduce the risk of accidental damage or policy violations.  \n- **One thing worth verifying:** Ensure that the sandbox environment truly isolates the agent’s runtime and that audit logs capture all inputs, outputs, and state changes.\n\n## actions-automation\n- **What matters:** GitHub Actions now limits free minutes, tightens token scopes, and enforc"
   }
 }
