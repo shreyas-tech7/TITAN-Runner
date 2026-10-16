@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-10-16T00:12:52.907Z",
+  "lastAttemptAt": "2026-10-16T00:13:14.221Z",
   "lastStatus": "written",
   "lastReason": null,
   "lastDigestDate": "2026-10-16",
@@ -12,6 +12,6 @@
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n- **What matters:** Providers are tightening free‑tier quotas, shrinking available model sizes, and adding stricter usage clauses that can interrupt continuous agent runs.  \n- **Why it matters:** An agent that relies on free tiers may hit rate limits or lose access to the models it needs, causing failures or degraded performance.  \n- **One thing worth verifying:** Check each provider’s current free‑tier documentation for quota limits, model availability, and any new terms that restrict automated usage.\n\n## agent-safety-practice\n- **What matters:** Implementing multi‑tier approval, sandboxed execution, prompt‑injection defenses, and comprehensive audit logs is essential to prevent unintended actions.  \n- **Why it matters:** Autonomous coding agents can generate harmful code or access sensitive data; safety layers reduce the risk of accidental damage or policy violations.  \n- **One thing worth verifying:** Ensure that the sandbox environment truly isolates the agent’s runtime and that audit logs capture all inputs, outputs, and state changes.\n\n## actions-automation\n- **What matters:** GitHub Actions now limits free minutes, tightens token scopes, and enforc",
+  "preview": "**Daily Research Digest – 2026‑10‑16**\n\n---\n\n## free‑tier‑llm‑landscape  \n- **What matters:** Current free‑tier caps on request count, token limits, and model availability for Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Exceeding any of these limits will throttle or block the agent, causing downtime or degraded performance.  \n- **Verify:** Check each provider’s latest free‑tier policy page (or API usage dashboard) to confirm current limits and any recent policy changes.\n\n## agent‑safety‑practice  \n- **What matters:** Implementing multi‑layer approval tiers, sandboxed execution environments, prompt‑injection mitigations (e.g., prompt sanitization, guardrails), and comprehensive audit logs.  \n- **Why it matters:** These controls prevent unintended code execution, data leakage, or manipulation of the agent’s behavior, which is critical when operating solely on free tiers with limited monitoring.  \n- **Verify:** Run a controlled test to ensure that sandbox restrictions correctly block disallowed system calls and that audit logs capture all agent actions.\n\n## actions‑automation  \n- **What matters:** GitHub Actions’ cron reliability, free‑minute l",
   "lastDetail": null
 }
