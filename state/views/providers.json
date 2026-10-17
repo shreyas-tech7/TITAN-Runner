@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-17T00:28:34.044Z",
+  "updatedAt": "2026-10-17T11:02:48.573Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 1163 ms; error rate 9%; model openai/gpt-oss-20b",
+      "explain": "groq: breaker closed (healthy); p50 1163 ms; error rate 9%; model qwen/qwen3.8-27b",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
@@ -36,7 +36,7 @@
       "breaker": "half-open",
       "until": null,
       "reason": "cooldown over after 3 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 18987 ms; error rate 77%; model nvidia/nemotron-3.5-super-vl:free",
+      "explain": "openrouter: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 18987 ms; error rate 77%; model xingchen-agi/xing4.0-29b-a4b:free",
       "status": "error",
       "consecutiveFailures": 3,
       "lastFailureClass": null,
