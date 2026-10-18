@@ -41,67 +41,67 @@
       "architecture": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "code-generation": {
-        "score": 0,
-        "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "score": 0.5,
+        "tasksRun": 2,
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "refactoring": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "testing": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "debugging": {
-        "score": 0.5,
+        "score": 1,
         "tasksRun": 2,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "documentation": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "security-review": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "performance": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "data-modeling": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "devops": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "ui-implementation": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "research": {
@@ -152,31 +152,31 @@
       "architecture": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "code-generation": {
         "score": 0.5,
         "tasksRun": 2,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "refactoring": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "testing": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       },
       "debugging": {
-        "score": 0,
-        "tasksRun": 1,
-        "runAt": "2026-10-12T03:25:58.166Z",
+        "score": 0.5,
+        "tasksRun": 2,
+        "runAt": "2026-10-18T13:31:55.777Z",
         "evalVersion": "v1"
       }
     }
