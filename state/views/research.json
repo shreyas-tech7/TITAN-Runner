@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-17T00:12:33.504Z",
-  "lastAttemptAt": "2026-10-17T00:12:33.504Z",
+  "updatedAt": "2026-10-18T00:10:51.483Z",
+  "lastAttemptAt": "2026-10-18T00:10:51.483Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-17",
-    "file": "state/digests/2026-10-17-research.md",
+    "date": "2026-10-18",
+    "file": "state/digests/2026-10-18-research.md",
     "provider": "groq",
-    "model": "openai/gpt-oss-20b",
+    "model": "qwen/qwen3.8-27b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "**Date: 2026-10-17**\n\n## 1. free-tier-llm-landscape  \n- **What matters:** Recent shifts in free‑tier quotas and model availability at Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** A sudden quota drop or model deprecation can halt an autonomous agent that relies on uninterrupted free access, causing missed tasks or degraded performance.  \n- **One thing worth verifying:** Confirm the current free‑tier limits and any scheduled policy changes in each provider’s latest documentation (e.g., request‑per‑minute caps, token‑budget ceilings, or mandatory API‑key rotation).\n\n## 2. agent-safety-practice  \n- **What matters:** Adoption of multi‑layer safety controls—approval tiers for code changes, sandboxed execution environments, prompt‑injection mitigations, and comprehensive audit logs.  \n- **Why it matters:** These safeguards prevent malicious or accidental code execution, protect against prompt manipulation, and provide traceability for compliance and debugging in a system that self‑writes and deploys code.  \n- **One thing worth verifying:** Ensure that sandbox policies enforce strict network isolation and that audit logs are retained long enough to s"
+    "preview": "## free-tier-llm-landscape\n*   **What matters:** Free tiers are increasingly restrictive, often capping daily token counts or limiting access to specific, smaller models rather than frontier capabilities. Providers may silently deprecate endpoints or change rate-limiting logic without major version bumps.\n*   **Why it matters:** An agent relying solely on free tiers faces high risk of mid-task failure due to quota exhaustion or model unavailability, leading to incomplete workflows or costly retries on paid tiers if fallbacks exist.\n*   **Verify:** Check current documentation for specific daily/minute token caps and model availability lists for each provider, as these change frequently and are rarely announced in release notes.\n\n## agent-safety-practice\n*   **What matters:** Best practices now emphasize least-privilege execution, where agents operate in isolated sandboxes with no direct network access or filesystem write permissions outside designated directories. Approval tiers require human sign-off for any state-changing action.\n*   **Why it matters:** Autonomous coding agents are prime targets for prompt injection, where malicious code in dependencies or issues can hijack the ag"
   }
 }
