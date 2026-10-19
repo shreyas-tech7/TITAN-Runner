@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "lastPulseAt": "2026-10-19T16:52:29.763Z",
+  "lastPulseAt": "2026-10-19T17:08:29.754Z",
   "lastPulseStatus": "ok",
-  "lastPulseDurationMs": 484,
+  "lastPulseDurationMs": 361,
   "lastPulseTasksClaimed": 0,
   "lastPulseTasksCompleted": 0,
   "lastPulseTasksFailed": 0,
   "lastPulseError": null,
   "consecutivePulseFailures": 0,
-  "totalPulses": 1258,
+  "totalPulses": 1259,
   "cadenceMinutes": 15,
-  "pulseId": "run-39289206316-1-79cc31",
+  "pulseId": "run-39291548275-1-909295",
   "budget": {
     "budgetMs": 420000,
-    "elapsedMs": 483,
-    "remainingMs": 419517,
+    "elapsedMs": 360,
+    "remainingMs": 419640,
     "draining": false
   },
   "modelCalls": 0
