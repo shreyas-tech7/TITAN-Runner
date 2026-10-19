@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-18T00:10:51.483Z",
-  "lastAttemptAt": "2026-10-18T00:10:51.483Z",
+  "updatedAt": "2026-10-19T00:06:58.860Z",
+  "lastAttemptAt": "2026-10-19T00:06:58.860Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-18",
-    "file": "state/digests/2026-10-18-research.md",
+    "date": "2026-10-19",
+    "file": "state/digests/2026-10-19-research.md",
     "provider": "groq",
     "model": "qwen/qwen3.8-27b",
     "topics": [
@@ -14,6 +14,6 @@
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n*   **What matters:** Free tiers are increasingly restrictive, often capping daily token counts or limiting access to specific, smaller models rather than frontier capabilities. Providers may silently deprecate endpoints or change rate-limiting logic without major version bumps.\n*   **Why it matters:** An agent relying solely on free tiers faces high risk of mid-task failure due to quota exhaustion or model unavailability, leading to incomplete workflows or costly retries on paid tiers if fallbacks exist.\n*   **Verify:** Check current documentation for specific daily/minute token caps and model availability lists for each provider, as these change frequently and are rarely announced in release notes.\n\n## agent-safety-practice\n*   **What matters:** Best practices now emphasize least-privilege execution, where agents operate in isolated sandboxes with no direct network access or filesystem write permissions outside designated directories. Approval tiers require human sign-off for any state-changing action.\n*   **Why it matters:** Autonomous coding agents are prime targets for prompt injection, where malicious code in dependencies or issues can hijack the ag"
+    "preview": "## free-tier-llm-landscape\n*   **What matters:** Free tiers are volatile; providers frequently adjust rate limits, model availability, or terms of service without long notice.\n*   **Why it matters:** An agent relying solely on free credits faces sudden downtime or degraded performance if a preferred model is removed or throttled, breaking autonomous workflows.\n*   **One thing worth verifying:** Check current API documentation for each provider to confirm which specific models remain accessible via free keys and their exact daily/monthly token caps.\n\n## agent-safety-practice\n*   **What matters:** Standard practice now mandates strict sandboxing, tiered approval for destructive commands, and robust prompt-injection filtering.\n*   **Why it matters:** Autonomous coding agents can be manipulated by malicious code comments or external data to execute harmful commands, potentially compromising infrastructure or data.\n*   **One thing worth verifying:** Review your agent’s configuration to ensure it logs all tool calls and requires explicit human approval for actions like `rm -rf` or network egress.\n\n## actions-automation\n*   **What matters:** GitHub Actions has tightened security around to"
   }
 }
