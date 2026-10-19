@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-19T14:00:46.013Z",
+  "updatedAt": "2026-10-19T14:16:27.966Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 1062 ms; error rate 5%; model openai/gpt-oss-20b",
+      "explain": "groq: breaker closed (healthy); p50 658 ms; error rate 3%; model allam-2-7b",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
@@ -33,12 +33,12 @@
       }
     },
     "openrouter": {
-      "breaker": "half-open",
-      "until": null,
-      "reason": "cooldown over after 3 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 3 failure(s); next call is a probe); p50 18987 ms; error rate 77%; model minimax/minimax-m3.1-flash:free",
+      "breaker": "open",
+      "until": "2026-10-19T14:53:31.252Z",
+      "reason": "error — cooling down after 4 consecutive failure(s)",
+      "explain": "openrouter: breaker open (error — cooling down after 4 consecutive failure(s)); p50 18987 ms; error rate 84%; model minimax/minimax-m3.1-flash:free",
       "status": "error",
-      "consecutiveFailures": 3,
+      "consecutiveFailures": 4,
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
@@ -51,7 +51,7 @@
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "gemini: breaker closed (healthy); p50 985 ms; error rate 6%; model gemini-2.5-flash",
+      "explain": "gemini: breaker closed (healthy); p50 706 ms; error rate 4%; model gemini-2.5-flash",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
