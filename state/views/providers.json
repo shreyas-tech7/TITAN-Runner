@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-19T15:00:17.907Z",
+  "updatedAt": "2026-10-20T00:12:27.458Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 658 ms; error rate 3%; model allam-2-7b",
+      "explain": "groq: breaker closed (healthy); p50 753 ms; error rate 2%; model allam-2-7b",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
+        "usedMinute": 1,
         "usedDay": 1,
         "dayLeft": 11999,
         "perDay": 12000

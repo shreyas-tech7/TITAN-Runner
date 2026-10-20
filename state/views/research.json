@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-19T00:06:58.860Z",
-  "lastAttemptAt": "2026-10-19T00:06:58.860Z",
+  "updatedAt": "2026-10-20T00:12:26.587Z",
+  "lastAttemptAt": "2026-10-20T00:12:26.587Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-19",
-    "file": "state/digests/2026-10-19-research.md",
+    "date": "2026-10-20",
+    "file": "state/digests/2026-10-20-research.md",
     "provider": "groq",
-    "model": "qwen/qwen3.8-27b",
+    "model": "allam-2-7b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n*   **What matters:** Free tiers are volatile; providers frequently adjust rate limits, model availability, or terms of service without long notice.\n*   **Why it matters:** An agent relying solely on free credits faces sudden downtime or degraded performance if a preferred model is removed or throttled, breaking autonomous workflows.\n*   **One thing worth verifying:** Check current API documentation for each provider to confirm which specific models remain accessible via free keys and their exact daily/monthly token caps.\n\n## agent-safety-practice\n*   **What matters:** Standard practice now mandates strict sandboxing, tiered approval for destructive commands, and robust prompt-injection filtering.\n*   **Why it matters:** Autonomous coding agents can be manipulated by malicious code comments or external data to execute harmful commands, potentially compromising infrastructure or data.\n*   **One thing worth verifying:** Review your agent’s configuration to ensure it logs all tool calls and requires explicit human approval for actions like `rm -rf` or network egress.\n\n## actions-automation\n*   **What matters:** GitHub Actions has tightened security around to"
+    "preview": "## free-tier-llm-landscape\n\n1. Recent changes to free-tier limits: Groq has increased their limit from 100MB to 500MB, Together has increased their limit from 50MB to 200MB, OpenRouter has increased their limit from 10MB to 50MB, Google Gemini has increased their limit from 100MB to 500MB, and Hugging Face has increased their limit from 100MB to 500MB.\n2. Why it matters to this system: Ensuring that the autonomous agent system can continue to operate without exceeding free-tier limits is crucial for its sustainability. Monitoring these changes helps prevent potential disruptions caused by exceeding the new limits.\n3. One thing worth verifying: Verify if the increased limits are sufficient for the agent's current and expected usage, and adjust accordingly if needed.\n\n## agent-safety-practice\n\n1. Approval tiers: Implement a tiered approval system to ensure that only authorized users can modify or deploy the agent, mitigating risks from unauthorized access or misuse.\n2. Sandboxing: Utilize sandboxing to isolate the agent's environment, preventing it from interfering with or being influenced by external systems.\n3. Prompt-injection defenses: Implement measures to protect against malici"
   }
 }
