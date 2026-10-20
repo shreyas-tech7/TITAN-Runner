@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-20T00:28:23.766Z",
+  "updatedAt": "2026-10-20T12:03:27.074Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 753 ms; error rate 2%; model allam-2-7b",
+      "explain": "groq: breaker closed (healthy); p50 753 ms; error rate 2%; model qwen/qwen3.8-27b",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
