@@ -2,15 +2,6 @@
   "version": 1,
   "pulses": [
     {
-      "at": "2026-10-20T22:27:28.787Z",
-      "durationMs": 337,
-      "status": "ok",
-      "tasksClaimed": 0,
-      "tasksCompleted": 0,
-      "tasksFailed": 0,
-      "modelCalls": 0
-    },
-    {
       "at": "2026-10-20T22:43:25.793Z",
       "durationMs": 460,
       "status": "ok",
@@ -535,6 +526,15 @@
     {
       "at": "2026-10-21T13:41:29.766Z",
       "durationMs": 660,
+      "status": "ok",
+      "tasksClaimed": 0,
+      "tasksCompleted": 0,
+      "tasksFailed": 0,
+      "modelCalls": 0
+    },
+    {
+      "at": "2026-10-21T13:57:28.823Z",
+      "durationMs": 818,
       "status": "ok",
       "tasksClaimed": 0,
       "tasksCompleted": 0,
