@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-21T00:03:27.374Z",
-  "lastAttemptAt": "2026-10-21T00:03:27.374Z",
+  "updatedAt": "2026-10-22T00:08:26.893Z",
+  "lastAttemptAt": "2026-10-22T00:08:26.893Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-21",
-    "file": "state/digests/2026-10-21-research.md",
+    "date": "2026-10-22",
+    "file": "state/digests/2026-10-22-research.md",
     "provider": "groq",
-    "model": "qwen/qwen3.8-27b",
+    "model": "openai/gpt-oss-20b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n*   **What matters:** Free tiers are increasingly restrictive; providers like Groq and Together often cap requests per minute or day, while OpenRouter aggregates models with varying free quotas. Google Gemini and Hugging Face may rotate available models or change rate limits without long notice.\n*   **Why it matters:** An agent relying solely on free tiers faces sudden downtime if a provider reduces limits or removes a specific model. Lack of paid fallbacks means the system halts entirely during peak usage or policy shifts.\n*   **One thing worth verifying:** Check the current \"Free Tier\" documentation pages for each provider to confirm exact request-per-minute (RPM) and token-per-day limits, as these change frequently and are not stable across versions.\n\n## agent-safety-practice\n*   **What matters:** Best practices now emphasize strict sandboxing (e.g., Docker or Firecracker microVMs) to isolate code execution. Approval tiers require human sign-off for destructive actions (deleting files, pushing to main), while prompt-injection defenses involve sanitizing external inputs before they reach the LLM context.\n*   **Why it matters:** Autonomous coding agents "
+    "preview": "**Daily Research Digest – 2026‑10‑22**\n\n## free-tier-llm-landscape  \n- The free‑tier quotas, model availability, and policy changes on providers such as Groq, Together, OpenRouter, Google Gemini, and Hugging Face; I am not aware of changes beyond 2024‑06.  \n- A sudden quota reduction or model deprecation can stop an agent that relies solely on free access, leading to outages or unexpected costs.  \n- Verify each provider’s current free‑tier limits and any announced policy updates to ensure your usage still fits within those bounds.  \n\n## agent-safety-practice  \n- Layered safety controls—approval gates, sandboxed execution, prompt‑injection mitigations, and comprehensive audit logs.  \n- These controls prevent malicious code execution, accidental policy violations, and provide traceability for debugging and compliance.  \n- Verify that your sandbox truly isolates external calls and that audit logs capture all agent actions and prompts.  \n\n## actions-automation  \n- GitHub Actions free‑minute caps, cron job reliability, token scope restrictions, and supply‑chain hardening measures.  \n- Exceeding free minutes or misconfigured tokens can block automated workflows, while weak hardening expo"
   }
 }
