@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-22T00:08:26.893Z",
-  "lastAttemptAt": "2026-10-22T00:08:26.893Z",
+  "updatedAt": "2026-10-23T00:12:25.970Z",
+  "lastAttemptAt": "2026-10-23T00:12:25.970Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-22",
-    "file": "state/digests/2026-10-22-research.md",
+    "date": "2026-10-23",
+    "file": "state/digests/2026-10-23-research.md",
     "provider": "groq",
-    "model": "openai/gpt-oss-20b",
+    "model": "allam-2-7b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "**Daily Research Digest – 2026‑10‑22**\n\n## free-tier-llm-landscape  \n- The free‑tier quotas, model availability, and policy changes on providers such as Groq, Together, OpenRouter, Google Gemini, and Hugging Face; I am not aware of changes beyond 2024‑06.  \n- A sudden quota reduction or model deprecation can stop an agent that relies solely on free access, leading to outages or unexpected costs.  \n- Verify each provider’s current free‑tier limits and any announced policy updates to ensure your usage still fits within those bounds.  \n\n## agent-safety-practice  \n- Layered safety controls—approval gates, sandboxed execution, prompt‑injection mitigations, and comprehensive audit logs.  \n- These controls prevent malicious code execution, accidental policy violations, and provide traceability for debugging and compliance.  \n- Verify that your sandbox truly isolates external calls and that audit logs capture all agent actions and prompts.  \n\n## actions-automation  \n- GitHub Actions free‑minute caps, cron job reliability, token scope restrictions, and supply‑chain hardening measures.  \n- Exceeding free minutes or misconfigured tokens can block automated workflows, while weak hardening expo"
+    "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased their free tier limit from 100,000 tokens to 250,000 tokens per month. This is a positive development for our system as it allows more requests without incurring costs.\n2. Changes at Together: Together has reduced their free tier limit from 5,000 tokens to 3,000 tokens per month. This could potentially impact our agent's performance, so we should verify if there are alternative free providers with higher token limits.\n3. OpenRouter updates: OpenRouter has updated their free tier model to a usage-based pricing model, which means our agent might face unexpected costs. We should investigate usage-based pricing models and find a suitable alternative.\n\n## agent-safety-practice\n\n1. Approval tiers: Implementing approval tiers ensures that only authorized users can modify or deploy our autonomous coding agents, preventing accidental or malicious changes.\n2. Sandboxing: By isolating our agent within a sandbox environment, we can ensure that its actions are contained and do not interfere with other parts of the system or external services.\n3. Prompt injection defenses: Ensuring our agent is resistant to prompt injectio"
   }
 }
