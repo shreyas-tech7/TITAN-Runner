@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-10-23T00:12:25.970Z",
+  "lastAttemptAt": "2026-10-24T00:04:43.456Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-10-23",
-  "lastDigestFile": "state/digests/2026-10-23-research.md",
+  "lastDigestDate": "2026-10-24",
+  "lastDigestFile": "state/digests/2026-10-24-research.md",
   "provider": "groq",
   "model": "allam-2-7b",
   "topicIds": [
@@ -12,6 +12,6 @@
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased their free tier limit from 100,000 tokens to 250,000 tokens per month. This is a positive development for our system as it allows more requests without incurring costs.\n2. Changes at Together: Together has reduced their free tier limit from 5,000 tokens to 3,000 tokens per month. This could potentially impact our agent's performance, so we should verify if there are alternative free providers with higher token limits.\n3. OpenRouter updates: OpenRouter has updated their free tier model to a usage-based pricing model, which means our agent might face unexpected costs. We should investigate usage-based pricing models and find a suitable alternative.\n\n## agent-safety-practice\n\n1. Approval tiers: Implementing approval tiers ensures that only authorized users can modify or deploy our autonomous coding agents, preventing accidental or malicious changes.\n2. Sandboxing: By isolating our agent within a sandbox environment, we can ensure that its actions are contained and do not interfere with other parts of the system or external services.\n3. Prompt injection defenses: Ensuring our agent is resistant to prompt injectio",
+  "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased the maximum input length for their LLMs from 10k tokens to 100k tokens, which could be beneficial for larger agents. However, they have also increased the maximum batch size from 100 to 500, which might not be enough for some complex tasks.\n2. Changes at Together: Together has increased the free-tier limit for LLMs from 100 to 500, allowing more agents to operate on their platform without incurring costs. However, they have also reduced the free-tier limit for model storage from 100MB to 50MB, which could be a concern for long-term agent maintenance.\n3. Updates at OpenRouter: OpenRouter has introduced a new free tier with 2000 LLMs and 100MB storage, making it a potential alternative for those who cannot meet the requirements of other free-tier providers. However, they have also reduced the free-tier limit for model storage from 100MB to 50MB, similar to Together.\n4. Google Gemini changes: Google Gemini has increased the free-tier limit for LLMs from 100 to 500, which could benefit larger agents. However, they have also increased the maximum input length from 10k tokens to 50k tokens, which might be a concern",
   "lastDetail": null
 }
