@@ -128,3 +128,13 @@ The daily workflow `state-maintenance.yml` does the archive work, checks the sch
 ### How a workflow publishes state
 
 A workflow that writes to `state/` calls `node scripts/publish-state.mjs --message "..."`. The script checks the schemas, commits through the Reviewer Gate, pulls with rebase, and pushes. It tries three times and then fails. The workflow also joins the concurrency group `titan-state`, so two workflows never push at the same time.
+
+### The public repository check
+
+Everything in this repo is public. This includes `state/`, Issues, Actions logs, and the Pages site. The script `scripts/check-public-pii.mjs` guards three places. It looks for keys, email addresses, phone numbers, a Telegram user or chat id, social security numbers, and card numbers. It prints the rule name and the place. It never prints the matched text.
+
+- `ci.yml` runs it on `state/` for every push and pull request.
+- `pages-deploy.yml` runs it on the built site before the upload.
+- `gitleaks.yml` runs it on Issues and comments every week, with `--issues`.
+
+A personal task never becomes a public Issue. The private TITAN backend keeps its own job queue for personal work. This repo runs public tasks only.
