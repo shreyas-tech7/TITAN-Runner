@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-10-24T00:04:43.456Z",
+  "lastAttemptAt": "2026-10-25T00:10:06.662Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-10-24",
-  "lastDigestFile": "state/digests/2026-10-24-research.md",
+  "lastDigestDate": "2026-10-25",
+  "lastDigestFile": "state/digests/2026-10-25-research.md",
   "provider": "groq",
-  "model": "allam-2-7b",
+  "model": "qwen/qwen3.8-27b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased the maximum input length for their LLMs from 10k tokens to 100k tokens, which could be beneficial for larger agents. However, they have also increased the maximum batch size from 100 to 500, which might not be enough for some complex tasks.\n2. Changes at Together: Together has increased the free-tier limit for LLMs from 100 to 500, allowing more agents to operate on their platform without incurring costs. However, they have also reduced the free-tier limit for model storage from 100MB to 50MB, which could be a concern for long-term agent maintenance.\n3. Updates at OpenRouter: OpenRouter has introduced a new free tier with 2000 LLMs and 100MB storage, making it a potential alternative for those who cannot meet the requirements of other free-tier providers. However, they have also reduced the free-tier limit for model storage from 100MB to 50MB, similar to Together.\n4. Google Gemini changes: Google Gemini has increased the free-tier limit for LLMs from 100 to 500, which could benefit larger agents. However, they have also increased the maximum input length from 10k tokens to 50k tokens, which might be a concern",
+  "preview": "## free-tier-llm-landscape\n\n*   **What matters:** Free-tier policies are volatile; providers frequently adjust rate limits, model availability, or data retention terms without long notice.\n*   **Why it matters:** An agent relying solely on free tiers faces sudden downtime or data privacy risks if a provider changes its terms or deprecates a specific model endpoint.\n*   **Verify:** Check current API documentation for each provider to confirm active free-tier quotas and data usage policies.\n\n## agent-safety-practice\n\n*   **What matters:** Best practices now emphasize strict sandboxing, least-privilege execution, and explicit human approval for high-risk actions like code execution or file deletion.\n*   **Why it matters:** Autonomous coding agents can inadvertently execute malicious code or leak secrets; robust isolation and audit trails are critical to prevent catastrophic failures.\n*   **Verify:** Review your agent’s sandbox configuration and ensure all sensitive operations require explicit human sign-off.\n\n## actions-automation\n\n*   **What matters:** GitHub Actions has tightened security defaults, including stricter token permissions and enhanced supply-chain checks for third-party",
   "lastDetail": null
 }
