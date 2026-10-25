@@ -15,7 +15,81 @@
     "contextWindow": 32768,
     "source": "seed",
     "probedAt": null,
-    "observed": {}
+    "observed": {},
+    "measured": {
+      "architecture": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "code-generation": {
+        "score": 0.5,
+        "tasksRun": 2,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "refactoring": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "testing": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "debugging": {
+        "score": 0,
+        "tasksRun": 2,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "documentation": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "security-review": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "performance": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "data-modeling": {
+        "score": 0,
+        "tasksRun": 1,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "devops": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "ui-implementation": {
+        "score": 1,
+        "tasksRun": 1,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      },
+      "research": {
+        "score": 1,
+        "tasksRun": 2,
+        "runAt": "2026-10-25T13:53:46.462Z",
+        "evalVersion": "v1"
+      }
+    }
   },
   "phase2:openrouter": {
     "modelId": "phase2:openrouter",
@@ -41,55 +115,55 @@
       "architecture": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "code-generation": {
         "score": 0.5,
         "tasksRun": 2,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "refactoring": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "testing": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "debugging": {
         "score": 1,
         "tasksRun": 2,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "documentation": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "security-review": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "performance": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "data-modeling": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "devops": {
@@ -152,31 +226,31 @@
       "architecture": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "code-generation": {
-        "score": 0.5,
+        "score": 1,
         "tasksRun": 2,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "refactoring": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "testing": {
         "score": 1,
         "tasksRun": 1,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       },
       "debugging": {
-        "score": 0.5,
-        "tasksRun": 2,
-        "runAt": "2026-10-18T13:31:55.777Z",
+        "score": 0,
+        "tasksRun": 1,
+        "runAt": "2026-10-25T13:53:46.462Z",
         "evalVersion": "v1"
       }
     }
