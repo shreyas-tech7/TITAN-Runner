@@ -131,7 +131,7 @@ A workflow that writes to `state/` calls `node scripts/publish-state.mjs --messa
 
 ### The public repository check
 
-Everything in this repo is public. This includes `state/`, Issues, Actions logs, and the Pages site. The script `scripts/check-public-pii.mjs` guards three places. It looks for keys, email addresses, phone numbers, a Telegram user or chat id, social security numbers, and card numbers. It prints the rule name and the place. It never prints the matched text.
+Everything in this repo is public. This includes `state/`, Issues, Actions logs, and the Pages site. The script `scripts/check-public-pii.mjs` guards three places. It looks for keys, email addresses, phone numbers, a Telegram user or chat id, social security numbers, and card numbers. It prints the rule name and the place. It never prints the matched text. The card rule skips the digits that follow a decimal point, because minified code holds many long decimal numbers.
 
 - `ci.yml` runs it on `state/` for every push and pull request.
 - `pages-deploy.yml` runs it on the built site before the upload.

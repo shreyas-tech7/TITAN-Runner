@@ -5,6 +5,11 @@
  * Model rotation (Wave 12, R2). The free models of OpenRouter hit 429 often. When a model answers 429, the adapter keeps it
  * out of use for 10 minutes and tries the next free model from the discovered list. One call makes 3 tries at most. A model
  * that no longer exists (404) rotates the same way. Any other error stops the loop and goes up to the failover logic.
+ *
+ * Token floor. Many free models are reasoning models. They spend the token budget on their thinking before the first word of
+ * the answer. With a budget of 5 tokens they return no text, and the self-test probe uses 5 tokens. A caller that asks for
+ * fewer than MIN_COMPLETION_TOKENS gets MIN_COMPLETION_TOKENS. A model that is not a reasoning model stops at the end of
+ * its answer, so the floor costs nothing. A caller that sets no budget keeps the default.
  */
 import { config, resolveModel } from '../config.js';
 import { guardedFetch } from '../lib/net.js';
@@ -18,6 +23,8 @@ const API_BASE = 'https://openrouter.ai/api/v1';
 export const MODEL_COOLDOWN_MS = 10 * 60_000;
 /** How many models one call may try. */
 export const MAX_MODEL_TRIES = 3;
+/** The smallest token budget that one request may carry, so that a reasoning model has room to think and then answer. */
+export const MIN_COMPLETION_TOKENS = 256;
 
 /** model id to the time (ms) when it may be used again. Shared by every instance in this process. */
 const cooldowns = new Map();
@@ -25,6 +32,11 @@ const cooldowns = new Map();
 /** For tests: forget every cooldown. */
 export function resetModelCooldowns() {
   cooldowns.clear();
+}
+
+/** @param {{ maxTokens?: number }} opts */
+function withTokenFloor(opts) {
+  return Number.isFinite(opts?.maxTokens) ? { ...opts, maxTokens: Math.max(opts.maxTokens, MIN_COMPLETION_TOKENS) } : opts;
 }
 
 export class OpenRouterProvider extends BaseProvider {
@@ -60,7 +72,7 @@ export class OpenRouterProvider extends BaseProvider {
     const res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: this.#headers(),
-      body: JSON.stringify(openAiChatBody(messages, model, opts)),
+      body: JSON.stringify(openAiChatBody(messages, model, withTokenFloor(opts))),
       signal,
     }).catch((err) => {
       throw networkErrorFrom(err, { service: this.id, label: this.label });
