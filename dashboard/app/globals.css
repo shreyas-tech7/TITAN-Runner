@@ -926,6 +926,25 @@ button {
   padding: var(--space-5) var(--space-4);
 }
 
+/* The lock page has the most text of any page that shows before a sign-in, and the help text was 11 px. On a desktop the box takes more of */
+/* the width, and the help text is 14 px. A phone keeps the narrow box, because it has no room to spare. The lock logic is not touched.   */
+.admin-gate .brand-sub,
+.admin-gate .field-hint,
+.admin-gate .field-error {
+  font-size: 14px;
+  line-height: 1.55;
+}
+.admin-gate .field label,
+.admin-gate .check-row {
+  font-size: 14px;
+}
+@media (min-width: 768px) {
+  .admin-gate-box {
+    max-width: 640px;
+    padding: var(--space-5);
+  }
+}
+
 .admin-unlocked {
   position: relative;
 }
