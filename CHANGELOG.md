@@ -1,5 +1,9 @@
 # Changelog
 
+## Wave 13 (overnight wave)
+
+- Add the public repository check `scripts/check-public-pii.mjs`. It finds personal data and keys in `state/`, in the built Pages site, and in Issues.
+
 ## Wave 12, release 1
 
 - Add `config/providers.catalog.json`, the one source of truth for providers, with a CI gate for drift.
