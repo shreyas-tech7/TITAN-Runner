@@ -2,7 +2,7 @@
 // and Gemini goes first when OpenRouter fails for more than half of its recent calls.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_MODEL_TRIES, MODEL_COOLDOWN_MS, OpenRouterProvider, resetModelCooldowns } from '../src/providers/openrouter.js';
+import { MAX_MODEL_TRIES, MIN_COMPLETION_TOKENS, MODEL_COOLDOWN_MS, OpenRouterProvider, resetModelCooldowns } from '../src/providers/openrouter.js';
 import { Registry, ALL_CHAT_IDS } from '../src/providers/registry.js';
 import { ProviderHealthStore } from '../src/providers/health.js';
 
@@ -109,4 +109,36 @@ test('a model that returns no text rotates too, because a reasoning model can sp
   const out = await provider.chat(say, { maxTokens: 5 });
   assert.equal(out.text, 'from plain:free');
   assert.deepEqual(calls, ['think:free', 'plain:free']);
+});
+
+test('a small token budget is raised to the floor, so a reasoning model has room to think and then answer', async () => {
+  resetModelCooldowns();
+  const clock = { t: 30_000_000 };
+  const sent = [];
+  const fetchImpl = async (url, init) => {
+    const body = JSON.parse(init.body);
+    sent.push(body.max_tokens);
+    // A fake reasoning model: it spends 100 tokens on its thinking and has no text left under a smaller budget.
+    if (body.max_tokens <= 100) return json({ model: body.model, choices: [{ message: { content: null, reasoning: 'hmm' } }] });
+    return ok(body.model);
+  };
+  const make = () => new OpenRouterProvider({ apiKey: 'k-test', model: 'think:free', models: ['think:free'], fetchImpl, nowMs: () => clock.t, health: NO_HEALTH });
+  const out = await make().chat(say, { maxTokens: 5 });
+  assert.equal(out.text, 'from think:free');
+  assert.deepEqual(sent, [MIN_COMPLETION_TOKENS]);
+});
+
+test('a budget above the floor, and a call with no budget, are sent as they are', async () => {
+  resetModelCooldowns();
+  const clock = { t: 40_000_000 };
+  const sent = [];
+  const fetchImpl = async (url, init) => {
+    const body = JSON.parse(init.body);
+    sent.push(body.max_tokens);
+    return ok(body.model);
+  };
+  const provider = new OpenRouterProvider({ apiKey: 'k-test', model: 'a:free', models: ['a:free'], fetchImpl, nowMs: () => clock.t, health: NO_HEALTH });
+  await provider.chat(say, { maxTokens: 2000 });
+  await provider.chat(say);
+  assert.deepEqual(sent, [2000, 1024]);
 });

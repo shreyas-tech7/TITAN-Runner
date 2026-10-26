@@ -35,6 +35,23 @@ test('findPii ignores ordinary numbers, dates, and short ids', () => {
   assert.deepEqual(findPii(text), []);
 });
 
+test('findPii ignores the long digits of a decimal number, as in minified shader code', () => {
+  const text = [
+    '#define RECIPROCAL_PI2 0.15915494309189535',
+    'vec3( 0.856627153315983, 0.137318972929847, 0.11189821299995 ),',
+    'vec3( - 0.11060664309660323, 1.157823702216272, - 0.11060664309660294 ),',
+    'const f = 0.4242424242424242, g = 4242424242424242.5;', // the digits of a test card, inside a decimal number
+  ].join('\n');
+  assert.deepEqual(findPii(text), []);
+});
+
+test('findPii still finds a card number next to a full stop or a letter', () => {
+  const rules = (text) => findPii(text).map((h) => h.rule);
+  assert.deepEqual(rules('Paid with 4242424242424242.'), ['card-number']);
+  assert.deepEqual(rules('card.4242 4242 4242 4242'), ['card-number']);
+  assert.deepEqual(rules('number=4242424242424242;'), ['card-number']);
+});
+
 test('scanText flags a personal email address and a key, and allows a public bot address', () => {
   const fakeKey = ['gsk', 'a'.repeat(24)].join('_');
   const hits = scanText(`from shreyas@example-person.net and key ${fakeKey}`);

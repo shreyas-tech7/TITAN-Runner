@@ -49,8 +49,10 @@ export const PII_RULES = [
     pattern: /(?<![\d-])\d{3}-\d{2}-\d{4}(?![\d-])/g,
   },
   {
+    // A run of digits after "1." or before ".5" is part of a decimal number. Minified shader code in the
+    // Pages build has many long ones, such as 0.15915494309189535, and they sometimes pass the Luhn check.
     id: 'card-number',
-    pattern: /(?<![\d-])(?:\d[ -]?){13,19}(?![\d-])/g,
+    pattern: /(?<![\d-])(?<!\d\.)(?:\d[ -]?){13,19}(?![\d-])(?!\.\d)/g,
     accept: (m) => {
       const digits = m.replace(/[ -]/g, '');
       return digits.length >= 13 && digits.length <= 19 && luhnValid(digits);

@@ -3,6 +3,8 @@
 ## Wave 13 (overnight wave)
 
 - Add the public repository check `scripts/check-public-pii.mjs`. It finds personal data and keys in `state/`, in the built Pages site, and in Issues.
+- Fix: the Pages deploy failed on every push to `main`. The `card-number` rule read the digits after the decimal point in the shader code of three.js as a card number. The rule now skips the digits of a decimal number. A card number in plain text is still found.
+- Fix: the OpenRouter check stayed in the `error` state with "returned no message content". The self-test asks for 5 tokens. A model that thinks first uses all of them before it writes text. The adapter now sends at least 256 tokens in each request. A call that sets no budget keeps its default.
 
 ## Wave 12, release 1
 
