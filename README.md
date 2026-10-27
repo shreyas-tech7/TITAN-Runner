@@ -61,6 +61,7 @@ flowchart LR
 
 ## Daily assistant guides
 
+- [Assistant home screen](docs/HUD.md) describes the AI core, the Systems Deck, and the system pill.
 - [Ops services](docs/OPS.md) covers the usage ledger and free quota meter, the nightly provider canary, the weekly golden task eval, the post-mortems, the host status and alerts, the doorbell, and the Ops page of the dashboard.
 - [Shared contract](docs/CONTRACT.md) is the contract with TITAN. Both sides build to it.
 - [Security](docs/SECURITY.md) covers secret scanning, workflow and Issue hardening, the Reviewer Gate for every GitHub write, Worker sessions, the VM fleet, and state hygiene.

@@ -11,6 +11,7 @@ const AXE = require.resolve('axe-core/axe.min.js');
 const THEMES = ['eclipse', 'light', 'oled', 'contrast'];
 const SIZES = [{ width: 1280, height: 900 }, { width: 390, height: 844 }];
 const ROUTES = [
+  { path: '/', ready: '.core-stage' },
   { path: '/keys/', ready: 'table.keys-table' },
   { path: '/connectors/', ready: 'ul.connector-grid' },
   { path: '/connectors/?tab=approvals', ready: '#panel-approvals' },

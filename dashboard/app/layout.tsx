@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./tokens.css";
 import "./globals.css";
+import "./hud.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import { buildRunnerCsp } from "@/lib/csp";
 import { parseGevUrl } from "@/lib/gev";
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0a0e15",
+  themeColor: "#05070a",
 };
 
 // GitHub Pages cannot send response headers, so the policy is a meta tag. See lib/csp.ts for what it

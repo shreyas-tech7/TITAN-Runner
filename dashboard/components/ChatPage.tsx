@@ -10,6 +10,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import CopyButton from "@/components/CopyButton";
+import { useDictation } from "@/lib/useDictation";
 import { Badge, Panel } from "@/components/kit";
 import { relative } from "@/lib/time";
 import {
@@ -68,7 +69,19 @@ function RenderMarkdown({ text }: { text: string }) {
   );
 }
 
-export default function ChatPage({ token, onUnauthorized }: { token: string; onUnauthorized: () => void }) {
+export default function ChatPage({
+  token,
+  onUnauthorized,
+  compact = false,
+  onStreamingChange,
+}: {
+  token: string;
+  onUnauthorized: () => void;
+  /** The home screen shows the chat alone. The thread list moves into a fold. */
+  compact?: boolean;
+  /** Called when a reply starts and ends, so the AI core can show that it is thinking. */
+  onStreamingChange?: (streaming: boolean) => void;
+}) {
   const [ready, setReady] = useState<boolean | null>(null);
   const [providers, setProviders] = useState<ChatProviderOption[]>([]);
   const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
@@ -82,6 +95,14 @@ export default function ChatPage({ token, onUnauthorized }: { token: string; onU
   const [notice, setNotice] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const alive = useRef(true);
+  const dictation = useDictation((text) => setDraft((d) => (d ? `${d} ${text}` : text)));
+  const streamingCb = useRef(onStreamingChange);
+  useEffect(() => {
+    streamingCb.current = onStreamingChange;
+  });
+  useEffect(() => {
+    streamingCb.current?.(streaming);
+  }, [streaming]);
 
   const loadThreads = useCallback(async () => {
     try {
@@ -333,8 +354,7 @@ export default function ChatPage({ token, onUnauthorized }: { token: string; onU
   const chosenProviderObj = providers.find((p) => p.id === provider);
   const modelChoices = chosenProviderObj?.models ?? [];
 
-  return (
-    <div className="bento-grid">
+  const conversationsPanel = (
       <Panel
         title="Conversations"
         eyebrow="History"
@@ -409,8 +429,10 @@ export default function ChatPage({ token, onUnauthorized }: { token: string; onU
           </section>
         ) : null}
       </Panel>
+  );
 
-      <Panel title="Instant Chat" eyebrow="Streamed from Worker" tone="ion">
+  const chatPanel = (
+      <Panel title="Instant Chat" eyebrow="Streamed from Worker" tone="ion" className={compact ? "chat-compact" : ""}>
         {error ? (
           <p className="field-error" role="alert">
             {error}
@@ -422,6 +444,9 @@ export default function ChatPage({ token, onUnauthorized }: { token: string; onU
           </p>
         ) : null}
 
+        {compact ? <p className="chat-engine-note e-dim">Engine: {provider === "auto" ? "Auto failover" : provider}</p> : null}
+        <details className="chat-options" open={!compact}>
+          <summary>Engine options</summary>
         <div className="e-pair" style={{ marginBottom: 12 }}>
           <div className="field">
             <label htmlFor="chat-provider">Provider</label>
@@ -453,8 +478,9 @@ export default function ChatPage({ token, onUnauthorized }: { token: string; onU
             </select>
           </div>
         </div>
+        </details>
 
-        <div aria-live="polite" aria-label="Messages" style={{ minHeight: 220, marginBottom: 12 }}>
+        <div aria-live="polite" aria-label="Messages" style={{ minHeight: compact ? 72 : 220, marginBottom: 12 }}>
           {messages.length === 0 ? (
             <p className="e-dim">Ask a question or draft a task brief. Replies stream directly from the Worker.</p>
           ) : null}
@@ -486,8 +512,8 @@ export default function ChatPage({ token, onUnauthorized }: { token: string; onU
           <label htmlFor="chat-input">Message</label>
           <textarea
             id="chat-input"
-            rows={3}
-            placeholder="Ask TITAN anything… (Ctrl+Enter or Cmd+Enter to send)"
+            rows={compact ? 2 : 3}
+            placeholder="Input a command or ask TITAN anything… (Ctrl+Enter or Cmd+Enter to send)"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -507,8 +533,46 @@ export default function ChatPage({ token, onUnauthorized }: { token: string; onU
               Stop
             </button>
           ) : null}
+          {dictation.supported ? (
+            <button
+              type="button"
+              className={`btn btn-voice ${dictation.listening ? "btn-voice-on" : ""}`}
+              aria-pressed={dictation.listening}
+              onClick={dictation.listening ? dictation.stop : dictation.start}
+            >
+              {dictation.listening ? "Listening… stop" : "Voice input"}
+              {dictation.listening ? (
+                <span className="voice-wave" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              ) : null}
+            </button>
+          ) : null}
         </div>
       </Panel>
+  );
+
+  if (compact) {
+    return (
+      <div className="chat-core">
+        {chatPanel}
+        <details className="chat-threads">
+          <summary>
+            Conversations <span className="e-dim e-num">{threads.length}</span>
+          </summary>
+          {conversationsPanel}
+        </details>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bento-grid">
+      {conversationsPanel}
+      {chatPanel}
     </div>
   );
 }

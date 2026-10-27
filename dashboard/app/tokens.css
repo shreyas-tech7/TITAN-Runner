@@ -23,27 +23,27 @@
   color-scheme: dark;
 
   /* Surfaces */
-  --bg-void: #05070b; /* app canvas */
-  --bg-base: #0a0e15; /* page */
-  --surface-1: #111824; /* cards */
-  --surface-2: #182131; /* raised, hover, inputs */
-  --surface-3: #202b3d; /* menus, popovers */
+  --bg-void: #030507; /* app canvas */
+  --bg-base: #05070a; /* page: deep obsidian */
+  --surface-1: #0a1017; /* cards */
+  --surface-2: #101a24; /* raised, hover, inputs */
+  --surface-3: #162332; /* menus, popovers */
 
   /* Lines. subtle and strong are decoration. control carries the 3:1 rule. */
-  --line-subtle: #223047;
-  --line-strong: #31425d;
-  --line-control: #5f7090;
+  --line-subtle: #11303a;
+  --line-strong: #1d4a57;
+  --line-control: #4a8a99;
 
   /* Text */
-  --text-hi: #eef2f8; /* headings, key numbers */
-  --text-body: #c3ccda;
-  --text-dim: #8d9ab0; /* secondary text */
-  --text-faint: #64718a; /* disabled and decoration only, never meaningful text */
+  --text-hi: #eaf9fc; /* headings, key numbers */
+  --text-body: #b9ccd3;
+  --text-dim: #8aa1ab; /* secondary text */
+  --text-faint: #5f7680; /* disabled and decoration only, never meaningful text */
 
   /* The three lights, plus status */
-  --ion: #3dd9f5;
+  --ion: #00f3ff; /* electric cyan */
   --plasma: #9b87ff;
-  --corona: #f6b94c;
+  --corona: #f5a623; /* stark gold */
   --ok: #3cd69a;
   --warn: #ff8a4c;
   --danger: #ff5d73;
@@ -52,8 +52,8 @@
   --on-accent: var(--bg-void);
 
   /* Charts, in order. Never rely on color alone, pair each with a label. */
-  --chart-1: #3dd9f5;
-  --chart-2: #f6b94c;
+  --chart-1: #00f3ff;
+  --chart-2: #f5a623;
   --chart-3: #9b87ff;
   --chart-4: #3cd69a;
   --chart-5: #ff7ab6;

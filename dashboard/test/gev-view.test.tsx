@@ -129,7 +129,7 @@ test("the top level tabs link both views and mark the current one", () => {
   const onTab = renderToStaticMarkup(<TopTabs active="gods-eye" />);
   assert.match(onTab, /aria-label="Sections"/);
   assert.match(onTab, /God(&#x27;|')s Eye View/);
-  assert.match(onTab, /Dashboard/);
+  assert.match(onTab, />Core</);
   assert.equal((onTab.match(/aria-current="page"/g) ?? []).length, 1);
   assert.match(onTab, /href="\/ops\/gods-eye"[^>]*aria-current="page"|aria-current="page"[^>]*href="\/ops\/gods-eye"/);
 

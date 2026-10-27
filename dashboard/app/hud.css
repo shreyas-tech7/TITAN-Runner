@@ -1,0 +1,620 @@
+/* ==========================================================================
+   HUD layer. Loaded after globals.css. It turns the dashboard into an
+   assistant-first command center: obsidian ground, cyan and gold light,
+   glass panels, corner brackets, and a collapsible Systems Deck.
+
+   Colors come only from the tokens in tokens.css. Every glow reads
+   --glow-alpha and every blur reads --glass-blur, so the High contrast and
+   OLED themes turn them off with no extra rules. Motion runs only when the
+   visitor has not asked for reduced motion.
+   ========================================================================== */
+
+:root {
+  --font-display: "Orbitron", "Rajdhani", "Bahnschrift", "Eurostile", "Segoe UI", system-ui, sans-serif;
+  --hud-grid-alpha: 4%;
+  --hud-line: color-mix(in srgb, var(--ion) 18%, var(--line-subtle));
+  --hud-glow: color-mix(in srgb, var(--ion) var(--glow-alpha), transparent);
+}
+:root[data-theme="oled"] {
+  --hud-grid-alpha: 3%;
+}
+:root[data-theme="contrast"] {
+  --hud-grid-alpha: 0%;
+  --hud-line: var(--line-strong);
+}
+
+/* ---------- Ground: faint gridlines and two soft lights ---------- */
+
+body {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--ion) var(--hud-grid-alpha), transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ion) var(--hud-grid-alpha), transparent) 1px, transparent 1px),
+    radial-gradient(60vw 50vw at 50% -10%, var(--glow-b), transparent 70%),
+    radial-gradient(40vw 40vw at 100% 20%, var(--glow-a), transparent 70%);
+  background-size: 48px 48px, 48px 48px, auto, auto;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
+  background-attachment: fixed;
+}
+
+/* ---------- Type: geometric display for headings and system labels, mono for data ---------- */
+
+.brand,
+.e-panel-title,
+.panel-title,
+.modal-title,
+.deck-title,
+.core-greeting,
+.top-tab,
+.hud-status {
+  font-family: var(--font-display);
+}
+.brand,
+.e-panel-title,
+.deck-title,
+.top-tab {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.e-eyebrow {
+  letter-spacing: 0.18em;
+  color: var(--ion);
+}
+.e-panel-title {
+  font-size: 13px;
+}
+
+/* ---------- Glass panels with corner brackets ---------- */
+
+.e-panel,
+.panel,
+.systems-deck,
+.core-stage {
+  background: color-mix(in srgb, var(--surface-1) var(--glass-alpha), transparent);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border-color: var(--hud-line);
+  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--bg-void) 55%, transparent), inset 0 1px 0 var(--glass-highlight);
+}
+.e-panel-ion,
+.e-panel-plasma,
+.e-panel-corona {
+  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--bg-void) 55%, transparent), inset 0 2px 0 var(--ion);
+}
+.e-panel-plasma {
+  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--bg-void) 55%, transparent), inset 0 2px 0 var(--plasma);
+}
+.e-panel-corona {
+  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--bg-void) 55%, transparent), inset 0 2px 0 var(--corona);
+}
+
+.e-panel,
+.panel,
+.systems-deck,
+.core-stage {
+  position: relative;
+}
+.e-panel::before,
+.e-panel::after,
+.panel::before,
+.panel::after,
+.systems-deck::before,
+.systems-deck::after,
+.core-stage::before,
+.core-stage::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border: 0 solid var(--ion);
+}
+.e-panel::before,
+.panel::before,
+.systems-deck::before,
+.core-stage::before {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+  border-top-left-radius: 3px;
+}
+.e-panel::after,
+.panel::after,
+.systems-deck::after,
+.core-stage::after {
+  right: -1px;
+  bottom: -1px;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+  border-bottom-right-radius: 3px;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn:hover {
+  border-color: var(--ion);
+}
+.btn-primary {
+  background: var(--ion);
+  border-color: var(--ion);
+  color: var(--on-accent);
+  box-shadow: 0 0 14px -2px var(--hud-glow);
+}
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--ion) 84%, var(--text-hi));
+  border-color: var(--ion);
+}
+.btn-voice {
+  gap: 8px;
+}
+.btn-voice-on {
+  border-color: var(--corona);
+  color: var(--corona);
+}
+
+/* ---------- Banner (offline notice): calmer than the old red block ---------- */
+
+.banner {
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--line-subtle));
+}
+
+/* ---------- Top bar and navigation rail ---------- */
+
+.topbar,
+.hud-bar {
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(90deg, var(--ion), transparent 70%) 1;
+}
+.hud-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.hud-id {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  min-width: 0;
+}
+.hud-bar .brand {
+  color: var(--ion);
+  font-size: 18px;
+  text-shadow: 0 0 18px var(--hud-glow);
+}
+.hud-status {
+  --core-color: var(--ion);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-hi);
+}
+.hud-status-degraded {
+  --core-color: var(--corona);
+}
+.hud-status-offline {
+  --core-color: var(--danger);
+}
+.hud-status-thinking {
+  --core-color: var(--plasma);
+}
+.hud-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--core-color);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--core-color) var(--glow-alpha), transparent);
+}
+.hud-clock {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.top-tabs {
+  gap: 2px;
+  border-bottom-color: var(--hud-line);
+}
+.top-tab {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+.top-tab:first-child {
+  color: var(--ion);
+  font-weight: 700;
+}
+.top-tab[aria-current="page"] {
+  color: var(--text-hi);
+  border-bottom-color: var(--ion);
+  text-shadow: 0 0 12px var(--hud-glow);
+}
+
+/* ---------- System pill: replaces the red banner ---------- */
+
+.sys-pill-wrap {
+  display: inline-flex;
+}
+.sys-pill {
+  --pill: var(--warn);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--pill) 55%, var(--line-subtle));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pill) 10%, var(--surface-2));
+  color: var(--text-hi);
+  font-size: 12px;
+  cursor: pointer;
+}
+.sys-pill:hover {
+  border-color: var(--pill);
+}
+.sys-pill-info {
+  --pill: var(--ion);
+}
+.sys-pill-danger {
+  --pill: var(--danger);
+}
+.sys-pill-ok {
+  --pill: var(--ok);
+}
+.sys-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pill);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--pill) var(--glow-alpha), transparent);
+  flex: none;
+}
+.sys-pill-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--pill);
+}
+.sys-pill-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hud-modal .modal-body {
+  border-color: var(--hud-line);
+}
+
+/* ---------- Core stage ---------- */
+
+.core-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--hud-line);
+  border-radius: var(--radius-lg);
+  background-image: radial-gradient(60% 55% at 50% 0%, color-mix(in srgb, var(--ion) 9%, transparent), transparent 75%);
+}
+.core-state {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.core-greeting {
+  margin: 0;
+  max-width: 760px;
+  text-align: center;
+  font-size: clamp(16px, 2.6vw, 22px);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-hi);
+}
+.core-greeting-sub {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-sans);
+  font-size: 0.7em;
+  color: var(--text-dim);
+}
+.core-chat {
+  width: 100%;
+  max-width: 860px;
+  margin-top: var(--space-3);
+}
+.core-chat .e-panel {
+  background: color-mix(in srgb, var(--surface-1) 55%, transparent);
+}
+
+/* ---------- AI core: rings, orb, and wave ---------- */
+
+.ai-core {
+  --core-color: var(--ion);
+  --spin: 24s;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(150px, 26vw, 220px);
+  aspect-ratio: 1;
+}
+.ai-core-degraded {
+  --core-color: var(--corona);
+}
+.ai-core-offline {
+  --core-color: var(--danger);
+}
+.ai-core-thinking {
+  --core-color: var(--plasma);
+  --spin: 6s;
+}
+.ai-core-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--core-color) 55%, transparent);
+}
+.ai-core-ring-a {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--core-color) 45%, transparent);
+}
+.ai-core-ring-b {
+  inset: 12%;
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--core-color) 85%, transparent) transparent color-mix(in srgb, var(--core-color) 35%, transparent) transparent;
+}
+.ai-core-ring-c {
+  inset: 24%;
+  border-color: color-mix(in srgb, var(--core-color) 60%, transparent);
+  box-shadow: 0 0 24px -4px color-mix(in srgb, var(--core-color) var(--glow-alpha), transparent), inset 0 0 24px -8px color-mix(in srgb, var(--core-color) var(--glow-alpha), transparent);
+}
+.ai-core-orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--core-color) 40%, var(--bg-void)), var(--bg-void) 75%);
+  border: 1px solid var(--core-color);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--core-color) var(--glow-alpha), transparent);
+}
+.ai-core-glyph {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(18px, 3.4vw, 28px);
+  color: var(--core-color);
+}
+.ai-core-wave {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -4%;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.ai-core-wave span {
+  width: 3px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--core-color);
+  opacity: 0.8;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="reduce"]) .ai-core-ring-a {
+    animation: core-spin var(--spin) linear infinite;
+  }
+  :root:not([data-motion="reduce"]) .ai-core-ring-b {
+    animation: core-spin calc(var(--spin) * 0.6) linear infinite reverse;
+  }
+  :root:not([data-motion="reduce"]) .ai-core-ring-c {
+    animation: core-breathe 4s ease-in-out infinite;
+  }
+  :root:not([data-motion="reduce"]) .ai-core-orb {
+    animation: core-breathe 4s ease-in-out infinite;
+  }
+  :root:not([data-motion="reduce"]) .ai-core-wave span {
+    animation: core-wave 1.6s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -80ms);
+  }
+  :root:not([data-motion="reduce"]) .ai-core-thinking .ai-core-wave span {
+    animation-duration: 0.7s;
+  }
+  :root:not([data-motion="reduce"]) .voice-wave span {
+    animation: core-wave 0.9s ease-in-out infinite;
+  }
+  :root:not([data-motion="reduce"]) .voice-wave span:nth-child(2) {
+    animation-delay: -0.2s;
+  }
+  :root:not([data-motion="reduce"]) .voice-wave span:nth-child(3) {
+    animation-delay: -0.4s;
+  }
+  :root:not([data-motion="reduce"]) .voice-wave span:nth-child(4) {
+    animation-delay: -0.6s;
+  }
+}
+@keyframes core-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes core-breathe {
+  50% {
+    transform: scale(1.04);
+    opacity: 0.85;
+  }
+}
+@keyframes core-wave {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 20px;
+  }
+}
+.voice-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+.voice-wave span {
+  width: 2px;
+  height: 6px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+/* ---------- Chat on the home screen ---------- */
+
+.chat-core {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.chat-options,
+.chat-threads,
+.brief-full {
+  margin-bottom: var(--space-2);
+}
+.chat-options > summary,
+.chat-threads > summary,
+.brief-full > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+.chat-options > summary:hover,
+.chat-threads > summary:hover,
+.brief-full > summary:hover {
+  color: var(--text-hi);
+}
+.chat-engine-note {
+  margin: 0 0 4px;
+}
+.chat-core .field textarea {
+  border-color: var(--hud-line);
+  background: var(--surface-2);
+}
+.chat-core .field textarea:focus {
+  border-color: var(--ion);
+  box-shadow: 0 0 0 1px var(--ion), 0 0 18px -4px var(--hud-glow);
+}
+
+/* ---------- Systems Deck ---------- */
+
+.systems-deck {
+  border: 1px solid var(--hud-line);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-5);
+}
+.deck-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: 8px var(--space-3);
+}
+.deck-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 4px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--text-hi);
+  text-align: left;
+}
+.deck-title {
+  font-size: 12px;
+  color: var(--ion);
+}
+.deck-summary {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.deck-chevron {
+  color: var(--ion);
+}
+.deck-tabs,
+.deck-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.deck-tabs {
+  flex: 1 1 auto;
+}
+.deck-tab {
+  padding: 6px 10px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-decoration: none;
+  cursor: pointer;
+}
+.deck-tab:hover {
+  color: var(--text-hi);
+  border-color: var(--hud-line);
+}
+.deck-tab[aria-selected="true"] {
+  color: var(--text-hi);
+  border-color: var(--ion);
+  background: color-mix(in srgb, var(--ion) 10%, transparent);
+}
+.deck-body {
+  padding: var(--space-3);
+  border-top: 1px solid var(--hud-line);
+}
+.systems-deck-open {
+  background: color-mix(in srgb, var(--surface-1) 40%, transparent);
+}
+
+/* ---------- Co-processor cards ---------- */
+
+.e-agent-role {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ion);
+}
+
+@media (max-width: 640px) {
+  .hud-bar {
+    align-items: stretch;
+  }
+  .core-stage {
+    padding: var(--space-4) var(--space-3);
+  }
+  .deck-summary {
+    display: none;
+  }
+}

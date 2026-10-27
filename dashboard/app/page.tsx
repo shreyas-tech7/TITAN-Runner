@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePolledJson } from "@/lib/usePolledJson";
 import { useWorkerStatus } from "@/lib/useWorkerStatus";
 import { isWorkerConfigured } from "@/lib/workerApi";
@@ -36,7 +36,11 @@ import VersionFooter from "@/components/VersionFooter";
 import BriefCard from "@/components/BriefCard";
 import SchedulesPanel from "@/components/SchedulesPanel";
 import ActivityPanel from "@/components/ActivityPanel";
+import CoreStage from "@/components/CoreStage";
+import HudClock from "@/components/HudClock";
+import SystemsDeck from "@/components/SystemsDeck";
 import { THEMES, THEME_LABEL, applyTheme } from "@/lib/theme";
+import { CORE_STATE_LABEL, coreState, engineSummary, parseDeckTab, taskSummary, type DeckTab } from "@/lib/core";
 import { quotaRows, type QuotaRow, type QuotaState } from "@/lib/quota";
 
 /** The current time, refreshed every 30 seconds. The quota windows are one UTC day and one minute wide. */
@@ -67,16 +71,13 @@ function writeUrlParams(params: Record<string, string>) {
 }
 
 /**
- * Everything that needs the titan-runner-brain Worker's `/status` poll —
- * God's Eye, the live Running Tasks / Agents roster, and the existing
- * sub-agent cluster panels. Pulled into its own component (rather than
- * calling `useWorkerStatus` inline inside the AdminGate render-prop) so the
- * hook has a real component instance to attach to: the render-prop is
- * invoked conditionally by AdminGate itself, and a hook can't live there
- * directly without breaking React's rules of hooks the moment the
- * dashboard is locked again.
+ * The Systems Deck panels that need the titan-runner-brain Worker's `/status` poll: God's Eye, the live Running
+ * Tasks and co-processor roster, and the sub-agent cluster panels. Pulled into its own component (rather than
+ * calling `useWorkerStatus` inline inside the AdminGate render-prop) so the hook has a real component instance to
+ * attach to. Only the open deck tab mounts, so a closed deck does not poll the Worker.
  */
 function WorkerScopedPanels({
+  view,
   token,
   onUnauthorized,
   tasks,
@@ -84,6 +85,7 @@ function WorkerScopedPanels({
   agents,
   quota,
 }: {
+  view: "gods-eye" | "coprocessors" | "schedules";
   token: string;
   onUnauthorized: () => void;
   tasks: TaskRecord[];
@@ -94,22 +96,26 @@ function WorkerScopedPanels({
   const workerStatus = useWorkerStatus(token);
   const subagents = workerStatus.data?.subagents ?? [];
 
+  if (view === "gods-eye") return <GodsEyeSection token={token} providers={providers} agents={agents} />;
+
+  if (view === "coprocessors") {
+    return (
+      <>
+        <div className="bento-grid">
+          <RunningTasksPanel tasks={tasks} subagents={subagents} workerConfigured={isWorkerConfigured()} />
+          <AgentsPanel providers={providers} agents={agents} subagents={subagents} quota={quota} />
+        </div>
+        <ProviderHealthStrip providers={providers} />
+      </>
+    );
+  }
+
   return (
     <>
-      <GodsEyeSection token={token} providers={providers} agents={agents} />
-
-      <div className="bento-grid">
-        <RunningTasksPanel tasks={tasks} subagents={subagents} workerConfigured={isWorkerConfigured()} />
-        <AgentsPanel providers={providers} agents={agents} subagents={subagents} quota={quota} />
-      </div>
-
-      <BriefCard token={token} onUnauthorized={onUnauthorized} />
-
       <div className="bento-grid">
         <SchedulesPanel token={token} onUnauthorized={onUnauthorized} />
         <ActivityPanel token={token} onUnauthorized={onUnauthorized} />
       </div>
-
       <ClusterPanels token={token} status={workerStatus} onUnauthorized={onUnauthorized} />
     </>
   );
@@ -129,6 +135,31 @@ export default function DashboardPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [optimistic, setOptimistic] = useState(() => listOptimisticTasks());
+  const [streaming, setStreaming] = useState(false);
+  const [deckOpen, setDeckOpen] = useState(false);
+  const [deckTab, setDeckTab] = useState<DeckTab>("overview");
+
+  // A link such as /?deck=brief opens the Systems Deck on that tab. The query filter and a chosen task also live in the deck.
+  useEffect(() => {
+    const fromUrl = parseDeckTab(readUrlParam("deck"));
+    if (fromUrl) {
+      setDeckTab(fromUrl);
+      setDeckOpen(true);
+    } else if (readUrlParam("q") || readUrlParam("task")) {
+      setDeckOpen(true);
+    }
+  }, []);
+
+  const openDeck = useCallback((tab: DeckTab) => {
+    setDeckTab(tab);
+    setDeckOpen(true);
+  }, []);
+
+  const focusQueueFilter = useCallback(() => {
+    setDeckTab("overview");
+    setDeckOpen(true);
+    window.setTimeout(() => document.getElementById("queue-filter")?.focus(), 60);
+  }, []);
 
   // A link from the Health Center, such as /?settings=health, opens Settings. The parameter goes away at once.
   useEffect(() => {
@@ -166,12 +197,12 @@ export default function DashboardPage() {
         setNewTaskOpen(true);
       } else if (e.key === "/") {
         e.preventDefault();
-        document.getElementById("queue-filter")?.focus();
+        focusQueueFilter();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [focusQueueFilter]);
 
   const quotaNow = useMinuteClock();
   const quotaByProvider = useMemo(() => quotaRows(quota.data, quotaNow), [quota.data, quotaNow]);
@@ -192,8 +223,12 @@ export default function DashboardPage() {
         id: "jump-filter",
         label: "Filter the queue",
         hint: "/",
-        run: () => document.getElementById("queue-filter")?.focus(),
+        run: focusQueueFilter,
       },
+      { id: "deck-brief", label: "Open the Daily Brief", run: () => openDeck("brief") },
+      { id: "deck-coprocessors", label: "Open the co-processors", run: () => openDeck("coprocessors") },
+      { id: "deck-gods-eye", label: "Open God's Eye", run: () => openDeck("gods-eye") },
+      { id: "deck-toggle", label: "Show or hide the Systems Deck", run: () => setDeckOpen((v) => !v) },
       {
         id: "open-actions",
         label: "Open Actions",
@@ -215,7 +250,15 @@ export default function DashboardPage() {
       run: () => setSelectedTaskId(t.id),
     }));
     return [...base, ...taskCommands];
-  }, [allTasks]);
+  }, [allTasks, focusQueueFilter, openDeck]);
+
+  const pulseAgeMinutes = useMemo(() => {
+    const at = heartbeat.data?.lastPulseAt;
+    const ms = at ? Date.now() - Date.parse(at) : NaN;
+    return Number.isFinite(ms) ? Math.round(ms / 60_000) : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heartbeat.data?.lastPulseAt, quotaNow]);
+  const core = coreState({ streaming, pulseAgeMinutes, providers: providers.data?.providers });
 
   const anyFetching = heartbeat.lastFetchedAt || tasks.lastFetchedAt;
   const refreshAll = () => {
@@ -229,18 +272,23 @@ export default function DashboardPage() {
   return (
     <AdminGate>
       {(adminToken, lockDashboard) => (
-    <div className="shell">
+    <div className="shell shell-core">
       <a className="sr-only" href="#main">
         Skip to main content
       </a>
-      <header className="topbar">
-        <div>
-          <h1 className="brand">TITAN-Runner</h1>
-          <div className="brand-sub">
-            {OWNER}/{REPO} — free GitHub Actions pulse, no server, no card
+      <header className="hud-bar">
+        <div className="hud-id">
+          <h1 className="brand">TITAN Core</h1>
+          <div className={`hud-status hud-status-${core}`}>
+            <span className="hud-status-dot" aria-hidden="true" />
+            <span className="mono">
+              {CORE_STATE_LABEL[core]} · {engineSummary(providers.data?.providers)}
+            </span>
           </div>
+          <HudClock />
         </div>
         <div className="topbar-actions">
+          <StalenessBanner lastPulseAt={heartbeat.data?.lastPulseAt ?? null} token={ adminToken } />
           <LastFetchedIndicator lastFetchedAt={anyFetching ?? null} onRefresh={refreshAll} />
           <button className="btn btn-quiet" onClick={() => setPaletteOpen(true)}>
             <span className="kbd">⌘K</span>
@@ -260,48 +308,69 @@ export default function DashboardPage() {
       <main id="main">
       <OfflineNotice />
 
-      <StalenessBanner lastPulseAt={heartbeat.data?.lastPulseAt ?? null} token={ adminToken } />
+      <CoreStage state={core} tasks={allTasks} token={adminToken} onUnauthorized={lockDashboard} onStreamingChange={setStreaming} />
 
       <SetupChecklist token={adminToken} onUnauthorized={lockDashboard} />
 
-      <div className="vitals-grid">
-        <CommandClock />
-        <WeatherPanel />
-      </div>
+      <SystemsDeck
+        open={deckOpen}
+        active={deckTab}
+        onToggle={() => setDeckOpen((v) => !v)}
+        onSelect={openDeck}
+        summary={`${taskSummary(allTasks)} Pulse ${pulseAgeMinutes === null ? "unknown" : `${pulseAgeMinutes} min ago`}.`}
+      >
+        {deckTab === "overview" ? (
+          <>
+            <div className="vitals-grid">
+              <CommandClock />
+              <WeatherPanel />
+            </div>
 
-      <PulseBand heartbeat={heartbeat.data} pulses={pulseHistory.data?.pulses ?? []} loading={heartbeat.loading} error={heartbeat.error} />
+            <PulseBand heartbeat={heartbeat.data} pulses={pulseHistory.data?.pulses ?? []} loading={heartbeat.loading} error={heartbeat.error} />
 
-      <div className="e-pair">
-        <LastPulsePanel heartbeat={heartbeat} history={pulseHistory} />
-        <QuotaPanel quota={quota} />
-      </div>
+            <div className="e-pair">
+              <LastPulsePanel heartbeat={heartbeat} history={pulseHistory} />
+              <QuotaPanel quota={quota} />
+            </div>
 
-      <WorkerScopedPanels token={ adminToken } onUnauthorized={lockDashboard} tasks={allTasks} providers={providers.data?.providers} agents={agents.data ?? undefined} quota={quotaByProvider} />
+            <div className="field" style={{ maxWidth: 320, marginBottom: 8 }}>
+              <input
+                id="queue-filter"
+                placeholder="Filter by title or id… ( / )"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Filter tasks"
+              />
+            </div>
 
-      <div className="field" style={{ maxWidth: 320, marginBottom: 8 }}>
-        <input
-          id="queue-filter"
-          placeholder="Filter by title or id… ( / )"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label="Filter tasks"
-        />
-      </div>
+            <TaskQueueSection
+              tasks={filteredTasks}
+              optimisticTasks={optimistic}
+              onSelectTask={setSelectedTaskId}
+              onNeedToken={() => setSettingsOpen(true)}
+            />
 
-      <TaskQueueSection
-        tasks={filteredTasks}
-        optimisticTasks={optimistic}
-        onSelectTask={setSelectedTaskId}
-        onNeedToken={() => setSettingsOpen(true)}
-      />
+            <RunHistorySection tasks={filteredTasks} onSelectTask={setSelectedTaskId} />
 
-      <RunHistorySection tasks={filteredTasks} onSelectTask={setSelectedTaskId} />
+            <SafetyResearchPanel />
 
-      <ProviderHealthStrip providers={providers.data?.providers} />
-
-      <SafetyResearchPanel />
-
-      <PrPanel />
+            <PrPanel />
+          </>
+        ) : null}
+        {deckTab === "brief" ? <BriefCard token={adminToken} onUnauthorized={lockDashboard} /> : null}
+        {deckTab === "coprocessors" || deckTab === "gods-eye" || deckTab === "schedules" ? (
+          <WorkerScopedPanels
+            key={deckTab}
+            view={deckTab}
+            token={adminToken}
+            onUnauthorized={lockDashboard}
+            tasks={allTasks}
+            providers={providers.data?.providers}
+            agents={agents.data ?? undefined}
+            quota={quotaByProvider}
+          />
+        ) : null}
+      </SystemsDeck>
 
       </main>
 
