@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-26T00:40:45.518Z",
+  "updatedAt": "2026-10-27T01:21:47.738Z",
   "reserveFraction": 0.15,
   "providers": {
     "openrouter": {
@@ -29,14 +29,14 @@
     },
     "groq": {
       "minute": {
-        "start": "2026-10-26T00:40:00.000Z",
+        "start": "2026-10-27T01:21:00.000Z",
         "count": 1
       },
       "day": {
-        "start": "2026-10-26T00:00:00.000Z",
+        "start": "2026-10-27T00:00:00.000Z",
         "count": 1
       },
-      "tokens": 792,
+      "tokens": 1010,
       "last429At": null
     }
   }
