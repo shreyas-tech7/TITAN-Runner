@@ -3,12 +3,12 @@ import Link from "next/link";
 /**
  * The dashboard's top level tabs. Each tab is its own route (the dashboard is a static export, so a route per tab keeps
  * every view deep-linkable) and the current one carries `aria-current="page"`. The order is fixed by the Wave 12 brief:
- * Dashboard, Chat, Connectors, Keys, Health, Ops, God's Eye View. A tab appears when its page ships.
+ * Core (the assistant home), Chat, Connectors, Keys, Health, Ops, God's Eye View. A tab appears when its page ships.
  */
 export type TopTab = "dashboard" | "chat" | "connectors" | "keys" | "health" | "ops" | "how-it-works" | "gods-eye";
 
 const TABS: { id: TopTab; label: string; href: string }[] = [
-  { id: "dashboard", label: "Dashboard", href: "/" },
+  { id: "dashboard", label: "Core", href: "/" },
   { id: "chat", label: "Chat", href: "/chat" },
   { id: "connectors", label: "Connectors", href: "/connectors" },
   { id: "keys", label: "Keys", href: "/keys" },

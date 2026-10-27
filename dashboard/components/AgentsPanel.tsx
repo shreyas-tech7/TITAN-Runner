@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The agent status board: TITAN's real dispatch targets. Every provider the
+ * The sub-agent co-processors: TITAN's real dispatch targets, each with the job it does best. Every provider the
  * orchestrator can route work to (`src/providers/registry.js`'s
  * FAILOVER_ORDER, plus opencode/freebuff) shown as a card: live health from
  * `state/providers.json`, purpose from the capability registry in
@@ -18,6 +18,7 @@ import type { QuotaRow } from "@/lib/quota";
 import { relative, formatDuration } from "@/lib/time";
 import { Badge, Meter, Panel, StatusDot, type Tone } from "@/components/kit";
 import { pulseProviderIds } from "@/lib/providers";
+import { coprocessorRole } from "@/lib/core";
 
 
 type RosterStatus = "running" | "online" | "warning" | "offline" | "idle";
@@ -58,17 +59,18 @@ export default function AgentsPanel({
     const capability = agents?.[`phase2:${id}`];
     const active = subagents.filter((s) => s.provider === id && (s.status === "running" || s.status === "dispatched"));
     const status = statusFor(record, active.length);
-    const purpose = capability?.strengths?.length ? capability.strengths.join(", ") : "General-purpose dispatch target";
+    const role = coprocessorRole(id);
+    const purpose = capability?.strengths?.length ? capability.strengths.join(", ") : role.short;
     const q = quota?.find((r) => r.id === id);
-    return { id, record, capability, active, status, purpose, q };
+    return { id, record, capability, active, status, purpose, role: role.role, q };
   });
 
   const onlineCount = rows.filter((r) => r.status === "online" || r.status === "running").length;
 
   return (
     <Panel
-      title="Agent status board"
-      eyebrow="Agents"
+      title="Sub-agent co-processors"
+      eyebrow="Co-processors"
       tone="plasma"
       actions={
         <Badge tone={onlineCount > 0 ? "ok" : "neutral"}>
@@ -86,6 +88,7 @@ export default function AgentsPanel({
                 <span className="e-agent-name">{r.id}</span>
                 <StatusDot tone={meta.tone} pulse={meta.pulse} label={meta.label} />
               </span>
+              <span className="e-agent-role">{r.role}</span>
               <span className="e-agent-status">
                 <Badge tone={meta.tone}>{meta.label}</Badge>
               </span>

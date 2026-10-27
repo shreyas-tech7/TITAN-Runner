@@ -6,7 +6,7 @@ export type ThemeName = (typeof THEMES)[number];
 export const THEME_LABEL: Record<ThemeName, string> = { eclipse: "Eclipse", light: "Light", oled: "OLED black", contrast: "High contrast" };
 
 /** The page color of each theme, for the browser's theme-color meta tag. The values match app/tokens.css bg-base. */
-export const THEME_COLOR: Record<ThemeName, string> = { eclipse: "#0a0e15", light: "#f5f7fb", oled: "#000000", contrast: "#000000" };
+export const THEME_COLOR: Record<ThemeName, string> = { eclipse: "#05070a", light: "#f5f7fb", oled: "#000000", contrast: "#000000" };
 
 export const THEME_KEY = "titan-runner:theme";
 

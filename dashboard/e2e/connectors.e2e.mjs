@@ -213,6 +213,6 @@ test('the home page shows the setup checklist with a ring, and the commands for 
 test('the top tabs show the new pages in the order of the brief', async (t) => {
   const { page } = await openDash(browser, t, '/health/', 'nav.top-tabs');
   const labels = await page.locator('nav.top-tabs a').allInnerTexts();
-  assert.deepEqual(labels, ['Dashboard', 'Chat', 'Connectors', 'Keys', 'Health', 'Ops', 'How It Works', "God's Eye View"]);
+  assert.deepEqual(labels, ['Core', 'Chat', 'Connectors', 'Keys', 'Health', 'Ops', 'How It Works', "God's Eye View"]);
   assert.equal(await page.getAttribute('nav.top-tabs a[aria-current="page"]', 'href'), '/TITAN-Runner/health/');
 });

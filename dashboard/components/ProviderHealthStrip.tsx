@@ -4,6 +4,7 @@ import type { ProviderHealthRecord, ProviderStatus } from "@/lib/types";
 import { relative, formatDuration } from "@/lib/time";
 import { Badge, Panel, StatusDot, type Tone } from "@/components/kit";
 import { pulseProviderIds } from "@/lib/providers";
+import { coprocessorRole } from "@/lib/core";
 
 const STATUS_META: Record<ProviderStatus, { label: string; tone: Tone }> = {
   ok: { label: "OK", tone: "ok" },
@@ -44,7 +45,7 @@ export default function ProviderHealthStrip({ providers }: { providers: Record<s
   const inCooldown = (r: ProviderHealthRecord) => r.cooldownUntil && Date.parse(r.cooldownUntil) > Date.now();
 
   return (
-    <Panel title="Provider health" eyebrow="Providers" tone="plasma" actions={<span className="e-dim">from the weekly self-test, see docs/RUNTIME.md</span>}>
+    <Panel title="Co-processor mesh" eyebrow="Provider health" tone="plasma" actions={<span className="e-dim">from the weekly self-test, see docs/RUNTIME.md</span>}>
       <ul className="e-list" aria-label="Provider health">
         {rows.map((r) => {
           const meta = STATUS_META[r.status] ?? STATUS_META.unknown;
@@ -59,6 +60,7 @@ export default function ProviderHealthStrip({ providers }: { providers: Record<s
               <div className="e-item-head">
                 <StatusDot tone={meta.tone} label={meta.label} />
                 <span className="e-item-title e-num">{r.id}</span>
+                <span className="e-dim">{coprocessorRole(r.id).role}</span>
                 <Badge tone={meta.tone}>
                   {meta.label}
                   {inCooldown(r) ? " (cooldown)" : ""}

@@ -75,8 +75,44 @@ function buildGraticule(radius: number): THREE.LineSegments {
     }
   }
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
-  const material = new THREE.LineBasicMaterial({ color: 0x3d7a63, transparent: true, opacity: 0.28 });
+  const material = new THREE.LineBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.2 });
   return new THREE.LineSegments(geometry, material);
+}
+
+/** A thin tilted ring around the globe. The ring turns slowly, like an orbit. */
+function buildOrbit(radius: number, tiltX: number, tiltZ: number, color: number, opacity: number): THREE.Line {
+  const points: THREE.Vector3[] = [];
+  for (let i = 0; i <= 128; i++) {
+    const a = (i / 128) * Math.PI * 2;
+    points.push(new THREE.Vector3(Math.cos(a) * radius, 0, Math.sin(a) * radius));
+  }
+  const ring = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+  ring.rotation.set(tiltX, 0, tiltZ);
+  return ring;
+}
+
+/** A small glowing satellite that rides one orbit ring. */
+function buildSatellite(radius: number, color: number): THREE.Mesh {
+  const sat = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 10), new THREE.MeshBasicMaterial({ color }));
+  sat.userData.radius = radius;
+  return sat;
+}
+
+/** A shell of faint points around the globe, like dust in the light. */
+function buildParticles(count: number, minRadius: number, maxRadius: number): THREE.Points {
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = minRadius + Math.random() * (maxRadius - minRadius);
+    const u = Math.random() * 2 - 1;
+    const a = Math.random() * Math.PI * 2;
+    const q = Math.sqrt(1 - u * u);
+    positions[i * 3] = r * q * Math.cos(a);
+    positions[i * 3 + 1] = r * u;
+    positions[i * 3 + 2] = r * q * Math.sin(a);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  return new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x00f3ff, size: 0.025, transparent: true, opacity: 0.55, depthWrite: false }));
 }
 
 const CONFIDENCE_COLOR: Record<string, number> = {
@@ -92,7 +128,8 @@ const NODE_STATUS_COLOR: Record<NodeStatus, number> = {
   idle: 0x6d7278,
 };
 
-const ACCENT = 0x5aa9e6;
+const ACCENT = 0x00f3ff;
+const GOLD = 0xf5a623;
 const HOME = { lat: 32.7767, lon: -96.797, label: "Command Center — Dallas, TX" };
 
 interface Pulse {
@@ -171,17 +208,42 @@ export default function GeospatialGlobe({ events, networkNodes }: { events: Geos
 
     const globe = new THREE.Mesh(
       new THREE.SphereGeometry(RADIUS, 40, 40),
-      new THREE.MeshBasicMaterial({ color: 0x232730, wireframe: true, transparent: true, opacity: 0.45 }),
+      new THREE.MeshBasicMaterial({ color: 0x0b4b52, wireframe: true, transparent: true, opacity: 0.5 }),
     );
     scene.add(globe);
 
     const core = new THREE.Mesh(
       new THREE.SphereGeometry(RADIUS * 0.988, 40, 40),
-      new THREE.MeshBasicMaterial({ color: 0x16181c, transparent: true, opacity: 0.85 }),
+      new THREE.MeshBasicMaterial({ color: 0x03090c, transparent: true, opacity: 0.9 }),
     );
     scene.add(core);
 
     scene.add(buildGraticule(RADIUS));
+
+    // The glow: a faint shell seen from inside, three orbit rings with a satellite each, and a dust of points.
+    const atmosphere = new THREE.Mesh(
+      new THREE.SphereGeometry(RADIUS * 1.08, 40, 40),
+      new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0.07, side: THREE.BackSide, depthWrite: false }),
+    );
+    scene.add(atmosphere);
+    const orbits = new THREE.Group();
+    const satellites: { mesh: THREE.Mesh; ring: THREE.Line; speed: number; phase: number }[] = [];
+    const orbitSpecs = [
+      { r: RADIUS * 1.35, tx: 1.2, tz: 0.2, color: ACCENT, opacity: 0.35, speed: 0.35 },
+      { r: RADIUS * 1.55, tx: 0.5, tz: -0.9, color: GOLD, opacity: 0.25, speed: -0.22 },
+      { r: RADIUS * 1.75, tx: -0.8, tz: 0.6, color: ACCENT, opacity: 0.18, speed: 0.15 },
+    ];
+    for (const spec of orbitSpecs) {
+      const ring = buildOrbit(spec.r, spec.tx, spec.tz, spec.color, spec.opacity);
+      const sat = buildSatellite(spec.r, spec.color);
+      ring.add(sat);
+      orbits.add(ring);
+      satellites.push({ mesh: sat, ring, speed: spec.speed, phase: Math.random() * Math.PI * 2 });
+    }
+    scene.add(orbits);
+    const dust = buildParticles(420, RADIUS * 1.2, RADIUS * 2.6);
+    scene.add(dust);
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
     const pinsGroup = new THREE.Group();
     pinsGroupRef.current = pinsGroup;
@@ -219,6 +281,14 @@ export default function GeospatialGlobe({ events, networkNodes }: { events: Geos
     function animate() {
       const t = clock.getElapsedTime();
       controls.update();
+      if (!reduceMotion) {
+        for (const sat of satellites) {
+          const a = t * sat.speed + sat.phase;
+          sat.mesh.position.set(Math.cos(a) * sat.mesh.userData.radius, 0, Math.sin(a) * sat.mesh.userData.radius);
+        }
+        orbits.rotation.y = t * 0.03;
+        dust.rotation.y = t * 0.012;
+      }
       for (const pulse of pulsesRef.current) {
         const tt = (t * pulse.speed + pulse.phase) % 1;
         pulse.mesh.position.copy(pulse.curve.getPoint(tt));
@@ -253,7 +323,7 @@ export default function GeospatialGlobe({ events, networkNodes }: { events: Geos
       renderer.domElement.removeEventListener("pointerleave", handlePointerLeave);
       controls.dispose();
       scene.traverse((obj) => {
-        if (obj instanceof THREE.Mesh || obj instanceof THREE.Line || obj instanceof THREE.LineSegments) {
+        if (obj instanceof THREE.Mesh || obj instanceof THREE.Line || obj instanceof THREE.LineSegments || obj instanceof THREE.Points) {
           obj.geometry.dispose();
           const material = obj.material;
           if (Array.isArray(material)) material.forEach((m) => m.dispose());
@@ -357,7 +427,7 @@ export default function GeospatialGlobe({ events, networkNodes }: { events: Geos
       }
       if (points.length > 1) {
         const pathGeometry = new THREE.BufferGeometry().setFromPoints(points);
-        const pathMaterial = new THREE.LineBasicMaterial({ color: 0xd9a441 });
+        const pathMaterial = new THREE.LineBasicMaterial({ color: GOLD });
         pinsGroup.add(new THREE.Line(pathGeometry, pathMaterial));
       }
     }
