@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-10-27T01:21:45.647Z",
+  "lastAttemptAt": "2026-10-28T01:47:26.956Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-10-27",
-  "lastDigestFile": "state/digests/2026-10-27-research.md",
+  "lastDigestDate": "2026-10-28",
+  "lastDigestFile": "state/digests/2026-10-28-research.md",
   "provider": "groq",
-  "model": "openai/gpt-oss-120b",
+  "model": "qwen/qwen3.8-27b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n- **What matters:** Any reduction in monthly token caps, removal of specific model endpoints, or new usage‑policy restrictions on Groq, Together, OpenRouter, Google Gemini, or Hugging Face.  \n- **Why it matters:** Our autonomous agents rely on uninterrupted access to these free tiers; a tighter quota or a disallowed model can cause sudden failures or degraded performance.  \n- **One thing worth verifying:** Check the current free‑tier dashboards or recent provider announcements for each service to confirm token limits, available models, and any newly imposed “commercial‑use” clauses.\n\n## agent-safety-practice\n- **What matters:** Layered approval (human‑in‑the‑loop for code execution), sandboxed runtimes (e.g., container or VM isolation), prompt‑injection filters, and immutable audit logs.  \n- **Why it matters:** Autonomous coding agents can generate harmful or costly code; safeguards prevent runaway execution, data leakage, and compliance breaches while keeping the system auditable.  \n- **One thing worth verifying:** Run a controlled test where the agent attempts a known injection pattern and confirm that the filter and sandbox block the payload and log th",
+  "preview": "## free-tier-llm-landscape\n*   **What matters:** Free-tier providers frequently adjust rate limits, model availability, and data retention policies without long-notice, often prioritizing paid users during peak loads.\n*   **Why it matters:** An agent relying solely on free tiers faces sudden downtime or degraded performance if a specific model is deprecated or if \"fair use\" caps are tightened, breaking autonomous workflows.\n*   **One thing worth verifying:** Check the current \"fair use\" definitions and data retention clauses in the Terms of Service for your primary free-tier providers to ensure your agent’s data usage does not violate updated privacy or commercial use restrictions.\n\n## agent-safety-practice\n*   **What matters:** Best practices now emphasize strict sandboxing (e.g., containers or microVMs), least-privilege API tokens, and mandatory human-in-the-loop approval for destructive or external-facing actions.\n*   **Why it matters:** Autonomous coding agents are high-value targets for prompt injection; without robust isolation and audit trails, a compromised agent can exfiltrate secrets or execute malicious code on host systems.\n*   **One thing worth verifying:** Confirm tha",
   "lastDetail": null
 }
