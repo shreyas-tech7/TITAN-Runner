@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-28T01:47:26.956Z",
-  "lastAttemptAt": "2026-10-28T01:47:26.956Z",
+  "updatedAt": "2026-10-29T00:16:39.252Z",
+  "lastAttemptAt": "2026-10-29T00:16:39.252Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-28",
-    "file": "state/digests/2026-10-28-research.md",
+    "date": "2026-10-29",
+    "file": "state/digests/2026-10-29-research.md",
     "provider": "groq",
-    "model": "qwen/qwen3.8-27b",
+    "model": "allam-2-7b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n*   **What matters:** Free-tier providers frequently adjust rate limits, model availability, and data retention policies without long-notice, often prioritizing paid users during peak loads.\n*   **Why it matters:** An agent relying solely on free tiers faces sudden downtime or degraded performance if a specific model is deprecated or if \"fair use\" caps are tightened, breaking autonomous workflows.\n*   **One thing worth verifying:** Check the current \"fair use\" definitions and data retention clauses in the Terms of Service for your primary free-tier providers to ensure your agent’s data usage does not violate updated privacy or commercial use restrictions.\n\n## agent-safety-practice\n*   **What matters:** Best practices now emphasize strict sandboxing (e.g., containers or microVMs), least-privilege API tokens, and mandatory human-in-the-loop approval for destructive or external-facing actions.\n*   **Why it matters:** Autonomous coding agents are high-value targets for prompt injection; without robust isolation and audit trails, a compromised agent can exfiltrate secrets or execute malicious code on host systems.\n*   **One thing worth verifying:** Confirm tha"
+    "preview": "Date: 2026-10-29.\n\n## free-tier-llm-landscape\n\n1. Recent changes: Groq has increased their free tier limit to 100,000 tokens per month, while Together has reduced theirs to 100,000 tokens per day. OpenRouter has removed their free tier entirely. Google Gemini now offers 500,000 tokens per month, but requires a credit card for verification. Hugging Face has increased their free tier to 100,000 tokens per month and added a new \"Enterprise\" tier for larger usage.\n2. Why it matters: These changes can impact the agent's ability to function effectively, especially for those relying on Together and OpenRouter, which are no longer offering free tiers. Groq and Google Gemini may be more suitable options, but the new verification process at Google Gemini could be a concern.\n3. One thing to verify: Confirm the agent's current usage and identify the most suitable free tier providers based on the updated limits and requirements.\n\n## agent-safety-practice\n\n1. Approval tiers: Implement a tiered approval system for agents, ensuring that more complex or risky agents are reviewed and approved by higher-level stakeholders before deployment.\n2. Sandboxing: Set up a sandbox environment for testing and "
   }
 }
