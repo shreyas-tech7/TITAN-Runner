@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-29T00:16:39.252Z",
-  "lastAttemptAt": "2026-10-29T00:16:39.252Z",
+  "updatedAt": "2026-10-30T02:59:32.946Z",
+  "lastAttemptAt": "2026-10-30T02:59:32.946Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-10-29",
-    "file": "state/digests/2026-10-29-research.md",
+    "date": "2026-10-30",
+    "file": "state/digests/2026-10-30-research.md",
     "provider": "groq",
-    "model": "allam-2-7b",
+    "model": "openai/gpt-oss-20b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "Date: 2026-10-29.\n\n## free-tier-llm-landscape\n\n1. Recent changes: Groq has increased their free tier limit to 100,000 tokens per month, while Together has reduced theirs to 100,000 tokens per day. OpenRouter has removed their free tier entirely. Google Gemini now offers 500,000 tokens per month, but requires a credit card for verification. Hugging Face has increased their free tier to 100,000 tokens per month and added a new \"Enterprise\" tier for larger usage.\n2. Why it matters: These changes can impact the agent's ability to function effectively, especially for those relying on Together and OpenRouter, which are no longer offering free tiers. Groq and Google Gemini may be more suitable options, but the new verification process at Google Gemini could be a concern.\n3. One thing to verify: Confirm the agent's current usage and identify the most suitable free tier providers based on the updated limits and requirements.\n\n## agent-safety-practice\n\n1. Approval tiers: Implement a tiered approval system for agents, ensuring that more complex or risky agents are reviewed and approved by higher-level stakeholders before deployment.\n2. Sandboxing: Set up a sandbox environment for testing and "
+    "preview": "## free-tier-llm-landscape  \n*Note: My knowledge is current up to 2024; verify the latest details.*  \n- What matters: Daily token caps, model availability, and policy changes on free tiers of Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- Why it matters: Exceeding a cap or losing access to a model forces the agent to stall or switch providers, breaking continuous operation.  \n- One thing worth verifying: The current free‑tier token limits and any recent policy updates on each provider’s public documentation.  \n\n## agent-safety-practice  \n*Note: My knowledge is current up to 2024; verify the latest details.*  \n- What matters: Multi‑layered approval workflows, sandbox"
   }
 }
