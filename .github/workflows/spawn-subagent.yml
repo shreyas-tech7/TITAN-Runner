@@ -16,6 +16,10 @@ concurrency:
   group: spawn-subagent-${{ github.event.client_payload.id }}
   cancel-in-progress: false
 
+# Skills in Actions run at T0 and T1 only (docs/CONTRACT.md, docs/RUNNER_HANDOFF.md).
+env:
+  TITAN_COMPUTER_MAX_TIER: "1"
+
 permissions:
   contents: read
 

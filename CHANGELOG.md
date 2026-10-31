@@ -1,5 +1,12 @@
 # Changelog
 
+## Wave 13 runner work
+
+- Add `.github/workflows/secret-presence.yml`. It runs by hand or when it changes. It prints `present` or `missing` for each of the eight key secret names. It never prints a value.
+- Set `TITAN_COMPUTER_MAX_TIER: "1"` in the top-level `env:` of every workflow. A skill in Actions gets T0 and T1 only.
+- Add rule 12 to `scripts/check-workflows.mjs`. It fails a workflow that lacks the cap, sets another value, or has no `env:` block.
+- Add the additive notes for version 1 to `docs/CONTRACT.md`: the key secret names and the agent status JSON. The contract version stays at 1.
+
 ## HUD redesign
 
 - Make the home page an assistant first screen. The AI core, a greeting, and the chat are at the center. See `docs/HUD.md`.
