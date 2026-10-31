@@ -184,3 +184,46 @@ test('RT2: no committed workflow has a plain YAML value with a colon and a space
   const dir = join(REPO_ROOT, '.github', 'workflows');
   for (const f of readdirSync(dir)) assert.deepEqual(checkPlainScalars(readFileSync(join(dir, f), 'utf8').split('\n'), f), [], f);
 });
+
+// TITAN Computer tier cap (RUNNER_HANDOFF section 4). A skill in Actions gets T0 and T1 only.
+test('every committed workflow sets TITAN_COMPUTER_MAX_TIER to "1" at the top level', async () => {
+  const { checkComputerTier } = await import('../scripts/check-workflows.mjs');
+  const dir = join(REPO_ROOT, '.github', 'workflows');
+  const files = readdirSync(dir).filter((f) => /\.ya?ml$/.test(f));
+  assert.ok(files.length >= 20, `expected the committed workflows, found ${files.length}`);
+  for (const f of files) {
+    assert.deepEqual(checkComputerTier(readFileSync(join(dir, f), 'utf8'), f), [], f);
+  }
+});
+
+test('the tier check fails a workflow with no cap, a cap of another value, or no env block', async () => {
+  const { checkComputerTier } = await import('../scripts/check-workflows.mjs');
+  const good = readFileSync(join(REPO_ROOT, '.github', 'workflows', 'keepalive.yml'), 'utf8');
+  assert.deepEqual(checkComputerTier(good, 'good.yml'), []);
+  const noCap = good.replace(/  TITAN_COMPUTER_MAX_TIER: "1"\n/, '');
+  assert.ok(checkComputerTier(noCap, 'nocap.yml').some((v) => /does not set TITAN_COMPUTER_MAX_TIER to "1"/.test(v)));
+  const twoCap = good.replace('TITAN_COMPUTER_MAX_TIER: "1"', 'TITAN_COMPUTER_MAX_TIER: "2"');
+  assert.ok(checkComputerTier(twoCap, 'two.yml').some((v) => /Only "1" is allowed/.test(v)));
+  const noEnv = good.replace(/^env:\n[\s\S]*?\n\n/m, '');
+  assert.ok(checkComputerTier(noEnv, 'noenv.yml').some((v) => /no top-level env block/.test(v)));
+});
+
+// Key presence step (RUNNER_HANDOFF section 1). It prints present or missing. It never prints a value.
+test('the key presence step names the eight key secrets and never prints a value', () => {
+  const text = readFileSync(join(REPO_ROOT, '.github', 'workflows', 'secret-presence.yml'), 'utf8');
+  const expected = [
+    'CUSTOM_1_API_KEY', 'FREEBUFF_API_KEY', 'GEMINI_API_KEY', 'GROQ_API_KEY',
+    'HF_API_KEY', 'OPENCODE_API_KEY', 'OPENROUTER_API_KEY', 'TOGETHER_API_KEY',
+  ];
+  const named = [...new Set([...text.matchAll(/secrets\.([A-Za-z0-9_]+)/g)].map((m) => m[1]))].sort();
+  assert.deepEqual(named, expected);
+  const reported = [...text.matchAll(/^\s+report ([A-Z0-9_]+) "\$\1"$/gm)].map((m) => m[1]).sort();
+  assert.deepEqual(reported, expected);
+  const echoes = text.split('\n').filter((l) => /\becho\b/.test(l));
+  assert.ok(echoes.every((l) => /echo "\$1: (present|missing)"/.test(l)), echoes.join('\n'));
+  const code = text.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  for (const banned of [/\bset -x\b/, /\bprintenv\b/, /^\s*env\s*$/m, /\bcat\b/, /\bdeclare -p\b/, /\bdebug\b/]) {
+    assert.doesNotMatch(code, banned);
+  }
+  assert.doesNotMatch(code, /GITHUB_TOKEN|TITAN_BACKEND_URL|DOORBELL_TOKEN|OPS_TOKEN/);
+});

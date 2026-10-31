@@ -14,6 +14,10 @@ on:
     - cron: "17 5 * * 1" # Monday, 05:17 UTC
   workflow_dispatch: {}
 
+# Skills in Actions run at T0 and T1 only (docs/CONTRACT.md, docs/RUNNER_HANDOFF.md).
+env:
+  TITAN_COMPUTER_MAX_TIER: "1"
+
 permissions:
   contents: read
 

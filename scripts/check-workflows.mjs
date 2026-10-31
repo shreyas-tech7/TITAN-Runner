@@ -22,6 +22,8 @@
  *  10. (RT3) A workflow never runs `git push`, `git commit`, `gh issue`, `gh pr`, or `gh api` with a write method.
  *      Writes go through scripts that use the Reviewer Gate. `actions/github-script` is not allowed for the same reason.
  *  11. (RT2) A step that makes a secret at run time masks it with `::add-mask::`.
+ *  12. (TITAN, checked per file by checkWorkflowsDir) Every workflow sets `TITAN_COMPUTER_MAX_TIER: "1"` in its top-level `env:`. A skill that runs in Actions
+ *      gets T0 and T1 only. No other value is allowed in a workflow.
  *
  * Exit 1 with every violation listed, or 0 with a summary.
  */
@@ -77,6 +79,30 @@ export function checkPlainScalars(lines, name) {
     if (/:[ \t]/.test(value) || /:$/.test(value)) out.push(`${name}:${i + 1}: the plain value of "${m[2]}" holds a colon and a space, so YAML fails to parse the file. Quote the value, or use a block scalar (run: |)`);
   }
   return out;
+}
+
+/**
+ * (12) A workflow sets the Computer tier cap at the top level. A skill that runs in Actions gets T0 and T1 only.
+ * A missing cap, a cap that is not "1", or a second value anywhere in the file fails the check.
+ * @param {string} text
+ * @param {string} name
+ * @returns {string[]} violations
+ */
+export function checkComputerTier(text, name) {
+  const lines = text.split('\n');
+  const violations = [];
+  const envStart = lines.findIndex((l) => /^env:\s*$/.test(l));
+  if (envStart < 0) {
+    return [`${name}: no top-level env block. Set TITAN_COMPUTER_MAX_TIER: "1" (a skill in Actions runs at T0 and T1 only)`];
+  }
+  const block = [];
+  for (let k = envStart + 1; k < lines.length && (lines[k].trim() === '' || /^\s/.test(lines[k])); k += 1) block.push(lines[k]);
+  const set = block.some((l) => /^ {2}TITAN_COMPUTER_MAX_TIER:[ \t]*["']?1["']?[ \t]*(#.*)?$/.test(l));
+  if (!set) violations.push(`${name}: the top-level env does not set TITAN_COMPUTER_MAX_TIER to "1". A skill in Actions runs at T0 and T1 only`);
+  for (const m of text.matchAll(/TITAN_COMPUTER_MAX_TIER:[ \t]*([^\n#]*)/g)) {
+    if (!/^["']?1["']?[ \t]*$/.test(m[1])) violations.push(`${name}: sets TITAN_COMPUTER_MAX_TIER to ${m[1].trim()}. Only "1" is allowed in a workflow`);
+  }
+  return violations;
 }
 
 export function checkWorkflowText(text, name) {
@@ -173,7 +199,10 @@ export function checkWorkflowText(text, name) {
 export function checkWorkflowsDir(dir) {
   const files = readdirSync(dir).filter((f) => /\.ya?ml$/.test(f)).sort();
   const violations = [];
-  for (const f of files) violations.push(...checkWorkflowText(readFileSync(join(dir, f), 'utf8'), f));
+  for (const f of files) {
+    const text = readFileSync(join(dir, f), 'utf8');
+    violations.push(...checkWorkflowText(text, f), ...checkComputerTier(text, f));
+  }
   return { files: files.length, violations };
 }
 

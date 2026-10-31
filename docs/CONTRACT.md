@@ -52,3 +52,58 @@ Every route above needs `Authorization: Bearer OPS_TOKEN`. A request without it 
 ### Reset rules
 
 Each provider has its own reset rule in `config/quotas.json`. If the docs of a provider do not state a rule, the rule is UTC midnight. `resets_at` is the next reset of the day limit. After a `429` the model stays exhausted until `resets_at`.
+
+## Additive notes for version 1
+
+These notes add to version 1. No route, field, or name in the contract above changes. The version stays at 1.
+
+### Key secret names
+
+The Actions secrets of this repo can hold these provider keys. TITAN writes them through the Keys and Agents page. A GitHub token is never synced.
+
+| Secret name |
+|---|
+| `GROQ_API_KEY` |
+| `OPENROUTER_API_KEY` |
+| `GEMINI_API_KEY` |
+| `TOGETHER_API_KEY` |
+| `HF_API_KEY` |
+| `FREEBUFF_API_KEY` |
+| `OPENCODE_API_KEY` |
+| `CUSTOM_1_API_KEY` |
+
+The workflow `.github/workflows/secret-presence.yml` runs by hand. It prints `present` or `missing` for each name. It never prints a value. Run it with `workflow_dispatch` to check which keys are set.
+
+### Agent status JSON
+
+TITAN makes a public snapshot of its agents. The shape is below. Schema 1 holds no task text, no result, and no error text. The `role` field holds the text that the owner typed. Do not put personal data in a role.
+
+```json
+{
+  "schema": 1,
+  "generatedAt": "2026-10-31T12:00:00.000Z",
+  "agents": [
+    {
+      "id": "string",
+      "name": "string",
+      "role": "string",
+      "provider": "string",
+      "model": "string",
+      "state": "idle",
+      "tokensIn": 0,
+      "tokensOut": 0,
+      "calls": 0,
+      "errorCount": 0,
+      "lastErrorCode": "",
+      "lastActiveAt": "2026-10-31T12:00:00.000Z",
+      "queued": 0
+    }
+  ]
+}
+```
+
+The Worker route `POST /ops/agents` and the mirror `state/agents/status.json` are not built yet. A later change adds them. Each one is an additive change too.
+
+### Skills in Actions
+
+Every workflow sets `TITAN_COMPUTER_MAX_TIER: "1"` in its top-level `env:` block. A skill that runs in Actions gets T0 and T1 only. T2 and T3 are refused. The check `npm run check:workflows` (rule 12) fails a workflow that lacks the cap or sets another value.
