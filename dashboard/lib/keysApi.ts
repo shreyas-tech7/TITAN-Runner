@@ -73,10 +73,13 @@ export interface KeyRow {
 export interface PatBlock {
   ok: false;
   status: number | null;
-  permission: string;
+  permission: string | null;
   hint: string;
   message: string;
 }
+
+/** The step of the GitHub write that failed. The Worker sends it with a 502. */
+export type SaveStep = "public_key" | "seal" | "secret_write";
 
 export interface KeysResponse {
   generatedAt: string;
@@ -118,7 +121,7 @@ export type SaveOutcome =
   | { kind: "saved"; provider: string; fingerprint: string; last4: string; verified: boolean; selftest: string; chat: string; warnings: string[]; requestId: string; providerCheck: ProviderCheck }
   | { kind: "rejected"; reason: string; requestId: string }
   | { kind: "needs_confirm"; reason: string; warnings: string[]; requestId: string }
-  | { kind: "failed"; status: number; error: string; message: string; permission: string | null; requestId: string | null };
+  | { kind: "failed"; status: number; error: string; message: string; permission: string | null; hint: string | null; step: SaveStep | null; requestId: string | null };
 
 async function readJson<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
@@ -158,13 +161,16 @@ export async function saveKey(token: string, body: SaveKeyBody): Promise<SaveOut
   if (res.status === 202 && json.needsConfirm === true) {
     return { kind: "needs_confirm", reason: String(json.reason ?? "The provider did not answer."), warnings: Array.isArray(json.warnings) ? (json.warnings as string[]) : [], requestId: requestId ?? "" };
   }
-  const pat = json.pat as { permission?: string } | undefined;
+  const pat = json.pat as { permission?: string | null; hint?: string } | undefined;
+  const step = json.step === "public_key" || json.step === "seal" || json.step === "secret_write" ? (json.step as SaveStep) : null;
   return {
     kind: "failed",
     status: res.status,
     error: String(json.error ?? "error"),
     message: String(json.message ?? json.error ?? `The Worker answered ${res.status}.`),
     permission: pat?.permission ?? null,
+    hint: typeof pat?.hint === "string" ? pat.hint : null,
+    step,
     requestId,
   };
 }

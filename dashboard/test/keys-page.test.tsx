@@ -102,6 +102,11 @@ test("the add flow: the steps for each phase", () => {
   assert.deepEqual(status({ name: "proven" }), { format: "done", provider: "done", seal: "done", github: "done", runner: "done" });
   assert.equal(status({ name: "proof_failed", reason: "x" }).runner, "failed");
   assert.equal(status({ name: "failed", message: "x", permission: null }).github, "failed");
+  // The step of the failure decides the marks. A public-key fetch that fails is not a seal that ran.
+  assert.deepEqual(status({ name: "failed", message: "x", permission: null }), { format: "done", provider: "done", seal: "done", github: "failed", runner: "skipped" });
+  assert.deepEqual(status({ name: "failed", message: "x", permission: null, step: "public_key" }), { format: "done", provider: "done", seal: "skipped", github: "failed", runner: "skipped" });
+  assert.deepEqual(status({ name: "failed", message: "x", permission: null, step: "seal" }), { format: "done", provider: "done", seal: "failed", github: "skipped", runner: "skipped" });
+  assert.deepEqual(status({ name: "failed", message: "x", permission: null, step: "secret_write" }), { format: "done", provider: "done", seal: "done", github: "failed", runner: "skipped" });
   assert.match(phaseMessage({ name: "confirm", reason: "It answered 429." }), /did not answer.*Save anyway\?/);
   assert.match(phaseMessage({ name: "rejected", reason: "It answered 401." }), /rejected this key/);
   assert.match(phaseMessage({ name: "proof_timeout" }), /longer than 3 minutes/);

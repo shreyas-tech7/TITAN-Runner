@@ -162,6 +162,23 @@ test('scenario 5: a PAT that cannot write secrets gives 502 with the permission 
   assert.match(json.pat.hint, /Secrets: Read and write/);
   assert.ok(!text.includes(FAKE_GROQ_KEY));
   assert.ok(!logs().includes(FAKE_GROQ_KEY));
+  // A 401 is a token that GitHub rejects. It names no permission, and the response says which step failed.
+  world.github.fail.publicKey = 401;
+  const dead = await call(post('/admin/keys', { provider: 'groq', value: FAKE_GROQ_KEY }, authed));
+  assert.equal(dead.res.status, 502);
+  assert.equal(dead.json.step, 'public_key');
+  assert.equal(dead.json.pat.permission, null, 'a 401 does not name a permission');
+  assert.match(dead.json.pat.hint, /expired, or revoked/);
+  assert.ok(!dead.text.includes(FAKE_GROQ_KEY));
+  // A 500 on the secret write is not a token problem either, and it stores nothing.
+  world.github.fail.publicKey = null;
+  world.github.fail.put = 500;
+  const putFail = await call(post('/admin/keys', { provider: 'groq', value: FAKE_GROQ_KEY }, authed));
+  assert.equal(putFail.res.status, 502);
+  assert.equal(putFail.json.step, 'secret_write');
+  assert.equal(putFail.json.pat, undefined, 'a 500 is not a token problem');
+  assert.equal(world.github.open('GROQ_API_KEY'), null, 'the failed write stored nothing');
+  world.github.fail.put = null;
   // The key list also shows the PAT problem.
   world.github.fail.list = 403;
   const list = await call(get('/admin/keys', authed));

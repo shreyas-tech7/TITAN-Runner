@@ -23,10 +23,10 @@ function PatBanner({ pat }: { pat: NonNullable<ReturnType<typeof useKeys>["data"
     <div className="banner" role="alert">
       <span>
         <strong className="text-warning">The Worker cannot see the repo secrets.</strong> <span className="text-muted">{pat.hint}</span>{" "}
-        <span className="e-num">Permission: {pat.permission}</span>
+        {pat.permission ? <span className="e-num">Permission: {pat.permission}</span> : null}
       </span>
       <a className="btn btn-quiet" href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener noreferrer">
-        Edit the token
+        {pat.status === 401 ? "Make a new token" : "Edit the token"}
       </a>
     </div>
   );

@@ -96,6 +96,8 @@ Checked on 2026-10-08. Do not add a card. The rule of this project is to spend $
 
 - **The row says `missing`, but you saved a key.** Look at the banner on the Keys page. TITAN flags a secret whose name is one letter away from a catalog name. The live repo had `GROK_API_KEY` where `GROQ_API_KEY` is right. Save the key again on the Keys page.
 - **The page shows a PAT banner.** The token `GITHUB_PAT` of the Worker lacks a permission. The banner names it. Edit the token on GitHub and add the permission. Do not make a new token.
+- **GitHub answered 401 for the token.** The token no longer works. Make a new fine-grained token with the permissions in the runbook. Set it with `wrangler secret put GITHUB_PAT`. The banner names no permission in this case, because the token never passed the check.
+- **The save stops at "Save the secret on GitHub".** The Worker shows the step that failed. A failed public-key fetch leaves "Seal the key" as skipped, because the seal never ran. Fix the token, then click "Try again". The key stays in the field after a failed GitHub write, so you do not paste it again.
 - **The runner test takes a long time.** The row stays `saved_unverified` until the proof comes back. Click "Test now" to start it again.
 - **A proof never arrives.** Open Settings and click "Repair runner callbacks". It rotates the callback token and runs a round trip test.
 - **Chat says no key is ready.** Mark the key "also for chat" and make sure that the vault is ready. Run the workflow "Provision vault key" if it is not.

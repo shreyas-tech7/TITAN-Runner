@@ -250,11 +250,14 @@ function pulseSummary(rec) {
 
 function patBlock(err) {
   const status = err?.status ?? null;
-  const permission = err?.permission ?? PERMISSIONS.secretsRead;
+  // A 401 is a bad token, not a missing permission. Only a 403 can name a permission that the token lacks.
+  let permission = null;
   let hint = 'GitHub did not answer the Worker.';
   if (status === 401) hint = 'The GITHUB_PAT of the Worker is missing, expired, or revoked. Make a new token and set it with wrangler secret put GITHUB_PAT.';
-  else if (status === 403) hint = `The GITHUB_PAT of the Worker lacks the "${permission}" permission. Edit the token on GitHub and add it. Do not make a new token.`;
-  else if (status === 404) hint = 'The GITHUB_PAT cannot see the repo, or GITHUB_OWNER and GITHUB_REPO are wrong.';
+  else if (status === 403) {
+    permission = err?.permission ?? PERMISSIONS.secretsRead;
+    hint = `The GITHUB_PAT of the Worker lacks the "${permission}" permission. Edit the token on GitHub and add it. Do not make a new token.`;
+  } else if (status === 404) hint = 'The GITHUB_PAT cannot see the repo, or GITHUB_OWNER and GITHUB_REPO are wrong.';
   else if (err?.code === 'pat_missing') hint = 'The Worker has no GITHUB_PAT yet. See docs/RUNTIME.md.';
   return { ok: false, status, permission, hint, message: err instanceof Error ? err.message : 'unknown error' };
 }
@@ -396,14 +399,21 @@ export async function handleSaveKey(c) {
   const gh = githubClient(env);
   const toWrite = [[entry.secrets.key, value]];
   for (const [role, text] of Object.entries(inputs)) if (entry.secrets[role]) toWrite.push([entry.secrets[role], text]);
+  // The step name tells the dashboard what actually happened. A failed public-key fetch is not a failed seal.
+  let step = 'public_key';
   try {
     const { key: publicKey, key_id: keyId } = await gh.getPublicKey({ forWrite: true });
-    for (const [name, plain] of toWrite) await gh.putSecret(name, await sealForGithub(plain, publicKey), keyId);
+    for (const [name, plain] of toWrite) {
+      step = 'seal';
+      const sealed = await sealForGithub(plain, publicKey);
+      step = 'secret_write';
+      await gh.putSecret(name, sealed, keyId);
+    }
   } catch (err) {
     // The raw value never reaches this message. Only the sealed form and the answer of GitHub left this function.
-    await recordKeyEvent(env, { action: 'save_failed', provider: entry.id, result: 'github_failed', requestId, detail: safeMessage(err) }).catch(() => null);
+    await recordKeyEvent(env, { action: 'save_failed', provider: entry.id, result: 'github_failed', requestId, detail: `${step}: ${safeMessage(err)}` }).catch(() => null);
     const pat = err instanceof GitHubError && (err.status === 401 || err.status === 403 || err.status === 404) ? patBlock(err) : undefined;
-    return json({ ok: false, error: 'github_failed', message: `failed to set ${entry.secrets.key}: ${safeMessage(err)}`, pat, requestId }, 502);
+    return json({ ok: false, error: 'github_failed', step, message: `failed to set ${entry.secrets.key}: ${safeMessage(err)}`, pat, requestId }, 502);
   }
 
   const fingerprint = await fingerprintOf(value);

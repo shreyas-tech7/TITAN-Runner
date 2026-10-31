@@ -131,11 +131,11 @@ export default function AddKeyModal({
         onUnauthorized();
         return;
       }
-      setPhase({ name: "failed", message: err instanceof WorkerApiError ? err.message : "Could not reach the Worker. Check your connection.", permission: null });
+      setPhase({ name: "failed", message: err instanceof WorkerApiError ? err.message : "Could not reach the Worker. Check your connection.", permission: null, hint: null, step: null });
       return;
     }
-    // Clear the input after every result.
-    setValue("");
+    // Clear the input after every result, except a failed GitHub write. That key stays for one retry.
+    if (outcome.kind !== "failed") setValue("");
     switch (outcome.kind) {
       case "saved":
         pending.current = null;
@@ -153,7 +153,7 @@ export default function AddKeyModal({
         break;
       default:
         pending.current = null;
-        setPhase({ name: "failed", message: outcome.message, permission: outcome.permission });
+        setPhase({ name: "failed", message: outcome.message, permission: outcome.permission, hint: outcome.hint, step: outcome.step });
     }
   }
 
@@ -317,7 +317,14 @@ export default function AddKeyModal({
                 {phase.name === "rejected" ? <strong>The provider rejected this key. </strong> : null}
                 {phase.name === "rejected" ? phase.reason + " Nothing was saved." : message}
                 {phase.name === "failed" && phase.permission ? ` The GitHub token needs the permission "${phase.permission}".` : ""}
+                {phase.name === "failed" && !phase.permission && phase.hint ? ` ${phase.hint}` : ""}
               </p>
+              {phase.name === "failed" && phase.hint ? (
+                <p className="e-dim">
+                  <a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener noreferrer">Open the GitHub token settings</a>{" "}
+                  Your key stays in the field, so you can try again.
+                </p>
+              ) : null}
               {requestId && (phase.name === "failed" || phase.name === "proof_failed") ? <p className="e-dim">Request id: <span className="e-num">{requestId}</span></p> : null}
               <div className="modal-actions">
                 {phase.name === "confirm" ? (

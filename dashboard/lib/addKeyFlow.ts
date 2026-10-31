@@ -3,7 +3,7 @@
  * and the GitHub write in one request. The runner test comes later. The dashboard polls `GET /admin/keys` every 5 seconds
  * for up to 3 minutes to see the proof. This file holds the pure rules, so a test can check them without a browser.
  */
-import type { KeyRow } from "./keysApi";
+import type { KeyRow, SaveStep } from "./keysApi";
 
 export const POLL_INTERVAL_MS = 5_000;
 export const POLL_LIMIT_MS = 180_000;
@@ -17,7 +17,7 @@ export type FlowPhase =
   | { name: "sending" }
   | { name: "rejected"; reason: string }
   | { name: "confirm"; reason: string }
-  | { name: "failed"; message: string; permission: string | null }
+  | { name: "failed"; message: string; permission: string | null; hint?: string | null; step?: SaveStep | null }
   | { name: "saved"; verified: boolean }
   | { name: "proven" }
   | { name: "proof_failed"; reason: string }
@@ -53,12 +53,23 @@ export function stepsFor(phase: FlowPhase): Array<{ id: StepId; label: string; s
       status.provider = "failed";
       status.seal = status.github = status.runner = "pending";
       break;
-    case "failed":
+    case "failed": {
       status.format = status.provider = "done";
-      status.seal = "done";
-      status.github = "failed";
+      // The public-key fetch is part of the GitHub step. A failure before the seal must not show the seal as done.
+      const step = phase.step ?? "secret_write";
+      if (step === "public_key") {
+        status.seal = "skipped";
+        status.github = "failed";
+      } else if (step === "seal") {
+        status.seal = "failed";
+        status.github = "skipped";
+      } else {
+        status.seal = "done";
+        status.github = "failed";
+      }
       status.runner = "skipped";
       break;
+    }
     case "saved":
       status.format = status.provider = status.seal = status.github = "done";
       if (!phase.verified) status.provider = "skipped";
