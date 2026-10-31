@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-10-30T02:59:32.946Z",
+  "lastAttemptAt": "2026-10-31T00:49:52.021Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-10-30",
-  "lastDigestFile": "state/digests/2026-10-30-research.md",
+  "lastDigestDate": "2026-10-31",
+  "lastDigestFile": "state/digests/2026-10-31-research.md",
   "provider": "groq",
-  "model": "openai/gpt-oss-20b",
+  "model": "openai/gpt-oss-120b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape  \n*Note: My knowledge is current up to 2024; verify the latest details.*  \n- What matters: Daily token caps, model availability, and policy changes on free tiers of Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- Why it matters: Exceeding a cap or losing access to a model forces the agent to stall or switch providers, breaking continuous operation.  \n- One thing worth verifying: The current free‑tier token limits and any recent policy updates on each provider’s public documentation.  \n\n## agent-safety-practice  \n*Note: My knowledge is current up to 2024; verify the latest details.*  \n- What matters: Multi‑layered approval workflows, sandbox",
+  "preview": "## free-tier-llm-landscape\n- **What matters:** Recent tweaks to free‑tier quotas (e.g., lower daily token caps, added request‑rate limits) and the introduction of newer “free‑only” model families on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Our autonomous agents rely on uninterrupted access to these APIs; a tighter quota or a model being moved out of the free tier can cause sudden failures or degraded performance.  \n- **One thing worth verifying:** Check the current free‑tier documentation for each provider (especially any announced “beta” models) to confirm that the models we depend on are still listed as free and that rate‑limit thresholds haven’t changed.\n\n## agent-safety-practice\n- **What matters:** Layered approval (human‑in‑the‑loop for code‑generation), container‑based sandboxing, prompt‑injection sanitizers, and immutable audit logs for every agent action.  \n- **Why it matters:** These controls limit the risk of the agent executing malicious code, leaking credentials, or drifting into unintended behaviors while still operating autonomously on free resources.  \n- **One thing worth verifying:** Run a controlled test where the agent r",
   "lastDetail": null
 }
