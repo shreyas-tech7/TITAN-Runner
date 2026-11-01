@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-01T06:41:56.223Z",
+  "updatedAt": "2026-11-01T13:40:16.598Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -15,14 +15,14 @@
       "consecutiveFailures": 0,
       "cooldownUntil": null,
       "lastError": null,
-      "model": "qwen/qwen3.8-27b",
+      "model": "openai/gpt-oss-120b",
       "discoveredModels": [
-        "qwen/qwen3.8-27b",
-        "allam-2-7b",
         "openai/gpt-oss-120b",
-        "openai/gpt-oss-20b"
+        "allam-2-7b",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.8-27b"
       ],
-      "modelsDiscoveredAt": "2026-10-31T12:54:29.020Z",
+      "modelsDiscoveredAt": "2026-11-01T13:40:15.838Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -67,9 +67,7 @@
         "liquid/lfm-2.5-2.6b:free",
         "nvidia/nemotron-3.5-lightning:free",
         "thinkingmachines/inkling-small:free",
-        "poolside/laguna-s-2.1:free",
         "thinkingmachines/inkling:free",
-        "poolside/laguna-xs-2.1:free",
         "cohere/north-mini-code:free",
         "nvidia/nemotron-3.5-content-safety:free",
         "nvidia/nemotron-3-ultra-550b-a55b:free",
@@ -80,7 +78,7 @@
         "google/lyria-3-clip-preview",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-10-31T12:54:29.337Z",
+      "modelsDiscoveredAt": "2026-11-01T13:40:16.476Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -134,7 +132,7 @@
         "lyria-3-pro-preview",
         "deep-research-pro-preview-12-2025"
       ],
-      "modelsDiscoveredAt": "2026-10-31T12:54:29.476Z",
+      "modelsDiscoveredAt": "2026-11-01T13:40:16.597Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -173,7 +171,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
