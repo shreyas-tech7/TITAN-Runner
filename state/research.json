@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-01T00:21:42.047Z",
+  "lastAttemptAt": "2026-11-02T01:52:47.812Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-01",
-  "lastDigestFile": "state/digests/2026-11-01-research.md",
+  "lastDigestDate": "2026-11-02",
+  "lastDigestFile": "state/digests/2026-11-02-research.md",
   "provider": "groq",
-  "model": "qwen/qwen3.8-27b",
+  "model": "openai/gpt-oss-120b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n*   **What matters:** Free tiers are volatile; providers frequently adjust rate limits, model availability, or terms of service without long notice.\n*   **Why it matters:** An agent relying solely on free endpoints faces sudden downtime or degraded performance if a preferred model is deprecated or limits are tightened.\n*   **Verify:** Check current documentation for each provider to confirm which specific models remain accessible via free API keys and their exact request-per-minute caps.\n\n## agent-safety-practice\n*   **What matters:** Standard practice now mandates strict sandboxing (e.g., containers), least-privilege permissions, and human-in-the-loop approval for destructive actions.\n*   **Why it matters:** Autonomous coding agents can execute arbitrary code; without robust isolation and audit logs, a single prompt injection or logic error can compromise the host system or leak secrets.\n*   **Verify:** Review your agent’s configuration to ensure it cannot write outside its designated workspace and that all executed commands are logged with full context.\n\n## actions-automation\n*   **What matters:** GitHub Actions free-minute allocations for public reposi",
+  "preview": "## free-tier-llm-landscape\n- **What matters:** Any reduction in monthly token quotas, new per‑request caps, or added usage‑based throttling on Groq, Together, OpenRouter, Google Gemini, and Hugging Face free tiers.  \n- **Why it matters:** Your autonomous agents rely on uninterrupted access to these models; a sudden quota cut or stricter rate‑limit can cause task failures, time‑outs, or silent degradation of output quality.  \n- **One thing worth verifying:** Check the latest developer dashboards or provider newsletters for announced changes to free‑tier limits or model deprecations (e.g., removal of older “lite” models).\n\n---\n\n## agent-safety-practice\n- **What matters:** Layered approval (human‑in‑the‑loop for code‑generation), sandboxed execution environments (container or VM isolation), prompt‑injection mitigation (input sanitisation, role‑based prompting), and immutable audit logs.  \n- **Why it matters:** Autonomous coding agents can produce harmful code or exfiltrate data; a disciplined safety pipeline prevents runaway actions and provides traceability for debugging or compliance.  \n- **One thing worth verifying:** Run a controlled test where the agent attempts a known prompt‑in",
   "lastDetail": null
 }
