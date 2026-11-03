@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-02T01:52:47.812Z",
+  "lastAttemptAt": "2026-11-03T01:50:46.619Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-02",
-  "lastDigestFile": "state/digests/2026-11-02-research.md",
+  "lastDigestDate": "2026-11-03",
+  "lastDigestFile": "state/digests/2026-11-03-research.md",
   "provider": "groq",
   "model": "openai/gpt-oss-120b",
   "topicIds": [
@@ -12,6 +12,6 @@
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n- **What matters:** Any reduction in monthly token quotas, new per‑request caps, or added usage‑based throttling on Groq, Together, OpenRouter, Google Gemini, and Hugging Face free tiers.  \n- **Why it matters:** Your autonomous agents rely on uninterrupted access to these models; a sudden quota cut or stricter rate‑limit can cause task failures, time‑outs, or silent degradation of output quality.  \n- **One thing worth verifying:** Check the latest developer dashboards or provider newsletters for announced changes to free‑tier limits or model deprecations (e.g., removal of older “lite” models).\n\n---\n\n## agent-safety-practice\n- **What matters:** Layered approval (human‑in‑the‑loop for code‑generation), sandboxed execution environments (container or VM isolation), prompt‑injection mitigation (input sanitisation, role‑based prompting), and immutable audit logs.  \n- **Why it matters:** Autonomous coding agents can produce harmful code or exfiltrate data; a disciplined safety pipeline prevents runaway actions and provides traceability for debugging or compliance.  \n- **One thing worth verifying:** Run a controlled test where the agent attempts a known prompt‑in",
+  "preview": "## free-tier-llm-landscape\n- **What matters:** Several providers have adjusted free‑tier quotas and model availability – e.g., Groq trimmed request caps, Together limited newer open‑source models, OpenRouter added usage‑based throttling, Google Gemini introduced a per‑day token ceiling, and Hugging Face tightened API rate limits for anonymous users.  \n- **Why it matters:** Our autonomous agents rely on uninterrupted access to these free endpoints; reduced caps or model removals can cause task failures, latency spikes, or forced model downgrades that degrade coding quality.  \n- **One thing worth verifying:** Pull the latest “free tier” documentation or dashboard metrics from each provider to confirm current request limits, token budgets, and any new model deprecations.\n\n## agent-safety-practice\n- **What matters:** Best‑practice stacks now emphasize multi‑level approval (human‑in‑the‑loop for code execution), container‑based sandboxing (e.g., Firecracker or Docker with seccomp), prompt‑injection hardening (static prompt prefixes, input sanitization), and immutable audit logs stored off‑site.  \n- **Why it matters:** Autonomous coding agents can generate harmful or resource‑exhaustive ",
   "lastDetail": null
 }

@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-02T19:42:18.743Z",
+  "updatedAt": "2026-11-03T01:50:48.790Z",
   "providers": {
     "groq": {
       "id": "groq",
       "configured": true,
       "status": "ok",
-      "lastCheckedAt": "2026-11-02T16:44:02.197Z",
-      "lastSuccessAt": "2026-11-02T16:44:02.197Z",
-      "latencyMs": 320,
-      "p50LatencyMs": 887,
-      "samples": 31,
+      "lastCheckedAt": "2026-11-03T01:50:48.787Z",
+      "lastSuccessAt": "2026-11-03T01:50:48.787Z",
+      "latencyMs": 2166,
+      "p50LatencyMs": 1527,
+      "samples": 32,
       "errorRate": 0.001,
       "consecutiveFailures": 0,
       "cooldownUntil": null,
