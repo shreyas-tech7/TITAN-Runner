@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-04T02:39:12.737Z",
+  "updatedAt": "2026-11-04T17:54:28.843Z",
   "providers": {
     "groq": {
       "breaker": "closed",
@@ -11,7 +11,7 @@
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 1,
+        "usedMinute": 0,
         "usedDay": 1,
         "dayLeft": 11999,
         "perDay": 12000
@@ -36,7 +36,7 @@
       "breaker": "half-open",
       "until": null,
       "reason": "cooldown over after 6 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 6 failure(s); next call is a probe); p50 18987 ms; error rate 92%; model recursive/flint-v1.0:free",
+      "explain": "openrouter: breaker half-open (cooldown over after 6 failure(s); next call is a probe); p50 18987 ms; error rate 92%; model stealth/crouton-alpha",
       "status": "error",
       "consecutiveFailures": 6,
       "lastFailureClass": null,
