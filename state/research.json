@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-04T02:39:11.461Z",
+  "lastAttemptAt": "2026-11-05T03:41:52.615Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-04",
-  "lastDigestFile": "state/digests/2026-11-04-research.md",
+  "lastDigestDate": "2026-11-05",
+  "lastDigestFile": "state/digests/2026-11-05-research.md",
   "provider": "groq",
   "model": "openai/gpt-oss-120b",
   "topicIds": [
@@ -12,6 +12,6 @@
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n- **What matters:** Any reduction in monthly token quotas, new per‑request caps, or added usage‑based throttling on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.\n- **Why it matters:** Your autonomous agents rely on uninterrupted access to these free tiers; a tighter quota or throttling can cause dropped completions, time‑outs, or silent failures that break workflows.\n- **One thing worth verifying:** Check each provider’s current free‑tier policy page (or recent blog post) for the latest quota numbers and any newly‑added “fair‑use” restrictions.\n\n## agent-safety-practice\n- **What matters:** Layered approval (human‑in‑the‑loop for code‑write actions), container‑based sandboxing of generated code, prompt‑injection sanitisation, and immutable audit logs stored off‑site.\n- **Why it matters:** Autonomous coding agents can produce harmful or resource‑exhaustive scripts; safeguards prevent runaway execution, data leakage, and downstream supply‑chain damage.\n- **One thing worth verifying:** Run a controlled test where the agent attempts a known prompt‑injection pattern and confirm the defence (e.g., input‑whitelisting or LLM‑based guardrails) blocks",
+  "preview": "## free-tier-llm-landscape\n- **What matters:** Recent announcements indicate that Groq, Together, OpenRouter, Google Gemini, and Hugging Face have lowered free‑tier token caps, added stricter request‑rate limits, and introduced “fair‑use” clauses that can suspend access after prolonged high‑volume usage.  \n- **Why it matters:** Your autonomous agents rely on uninterrupted, low‑cost inference; tighter caps or sudden throttling can cause task failures, increased latency, or forced model downgrades that degrade code‑generation quality.  \n- **One thing worth verifying:** Check the current free‑tier dashboards or provider newsletters for any updated quota numbers or new “burst‑limit” policies that may have taken effect in the last month.\n\n## agent-safety-practice\n- **What matters:** Best‑practice frameworks now emphasize a three‑tier approval flow (sandbox‑run → human‑review → production‑deploy), container‑level sandboxing (e.g., Firecracker or gVisor), prompt‑injection sanitizers, and immutable audit‑log storage with cryptographic signatures.  \n- **Why it matters:** Autonomous coding agents can unintentionally produce malicious code or leak credentials; layered approvals and strong iso",
   "lastDetail": null
 }
