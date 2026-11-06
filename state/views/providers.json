@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-06T00:20:24.307Z",
+  "updatedAt": "2026-11-06T07:15:26.055Z",
   "providers": {
     "groq": {
-      "breaker": "open",
-      "until": "2026-11-06T00:25:13.018Z",
-      "reason": "rate_limited — cooling down after 1 consecutive failure(s)",
-      "explain": "groq: breaker open (rate_limited — cooling down after 1 consecutive failure(s)); p50 1574 ms; error rate 30%; model qwen/qwen3.8-27b",
+      "breaker": "half-open",
+      "until": null,
+      "reason": "cooldown over after 1 failure(s); next call is a probe",
+      "explain": "groq: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 1574 ms; error rate 30%; model qwen/qwen3.8-27b",
       "status": "rate_limited",
       "consecutiveFailures": 1,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 1,
+        "usedMinute": 0,
         "usedDay": 1,
         "dayLeft": 11999,
         "perDay": 12000
@@ -41,7 +41,7 @@
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 1,
+        "usedMinute": 0,
         "usedDay": 1,
         "dayLeft": 179,
         "perDay": 180
