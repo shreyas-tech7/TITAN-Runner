@@ -108,7 +108,10 @@ These are variables and secrets of the `titan-runner-brain` Worker, not of the p
 | Name | Kind | Meaning |
 |---|---|---|
 | `TITAN_CALLBACK_TOKEN` | secret | The Worker makes it and writes it. Workflows send it as `X-Titan-Callback`. |
-| `TITAN_ADMIN_TOKEN` | secret | A script sends it only when the callback token is empty. |
+| `TITAN_ADMIN_TOKEN` | secret | A script sends it only when the callback token is empty. The repair workflow also uses it to check the live Worker. |
+| `GITHUB_PAT` | secret | The candidate token for `Repair Worker GitHub token`. The workflow validates it, then copies it into the Worker secret of the same name. |
+| `CLOUDFLARE_API_TOKEN` | secret | The deploy and repair workflows use it to manage the Worker. |
+| `CLOUDFLARE_ACCOUNT_ID` | secret | The Cloudflare account that holds the Worker. |
 | `TITAN_WORKER_URL` | variable | The address of the Worker. |
 | `OPENCODE_MODEL` | secret | An optional pin for the OpenCode model. |
 | `CUSTOM_1_*` to `CUSTOM_3_*` | secret | A custom OpenAI compatible provider: `API_KEY`, `BASE_URL`, `MODEL`, and `LABEL`. |

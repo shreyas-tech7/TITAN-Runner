@@ -724,11 +724,14 @@ one-time setup is done:
 1. **Generate the `GITHUB_PAT`**: GitHub → Settings → Developer settings →
    Fine-grained tokens → Generate new token. Repository access: only this
    repo. Repository permissions: **Contents** (Read and write), **Issues**
-   (Read-only), **Secrets** (Read and write) — exactly what
-   `worker/wrangler.toml`'s header comment documents.
+   (Read and write), **Secrets** (Read and write), **Actions** (Read), and
+   **Variables** (Read). `docs/CONFIG.md` lists the same set.
 2. **Set the two Worker secrets** from `worker/`: `wrangler secret put
    GITHUB_PAT` (paste the token from step 1) and `wrangler secret put
    TITAN_ADMIN_TOKEN` (a long random string you generate once).
+   If the Worker token later expires, add the replacement as the repository
+   Actions secret `GITHUB_PAT`. Then run `Repair Worker GitHub token` with
+   mode `check`, and run it again with mode `repair`.
 3. **Add two GitHub repo secrets** (Settings → Secrets and variables →
    Actions, on this repo — separate from the Worker secrets in step 2):
    `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Once both exist,

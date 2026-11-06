@@ -12,13 +12,15 @@
 #   TITAN_ADMIN_TOKEN  a long random string Shreyas generates once; gates
 #                      every route below except GET /.
 #   GITHUB_PAT         a fine-grained PAT scoped to shreyas-tech7/TITAN-Runner
-#                      only, with Contents (read/write), Issues (read), and
-#                      Secrets (read/write). Without it, the Worker still
-#                      accepts /tasks and /admin/keys calls and reads D1 for
-#                      /status, but the cron tick's issue-mirror and
-#                      repository_dispatch steps no-op rather than error —
-#                      see docs/RUNTIME.md. Verify it works with
+#                      only. It needs Contents (read/write), Issues (read/write),
+#                      Secrets (read/write), Actions (read), and Variables (read).
+#                      Without it, the Worker still accepts /tasks and /admin/keys
+#                      calls and reads D1 for /status, but the cron tick's
+#                      issue-mirror and repository_dispatch steps no-op rather
+#                      than error. See docs/RUNTIME.md. Verify it works with
 #                      GET /admin/diagnose before trusting a real key paste.
+#                      If GitHub answers 401, put a replacement in the repository
+#                      Actions secret GITHUB_PAT and run Repair Worker GitHub token.
 #   OPS_TOKEN          one random secret of 32 characters or more. It opens the /ops routes (contract v1,
 #                      docs/CONTRACT.md). TITAN holds the same value. Without it, every /ops route answers 401.
 #   CONNECTOR_KEK      the vault key (32 random bytes as hex) for AES-256-GCM. Do not set it by hand. worker-deploy.yml

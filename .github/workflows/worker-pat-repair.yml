@@ -1,0 +1,51 @@
+name: Repair Worker GitHub token
+
+# Replaces the Worker secret GITHUB_PAT with the repository Actions secret GITHUB_PAT.
+# The script checks the candidate with GitHub before it changes Cloudflare. Repair mode also
+# writes and deletes the diagnostic probe secret TITAN_DIAG_PROBE. It never touches a provider key.
+# The default mode only checks. A person with write access must choose repair to change the Worker.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Check the candidate, or replace the Worker secret after validation"
+        type: choice
+        options:
+          - check
+          - repair
+        default: check
+
+permissions:
+  contents: read
+
+# Shares worker-deploy's group so a deploy and a secret change never overlap.
+concurrency:
+  group: worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm ci --no-audit --no-fund
+
+      - name: Check or repair the Worker GitHub token
+        working-directory: worker
+        env:
+          REPAIR_MODE: ${{ inputs.mode }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          TITAN_WORKER_URL: https://titan-runner-brain.titan-runner.workers.dev
+          GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          TITAN_ADMIN_TOKEN: ${{ secrets.TITAN_ADMIN_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/repair-github-pat.mjs

@@ -111,7 +111,8 @@ real provider.
 3. If the state is `saved_unverified`, click "Test now". Wait 3 minutes.
 4. If the proof never arrives, open Settings and click "Repair runner callbacks".
 5. If a banner names a GitHub permission, edit the token `GITHUB_PAT` of the Worker and add that permission. Do not make a new token.
-6. If a banner says that a secret has a spelling slip, save the key again on the Keys page. Then delete the old secret on GitHub.
+6. If GitHub answered 401, make a new fine-grained token. Add it as the repository Actions secret `GITHUB_PAT`. Run the workflow `Repair Worker GitHub token` with mode `check`, then with mode `repair`.
+7. If a banner says that a secret has a spelling slip, save the key again on the Keys page. Then delete the old secret on GitHub.
 
 ## The callback path is broken
 
