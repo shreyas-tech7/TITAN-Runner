@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-05T03:41:52.615Z",
+  "lastAttemptAt": "2026-11-06T00:20:12.863Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-05",
-  "lastDigestFile": "state/digests/2026-11-05-research.md",
-  "provider": "groq",
-  "model": "openai/gpt-oss-120b",
+  "lastDigestDate": "2026-11-06",
+  "lastDigestFile": "state/digests/2026-11-06-research.md",
+  "provider": "openrouter",
+  "model": "stealth/crouton-alpha",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n- **What matters:** Recent announcements indicate that Groq, Together, OpenRouter, Google Gemini, and Hugging Face have lowered free‑tier token caps, added stricter request‑rate limits, and introduced “fair‑use” clauses that can suspend access after prolonged high‑volume usage.  \n- **Why it matters:** Your autonomous agents rely on uninterrupted, low‑cost inference; tighter caps or sudden throttling can cause task failures, increased latency, or forced model downgrades that degrade code‑generation quality.  \n- **One thing worth verifying:** Check the current free‑tier dashboards or provider newsletters for any updated quota numbers or new “burst‑limit” policies that may have taken effect in the last month.\n\n## agent-safety-practice\n- **What matters:** Best‑practice frameworks now emphasize a three‑tier approval flow (sandbox‑run → human‑review → production‑deploy), container‑level sandboxing (e.g., Firecracker or gVisor), prompt‑injection sanitizers, and immutable audit‑log storage with cryptographic signatures.  \n- **Why it matters:** Autonomous coding agents can unintentionally produce malicious code or leak credentials; layered approvals and strong iso",
+  "preview": "## free-tier-llm-landscape\n- What matters: Free-tier rate limits, available models, and terms at Groq, Together, OpenRouter, Google Gemini, and Hugging Face can change without notice; I have no web access and am unsure of current specifics.\n- Why it matters to this system: An agent relying only on free tiers can break or stall if a model is removed, throttled, or reclassified.\n- Worth verifying: Current limits, model names, and terms for each provider before relying on them in production.\n\n## agent-safety-practice\n- What matters: Good practice uses tiered approvals for risky actions, sandboxing with least-privilege access, treating external content as untrusted to resist prompt injection, and immutable audit logs.\n- Why it matters to this system: Autonomous coding agents can execute code and modify files, so guardrails limit damage from mistakes or malicious instructions.\n- Worth verifying: That approvals, sandbox boundaries, and log retention are actually enforced and reviewed, not just documented.\n\n## actions-automation\n- What matters: Scheduled GitHub Actions runs can be delayed or skipped, free-minute allowances are limited for public repositories, token permissions have tighte",
   "lastDetail": null
 }
