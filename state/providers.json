@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-06T07:15:26.049Z",
+  "updatedAt": "2026-11-06T14:28:50.001Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -15,14 +15,14 @@
       "consecutiveFailures": 1,
       "cooldownUntil": "2026-11-06T00:25:13.018Z",
       "lastError": "Groq rate limited (429): Request too large for model `qwen/qwen3.8-27b` in organization `org_01kwq68qyyerw9hjcvk85z7kg0` service tier `on_demand` on output tokens per minute (OTPM): Limit 1000, Requested 1140. The request's e",
-      "model": "qwen/qwen3.8-27b",
+      "model": "allam-2-7b",
       "discoveredModels": [
-        "qwen/qwen3.8-27b",
-        "openai/gpt-oss-120b",
         "allam-2-7b",
-        "openai/gpt-oss-20b"
+        "openai/gpt-oss-20b",
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.8-27b"
       ],
-      "modelsDiscoveredAt": "2026-11-05T14:51:01.414Z",
+      "modelsDiscoveredAt": "2026-11-06T14:28:49.306Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -68,7 +68,6 @@
         "liquid/lfm-2.5-2.6b:free",
         "nvidia/nemotron-3.5-lightning:free",
         "cohere/north-mini-code:free",
-        "nvidia/nemotron-3.5-content-safety:free",
         "nvidia/nemotron-3-ultra-550b-a55b:free",
         "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
         "google/gemma-4-26b-a4b-it:free",
@@ -77,7 +76,7 @@
         "google/lyria-3-clip-preview",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-11-05T14:51:02.902Z",
+      "modelsDiscoveredAt": "2026-11-06T14:28:49.840Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -110,6 +109,7 @@
         "gemini-3.5-flash-lite",
         "gemini-omni-flash-preview",
         "gemini-omni-1.1-flash",
+        "gemini-omni-1.2-flash",
         "gemini-3.6-flash",
         "gemini-3.7-flash",
         "gemini-3.8-flash",
@@ -131,7 +131,7 @@
         "lyria-3-pro-preview",
         "deep-research-pro-preview-12-2025"
       ],
-      "modelsDiscoveredAt": "2026-11-05T14:51:03.037Z",
+      "modelsDiscoveredAt": "2026-11-06T14:28:49.999Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -170,7 +170,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
