@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-06T07:15:26.055Z",
+  "updatedAt": "2026-11-06T15:18:17.000Z",
   "providers": {
     "groq": {
       "breaker": "half-open",
       "until": null,
       "reason": "cooldown over after 1 failure(s); next call is a probe",
-      "explain": "groq: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 1574 ms; error rate 30%; model qwen/qwen3.8-27b",
+      "explain": "groq: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 1574 ms; error rate 30%; model allam-2-7b",
       "status": "rate_limited",
       "consecutiveFailures": 1,
       "lastFailureClass": null,
