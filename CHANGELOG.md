@@ -2,6 +2,7 @@
 
 ## Keys
 
+- Add `Repair Worker GitHub token`. It validates a replacement `GITHUB_PAT` from the repository Actions secrets before it updates the Worker secret. It then checks the live Worker and the secret write probe. It never touches a provider key.
 - Fix the message for a dead GitHub token. A 401 no longer names a permission that the token cannot use. The message tells you to make a new token, and the Keys page link says "Make a new token".
 - Add the field `step` to a failed key save (`public_key`, `seal`, or `secret_write`). The add key window now marks only the steps that ran. A failed public-key fetch shows "Seal the key" as skipped.
 - Keep a key in the field after a failed GitHub write, so one retry is enough after you fix the token.
