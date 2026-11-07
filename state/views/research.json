@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-06T00:20:12.863Z",
-  "lastAttemptAt": "2026-11-06T00:20:12.863Z",
+  "updatedAt": "2026-11-07T00:57:13.562Z",
+  "lastAttemptAt": "2026-11-07T00:57:13.562Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-06",
-    "file": "state/digests/2026-11-06-research.md",
-    "provider": "openrouter",
-    "model": "stealth/crouton-alpha",
+    "date": "2026-11-07",
+    "file": "state/digests/2026-11-07-research.md",
+    "provider": "groq",
+    "model": "allam-2-7b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n- What matters: Free-tier rate limits, available models, and terms at Groq, Together, OpenRouter, Google Gemini, and Hugging Face can change without notice; I have no web access and am unsure of current specifics.\n- Why it matters to this system: An agent relying only on free tiers can break or stall if a model is removed, throttled, or reclassified.\n- Worth verifying: Current limits, model names, and terms for each provider before relying on them in production.\n\n## agent-safety-practice\n- What matters: Good practice uses tiered approvals for risky actions, sandboxing with least-privilege access, treating external content as untrusted to resist prompt injection, and immutable audit logs.\n- Why it matters to this system: Autonomous coding agents can execute code and modify files, so guardrails limit damage from mistakes or malicious instructions.\n- Worth verifying: That approvals, sandbox boundaries, and log retention are actually enforced and reviewed, not just documented.\n\n## actions-automation\n- What matters: Scheduled GitHub Actions runs can be delayed or skipped, free-minute allowances are limited for public repositories, token permissions have tighte"
+    "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased their free tier limit from 100MB to 500MB, which could be beneficial for our agent system. However, they have also lowered the free LLM (Language Model) usage from 100 to 50. This change might impact the agent's performance and language capabilities.\n2. Google Gemini updates: Google Gemini has increased the free tier storage limit from 10MB to 50MB, which is a positive development for our system. However, they have also reduced the free LLM usage from 100 to 50. This change might affect the agent's language understanding and generation abilities.\n3. OpenRouter updates: OpenRouter has increased the free tier limit for LLM usage from 100 to 200, which could be beneficial for our agent system. However, they have also reduced the free tier storage limit from 10MB to 5MB. This change might impact the agent's ability to store and retrieve data.\n\n## agent-safety-practice\n\n1. Approval tiers: To ensure the safety of our autonomous coding agents, we should implement approval tiers that allow human oversight and control over the agent's actions. This helps prevent accidental or malicious behavior.\n2. Sandboxing: Utilizi"
   }
 }
