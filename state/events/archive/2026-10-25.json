@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-25",
+  "events": 24,
+  "byType": {
+    "pulse.started": 7,
+    "routing.decision": 1,
+    "research.written": 1,
+    "retention.events-compacted": 1,
+    "pulse.finished": 7,
+    "checkpoint.written": 7
+  },
+  "byOutcome": {
+    "routed": 1,
+    "written": 1,
+    "ok": 7,
+    "pushed": 7
+  },
+  "byFailureClass": {},
+  "calls": 0,
+  "tokens": 0
+}
