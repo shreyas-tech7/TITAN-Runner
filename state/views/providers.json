@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-09T11:39:37.328Z",
+  "updatedAt": "2026-11-09T21:38:28.615Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 1072 ms; error rate 10%; model allam-2-7b",
+      "explain": "groq: breaker closed (healthy); p50 1263 ms; error rate 7%; model openai/gpt-oss-20b",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
@@ -36,7 +36,7 @@
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "openrouter: breaker closed (healthy); p50 15134 ms; error rate 65%; model liquid/lfm-3-1.7b:free",
+      "explain": "openrouter: breaker closed (healthy); p50 8424 ms; error rate 45%; model liquid/lfm-3-1.7b:free",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
@@ -51,7 +51,7 @@
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "gemini: breaker closed (healthy); p50 501 ms; error rate 2%; model gemini-2.5-flash",
+      "explain": "gemini: breaker closed (healthy); p50 457 ms; error rate 1%; model gemini-2.5-flash",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
