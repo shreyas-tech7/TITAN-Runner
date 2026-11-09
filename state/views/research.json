@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-08T01:45:01.453Z",
-  "lastAttemptAt": "2026-11-08T01:45:01.453Z",
+  "updatedAt": "2026-11-09T03:01:09.129Z",
+  "lastAttemptAt": "2026-11-09T03:01:09.129Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-08",
-    "file": "state/digests/2026-11-08-research.md",
+    "date": "2026-11-09",
+    "file": "state/digests/2026-11-09-research.md",
     "provider": "groq",
-    "model": "openai/gpt-oss-120b",
+    "model": "allam-2-7b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n- **What matters:** Recent tweaks to free‑tier quotas (e.g., reduced request caps, added per‑minute limits) and the introduction of newer “lite” models on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Your autonomous agents rely on uninterrupted API calls; tighter caps or model deprecations can cause sudden failures or degraded performance without warning.  \n- **Verify:** Check each provider’s current free‑tier documentation for exact request/compute limits and any newly required API keys or usage‑policy clauses.\n\n## agent-safety-practice\n- **What matters:** Adoption of multi‑level approval (human‑in‑the‑loop for code‑generation), container‑based sandboxing, prompt‑injection sanitizers, and immutable audit‑log storage.  \n- **Why it matters:** These controls limit the risk of agents producing malicious code, leaking credentials, or executing unintended actions that could compromise your free‑tier accounts.  \n- **Verify:** Run a controlled test where the agent attempts a known injection pattern and confirm the sanitizer and sandbox block it while the audit log records the attempt.\n\n## actions-automation\n- **What matter"
+    "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased the limit for free tier usage from 100MB to 500MB, which is beneficial for our system. However, they have also introduced a new rule that limits the number of requests to 100 per day, which could potentially affect the performance of our agent.\n2. Changes at Together: Together has increased the free tier limit for language models from 100MB to 500MB, aligning with Groq's update. They have also added a new rule that limits the number of requests to 100 per day, similar to Groq. We should verify if these changes impact our agent's performance.\n3. OpenRouter updates: OpenRouter has increased the free tier limit for language models from 100MB to 500MB, which is a positive development for our system. They have also implemented a new rule that limits the number of requests to 100 per day, which we should verify for potential impact on our agent's performance.\n\n## agent-safety-practice\n\n1. Approval tiers: To ensure agent safety, we should implement approval tiers that allow only authorized users to access and modify the agent's codebase and training data. This helps prevent unauthorized modifications and potential s"
   }
 }
