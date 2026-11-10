@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-09T03:01:09.129Z",
-  "lastAttemptAt": "2026-11-09T03:01:09.129Z",
+  "updatedAt": "2026-11-10T03:50:32.486Z",
+  "lastAttemptAt": "2026-11-10T03:50:32.486Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-09",
-    "file": "state/digests/2026-11-09-research.md",
+    "date": "2026-11-10",
+    "file": "state/digests/2026-11-10-research.md",
     "provider": "groq",
-    "model": "allam-2-7b",
+    "model": "openai/gpt-oss-20b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased the limit for free tier usage from 100MB to 500MB, which is beneficial for our system. However, they have also introduced a new rule that limits the number of requests to 100 per day, which could potentially affect the performance of our agent.\n2. Changes at Together: Together has increased the free tier limit for language models from 100MB to 500MB, aligning with Groq's update. They have also added a new rule that limits the number of requests to 100 per day, similar to Groq. We should verify if these changes impact our agent's performance.\n3. OpenRouter updates: OpenRouter has increased the free tier limit for language models from 100MB to 500MB, which is a positive development for our system. They have also implemented a new rule that limits the number of requests to 100 per day, which we should verify for potential impact on our agent's performance.\n\n## agent-safety-practice\n\n1. Approval tiers: To ensure agent safety, we should implement approval tiers that allow only authorized users to access and modify the agent's codebase and training data. This helps prevent unauthorized modifications and potential s"
+    "preview": "**Date: 2026‑11‑10**\n\n## 1. free‑tier‑llm‑landscape  \n- **What matters:** Shifts in free‑tier quotas, model availability, and usage terms on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Even a small increase in rate limits or a change in model licensing can push an agent over the free tier, causing throttling or service interruption.  \n- **Verify:** Check each provider’s current free‑tier policy page and any recent announcements for quota or model changes.\n\n## 2. agent‑safety‑practice  \n- **What matters:** Layered approval workflows, sandboxed execution environments, prompt‑injection mitigations, and immutable audit logs.  \n- **Why it matters:** These controls prevent the agent from executing harmful code, leaking data, or acting outside its intended scope.  \n- **Verify:** Confirm that the sandbox truly isolates the agent and that audit logs are tamper‑evident and retained long enough for review.\n\n## 3. actions‑automation  \n- **What matters:** Updated free‑minute limits, stricter token permission scopes, and new supply‑chain hardening checks for scheduled GitHub Actions in public repositories.  \n- **Why it matters:** Exceeding minute limits c"
   }
 }
