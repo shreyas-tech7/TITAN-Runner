@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-11T14:37:49.150Z",
+  "updatedAt": "2026-11-11T15:24:32.122Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -172,7 +172,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
+      "note": "Freebuff has no official public HTTP API for third-party integration.",
       "lastFailureClass": null
     },
     "opencode": {
