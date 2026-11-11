@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-11T07:13:24.235Z",
+  "updatedAt": "2026-11-11T14:37:49.150Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -18,11 +18,11 @@
       "model": "openai/gpt-oss-120b",
       "discoveredModels": [
         "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
         "qwen/qwen3.8-27b",
-        "allam-2-7b",
-        "openai/gpt-oss-20b"
+        "allam-2-7b"
       ],
-      "modelsDiscoveredAt": "2026-11-10T15:06:21.463Z",
+      "modelsDiscoveredAt": "2026-11-11T14:37:48.514Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -58,12 +58,12 @@
       "consecutiveFailures": 0,
       "cooldownUntil": null,
       "lastError": null,
-      "model": "thinkingmachines/inkling-2-small:free",
+      "model": "baidu/ernie-5.5-flash-preview:free",
       "discoveredModels": [
+        "baidu/ernie-5.5-flash-preview:free",
         "thinkingmachines/inkling-2-small:free",
         "liquid/lfm-3-1.7b:free",
         "recursive/flint-v1.0:free",
-        "xingchen-agi/xing4.0-29b-a4b:free",
         "nvidia/nemotron-3.5-super-vl:free",
         "dots-studio/dots-3-note-preview:free",
         "liquid/lfm-2.5-2.6b:free",
@@ -77,7 +77,7 @@
         "google/lyria-3-clip-preview",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-11-10T15:06:21.815Z",
+      "modelsDiscoveredAt": "2026-11-11T14:37:48.998Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -115,6 +115,7 @@
         "gemini-3.7-flash",
         "gemini-3.8-flash",
         "gemini-4-argon",
+        "gemini-4-carbon",
         "lyria-3-clip-preview",
         "lyria-3.5",
         "gemini-robotics-er-2-preview",
@@ -132,7 +133,7 @@
         "lyria-3-pro-preview",
         "deep-research-pro-preview-12-2025"
       ],
-      "modelsDiscoveredAt": "2026-11-10T15:06:21.975Z",
+      "modelsDiscoveredAt": "2026-11-11T14:37:49.149Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -171,7 +172,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
