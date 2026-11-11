@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-10T03:50:32.486Z",
-  "lastAttemptAt": "2026-11-10T03:50:32.486Z",
+  "updatedAt": "2026-11-11T00:33:42.427Z",
+  "lastAttemptAt": "2026-11-11T00:33:42.427Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-10",
-    "file": "state/digests/2026-11-10-research.md",
+    "date": "2026-11-11",
+    "file": "state/digests/2026-11-11-research.md",
     "provider": "groq",
-    "model": "openai/gpt-oss-20b",
+    "model": "openai/gpt-oss-120b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "**Date: 2026‑11‑10**\n\n## 1. free‑tier‑llm‑landscape  \n- **What matters:** Shifts in free‑tier quotas, model availability, and usage terms on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Even a small increase in rate limits or a change in model licensing can push an agent over the free tier, causing throttling or service interruption.  \n- **Verify:** Check each provider’s current free‑tier policy page and any recent announcements for quota or model changes.\n\n## 2. agent‑safety‑practice  \n- **What matters:** Layered approval workflows, sandboxed execution environments, prompt‑injection mitigations, and immutable audit logs.  \n- **Why it matters:** These controls prevent the agent from executing harmful code, leaking data, or acting outside its intended scope.  \n- **Verify:** Confirm that the sandbox truly isolates the agent and that audit logs are tamper‑evident and retained long enough for review.\n\n## 3. actions‑automation  \n- **What matters:** Updated free‑minute limits, stricter token permission scopes, and new supply‑chain hardening checks for scheduled GitHub Actions in public repositories.  \n- **Why it matters:** Exceeding minute limits c"
+    "preview": "## free-tier-llm-landscape\n- **What matters:** Shifts in monthly token caps, model roster (e.g., removal of older models, addition of newer “lite” variants), and stricter commercial‑use clauses on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Your autonomous agents rely on uninterrupted access to specific model endpoints and predictable quota; a sudden cap drop or model deprecation can cause failures or forced downgrades to slower models.  \n- **One thing worth verifying:** Check each provider’s current free‑tier dashboard or API‑status page for updated limits and any new “credit‑card‑required” policies that could block free access.  \n\n## agent-safety-practice\n- **What matters:** Multi‑level approval (human‑in‑the‑loop for code‑write actions), container‑based sandboxing of generated code, prompt‑injection sanitisation (e.g., prefix‑whitelisting), and immutable audit logs stored off‑site.  \n- **Why it matters:** Autonomous coding agents can unintentionally produce malicious or resource‑exhaustive scripts; layered safeguards limit damage and provide traceability for post‑mortem analysis.  \n- **One thing worth verifying:** Run a controlled “red‑te"
   }
 }
