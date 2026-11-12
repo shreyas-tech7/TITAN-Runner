@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-12T11:22:15.377Z",
+  "updatedAt": "2026-11-12T15:29:05.199Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -15,14 +15,14 @@
       "consecutiveFailures": 0,
       "cooldownUntil": null,
       "lastError": null,
-      "model": "openai/gpt-oss-120b",
+      "model": "allam-2-7b",
       "discoveredModels": [
+        "allam-2-7b",
         "openai/gpt-oss-120b",
-        "openai/gpt-oss-20b",
         "qwen/qwen3.8-27b",
-        "allam-2-7b"
+        "openai/gpt-oss-20b"
       ],
-      "modelsDiscoveredAt": "2026-11-11T14:37:48.514Z",
+      "modelsDiscoveredAt": "2026-11-12T15:29:04.649Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -77,7 +77,7 @@
         "google/lyria-3-clip-preview",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-11-11T14:37:48.998Z",
+      "modelsDiscoveredAt": "2026-11-12T15:29:05.077Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -133,7 +133,7 @@
         "lyria-3-pro-preview",
         "deep-research-pro-preview-12-2025"
       ],
-      "modelsDiscoveredAt": "2026-11-11T14:37:49.149Z",
+      "modelsDiscoveredAt": "2026-11-12T15:29:05.199Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -172,7 +172,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
