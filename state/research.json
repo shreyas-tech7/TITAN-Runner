@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-11T00:33:42.427Z",
+  "lastAttemptAt": "2026-11-12T03:06:53.320Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-11",
-  "lastDigestFile": "state/digests/2026-11-11-research.md",
+  "lastDigestDate": "2026-11-12",
+  "lastDigestFile": "state/digests/2026-11-12-research.md",
   "provider": "groq",
   "model": "openai/gpt-oss-120b",
   "topicIds": [
@@ -12,6 +12,6 @@
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n- **What matters:** Shifts in monthly token caps, model roster (e.g., removal of older models, addition of newer “lite” variants), and stricter commercial‑use clauses on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Your autonomous agents rely on uninterrupted access to specific model endpoints and predictable quota; a sudden cap drop or model deprecation can cause failures or forced downgrades to slower models.  \n- **One thing worth verifying:** Check each provider’s current free‑tier dashboard or API‑status page for updated limits and any new “credit‑card‑required” policies that could block free access.  \n\n## agent-safety-practice\n- **What matters:** Multi‑level approval (human‑in‑the‑loop for code‑write actions), container‑based sandboxing of generated code, prompt‑injection sanitisation (e.g., prefix‑whitelisting), and immutable audit logs stored off‑site.  \n- **Why it matters:** Autonomous coding agents can unintentionally produce malicious or resource‑exhaustive scripts; layered safeguards limit damage and provide traceability for post‑mortem analysis.  \n- **One thing worth verifying:** Run a controlled “red‑te",
+  "preview": "## free-tier-llm-landscape\n- **What matters:** Any reduction in monthly token quotas, new per‑request caps, or added usage‑based throttling on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.\n- **Why it matters:** Your autonomous agents rely on uninterrupted, low‑latency inference; a sudden quota cut or stricter rate‑limit can cause task failures or dead‑locks across the whole pipeline.\n- **One thing worth verifying:** Check the latest provider dashboards or community forums for announced changes to free‑tier limits (e.g., token counts, request per minute caps) and update your usage‑monitoring scripts accordingly. *(I’m not certain of any 2026 updates; please confirm.)*  \n\n## agent-safety-practice\n- **What matters:** Layered approval (human‑in‑the‑loop for code writes), container‑based sandboxing, prompt‑injection sanitisation, and immutable audit logs for every agent action.\n- **Why it matters:** Autonomous coding agents can unintentionally generate malicious or destructive code; safeguards prevent escalation, preserve data integrity, and keep the free‑tier budget from being exhausted by runaway processes.\n- **One thing worth verifying:** Run a controlled “red‑team” te",
   "lastDetail": null
 }
