@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-12T19:04:00.082Z",
+  "updatedAt": "2026-11-13T00:30:23.071Z",
   "window": {
-    "events": 202,
-    "from": "2026-10-30T02:59:32.539Z",
-    "to": "2026-11-12T19:03:59.628Z",
+    "events": 193,
+    "from": "2026-10-31T00:49:51.621Z",
+    "to": "2026-11-13T00:30:23.069Z",
     "archived": {
-      "days": 42,
-      "events": 4827,
+      "days": 43,
+      "events": 4842,
       "calls": 0
     }
   },
@@ -47,15 +47,15 @@
   },
   "cost": {
     "modelCalls": 0,
-    "upstreamCalls": 15,
+    "upstreamCalls": 14,
     "tokens": 0,
     "callsPerCompletedTask": null,
     "callsPerPulse": 0
   },
   "pulses": {
-    "count": 53,
-    "p50Ms": 404,
-    "p95Ms": 2553,
+    "count": 50,
+    "p50Ms": 412,
+    "p95Ms": 2027,
     "maxMs": 11907
   }
 }

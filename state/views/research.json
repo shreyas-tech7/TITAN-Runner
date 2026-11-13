@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-12T03:06:53.320Z",
-  "lastAttemptAt": "2026-11-12T03:06:53.320Z",
+  "updatedAt": "2026-11-13T00:30:21.993Z",
+  "lastAttemptAt": "2026-11-13T00:30:21.993Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-12",
-    "file": "state/digests/2026-11-12-research.md",
+    "date": "2026-11-13",
+    "file": "state/digests/2026-11-13-research.md",
     "provider": "groq",
-    "model": "openai/gpt-oss-120b",
+    "model": "allam-2-7b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n- **What matters:** Any reduction in monthly token quotas, new per‑request caps, or added usage‑based throttling on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.\n- **Why it matters:** Your autonomous agents rely on uninterrupted, low‑latency inference; a sudden quota cut or stricter rate‑limit can cause task failures or dead‑locks across the whole pipeline.\n- **One thing worth verifying:** Check the latest provider dashboards or community forums for announced changes to free‑tier limits (e.g., token counts, request per minute caps) and update your usage‑monitoring scripts accordingly. *(I’m not certain of any 2026 updates; please confirm.)*  \n\n## agent-safety-practice\n- **What matters:** Layered approval (human‑in‑the‑loop for code writes), container‑based sandboxing, prompt‑injection sanitisation, and immutable audit logs for every agent action.\n- **Why it matters:** Autonomous coding agents can unintentionally generate malicious or destructive code; safeguards prevent escalation, preserve data integrity, and keep the free‑tier budget from being exhausted by runaway processes.\n- **One thing worth verifying:** Run a controlled “red‑team” te"
+    "preview": "## free-tier-llm-landscape\n1. Groq has increased their free tier limit from 100MB to 500MB, but they now limit the number of API calls to 1000 per day.\n2. Together has increased their free tier limit for large models from 10MB to 50MB, but now have a new limit of 1000 API calls per day.\n3. OpenRouter has increased their free tier limit for large models from 10MB to 50MB, but now have a limit of 500 API calls per day.\n4. Google Gemini has increased their free tier limit for large models from 10MB to 50MB, but now have a limit of 1000 API calls per day.\n5. Hugging Face has not changed their free tier limit for large models (50MB), but now have a limit of 1000 API calls per day.\n\nWhy it matters to this system:\n- Ensuring agents can still access LLM services without exceeding daily API call limits.\n- Updating agent configurations to use the most suitable providers based on the new limits and restrictions.\n- Monitoring agent usage to detect potential API call overages and adjust accordingly.\n\nOne thing worth verifying:\n- Test agent interactions with different LLM providers to ensure they can complete tasks without hitting daily API call limits.\n\n## agent-safety-practice\n1. Approval tier"
   }
 }
