@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-14T08:50:44.578Z",
+  "updatedAt": "2026-11-14T15:42:37.566Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 1469 ms; error rate 1%; model openai/gpt-oss-20b",
+      "explain": "groq: breaker closed (healthy); p50 1469 ms; error rate 1%; model openai/gpt-oss-120b",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
@@ -36,7 +36,7 @@
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "openrouter: breaker closed (healthy); p50 8424 ms; error rate 45%; model baidu/ernie-5.5-flash-preview:free",
+      "explain": "openrouter: breaker closed (healthy); p50 8424 ms; error rate 45%; model inclusionai/ling-3.2-flash:free",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
