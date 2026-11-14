@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-14T08:50:44.572Z",
+  "updatedAt": "2026-11-14T13:42:19.201Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -15,14 +15,14 @@
       "consecutiveFailures": 0,
       "cooldownUntil": null,
       "lastError": null,
-      "model": "openai/gpt-oss-20b",
+      "model": "openai/gpt-oss-120b",
       "discoveredModels": [
-        "openai/gpt-oss-20b",
         "openai/gpt-oss-120b",
         "qwen/qwen3.8-27b",
+        "openai/gpt-oss-20b",
         "allam-2-7b"
       ],
-      "modelsDiscoveredAt": "2026-11-13T14:46:13.441Z",
+      "modelsDiscoveredAt": "2026-11-14T13:42:18.648Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -58,8 +58,9 @@
       "consecutiveFailures": 0,
       "cooldownUntil": null,
       "lastError": null,
-      "model": "baidu/ernie-5.5-flash-preview:free",
+      "model": "inclusionai/ling-3.2-flash:free",
       "discoveredModels": [
+        "inclusionai/ling-3.2-flash:free",
         "baidu/ernie-5.5-flash-preview:free",
         "thinkingmachines/inkling-2-small:free",
         "liquid/lfm-3-1.7b:free",
@@ -77,7 +78,7 @@
         "google/lyria-3-clip-preview",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-11-13T14:46:14.174Z",
+      "modelsDiscoveredAt": "2026-11-14T13:42:19.050Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -134,7 +135,7 @@
         "lyria-3-pro-preview",
         "deep-research-pro-preview-12-2025"
       ],
-      "modelsDiscoveredAt": "2026-11-13T14:46:14.310Z",
+      "modelsDiscoveredAt": "2026-11-14T13:42:19.200Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -173,7 +174,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
