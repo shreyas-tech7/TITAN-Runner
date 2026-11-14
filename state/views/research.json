@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-13T00:30:21.993Z",
-  "lastAttemptAt": "2026-11-13T00:30:21.993Z",
+  "updatedAt": "2026-11-14T01:51:28.097Z",
+  "lastAttemptAt": "2026-11-14T01:51:28.097Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-13",
-    "file": "state/digests/2026-11-13-research.md",
+    "date": "2026-11-14",
+    "file": "state/digests/2026-11-14-research.md",
     "provider": "groq",
-    "model": "allam-2-7b",
+    "model": "openai/gpt-oss-20b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n1. Groq has increased their free tier limit from 100MB to 500MB, but they now limit the number of API calls to 1000 per day.\n2. Together has increased their free tier limit for large models from 10MB to 50MB, but now have a new limit of 1000 API calls per day.\n3. OpenRouter has increased their free tier limit for large models from 10MB to 50MB, but now have a limit of 500 API calls per day.\n4. Google Gemini has increased their free tier limit for large models from 10MB to 50MB, but now have a limit of 1000 API calls per day.\n5. Hugging Face has not changed their free tier limit for large models (50MB), but now have a limit of 1000 API calls per day.\n\nWhy it matters to this system:\n- Ensuring agents can still access LLM services without exceeding daily API call limits.\n- Updating agent configurations to use the most suitable providers based on the new limits and restrictions.\n- Monitoring agent usage to detect potential API call overages and adjust accordingly.\n\nOne thing worth verifying:\n- Test agent interactions with different LLM providers to ensure they can complete tasks without hitting daily API call limits.\n\n## agent-safety-practice\n1. Approval tier"
+    "preview": "**Date:** 2026‑11‑14  \n\n## 1. free‑tier‑llm‑landscape  \n- **What matters:** Free tiers typically impose request‑rate caps, token‑per‑minute limits, and may restrict access to newer or larger models.  \n- **Why it matters to this system:** Exceeding any of those limits can cause sudden throttling or service denial, breaking an agent that relies solely on free access.  \n- **One thing worth verifying:** Check each provider’s current free‑tier policy (Groq, Together, OpenRouter, Google Gemini, Hugging Face) for rate limits, model availability, and any recent policy changes that could affect your usage.\n\n## 2. agent‑safety‑practice  \n- **What matters:** Implement layered safety: approval tiers for high‑impact actions, sandboxed execution environments, prompt‑injection mitigations (e.g., prompt templates, input sanitization), and comprehensive audit logs.  \n- **Why it matters to this system:** These controls prevent malicious code execution, data leakage, and unintended side‑effects, which are critical when the agent can autonomously modify code or data.  \n- **One thing worth verifying:** Ensure the sandbox truly isolates the agent’s runtime (no network or file system escape) and that aud"
   }
 }
