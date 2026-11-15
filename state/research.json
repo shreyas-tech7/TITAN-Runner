@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-14T01:51:28.097Z",
+  "lastAttemptAt": "2026-11-15T06:11:48.847Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-14",
-  "lastDigestFile": "state/digests/2026-11-14-research.md",
+  "lastDigestDate": "2026-11-15",
+  "lastDigestFile": "state/digests/2026-11-15-research.md",
   "provider": "groq",
-  "model": "openai/gpt-oss-20b",
+  "model": "openai/gpt-oss-120b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "**Date:** 2026‑11‑14  \n\n## 1. free‑tier‑llm‑landscape  \n- **What matters:** Free tiers typically impose request‑rate caps, token‑per‑minute limits, and may restrict access to newer or larger models.  \n- **Why it matters to this system:** Exceeding any of those limits can cause sudden throttling or service denial, breaking an agent that relies solely on free access.  \n- **One thing worth verifying:** Check each provider’s current free‑tier policy (Groq, Together, OpenRouter, Google Gemini, Hugging Face) for rate limits, model availability, and any recent policy changes that could affect your usage.\n\n## 2. agent‑safety‑practice  \n- **What matters:** Implement layered safety: approval tiers for high‑impact actions, sandboxed execution environments, prompt‑injection mitigations (e.g., prompt templates, input sanitization), and comprehensive audit logs.  \n- **Why it matters to this system:** These controls prevent malicious code execution, data leakage, and unintended side‑effects, which are critical when the agent can autonomously modify code or data.  \n- **One thing worth verifying:** Ensure the sandbox truly isolates the agent’s runtime (no network or file system escape) and that aud",
+  "preview": "## free-tier-llm-landscape\n- **What matters:** Recent tweaks to free‑tier quotas (e.g., reduced token caps, added request‑per‑minute limits) and the introduction of newer “lite” model variants on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Our autonomous agents rely on uninterrupted access to these free endpoints; tighter limits or model deprecations can cause sudden failures or degraded performance.  \n- **One thing worth verifying:** Check each provider’s current free‑tier policy page for any announced changes effective after the last known update (early 2024).  \n\n## agent-safety-practice\n- **What matters:** Adoption of multi‑level approval (human‑in‑the‑loop for code execution), container‑based sandboxing, prompt‑injection sanitizers, and immutable audit‑log storage.  \n- **Why it matters:** These controls reduce the risk of runaway code, credential leakage, or malicious payloads that could compromise the free‑tier accounts we depend on.  \n- **One thing worth verifying:** Confirm that the sandbox runtime enforces the same resource limits as the free‑tier compute environment (e.g., CPU, memory, network egress).  \n\n## actions-automation\n- **W",
   "lastDetail": null
 }
