@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-15T06:11:48.847Z",
-  "lastAttemptAt": "2026-11-15T06:11:48.847Z",
+  "updatedAt": "2026-11-16T05:59:10.770Z",
+  "lastAttemptAt": "2026-11-16T05:59:10.770Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-15",
-    "file": "state/digests/2026-11-15-research.md",
+    "date": "2026-11-16",
+    "file": "state/digests/2026-11-16-research.md",
     "provider": "groq",
-    "model": "openai/gpt-oss-120b",
+    "model": "openai/gpt-oss-20b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n- **What matters:** Recent tweaks to free‑tier quotas (e.g., reduced token caps, added request‑per‑minute limits) and the introduction of newer “lite” model variants on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Our autonomous agents rely on uninterrupted access to these free endpoints; tighter limits or model deprecations can cause sudden failures or degraded performance.  \n- **One thing worth verifying:** Check each provider’s current free‑tier policy page for any announced changes effective after the last known update (early 2024).  \n\n## agent-safety-practice\n- **What matters:** Adoption of multi‑level approval (human‑in‑the‑loop for code execution), container‑based sandboxing, prompt‑injection sanitizers, and immutable audit‑log storage.  \n- **Why it matters:** These controls reduce the risk of runaway code, credential leakage, or malicious payloads that could compromise the free‑tier accounts we depend on.  \n- **One thing worth verifying:** Confirm that the sandbox runtime enforces the same resource limits as the free‑tier compute environment (e.g., CPU, memory, network egress).  \n\n## actions-automation\n- **W"
+    "preview": "**Date: 2026‑11‑16**\n\n---\n\n## 1. free‑tier‑llm‑landscape  \n- **What matters:** Recent cuts to token limits, stricter rate caps, and policy shifts on Groq, Together, OpenRouter, Google Gemini, and Hugging Face free tiers.  \n- **Why it matters:** Lower quotas or sudden policy changes can trigger timeouts, hidden costs, or loss of model availability, breaking continuous agent operation.  \n- **One thing worth verifying:** Current free‑tier token allowance and any required API‑key rotation or usage‑quota enforcement on each provider.\n\n## 2. agent‑safety‑practice  \n- **What matters:** Layered approval tiers, sandboxed execution, prompt‑injection defenses, and comprehensive audit logging.  \n- **Why it matters:** These controls stop runaway code, data leaks, and malicious manipulation, protecting the system and downstream users.  \n- **One thing worth verifying:** Effectiveness of the sandbox in isolating system calls and the retention period of audit logs for compliance.\n\n## 3. actions‑automation  \n- **What matters:** GitHub Actions cron reliability, free‑minute limits per repo, token permission scopes, and supply‑chain hardening features.  \n- **Why it matters:** Scheduling failures or min"
   }
 }
