@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-16T23:51:17.742Z",
+  "updatedAt": "2026-11-17T07:37:32.439Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 775 ms; error rate 0%; model qwen/qwen3.8-27b",
+      "explain": "groq: breaker closed (healthy); p50 835 ms; error rate 0%; model qwen/qwen3.8-27b",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
+        "usedMinute": 1,
         "usedDay": 1,
         "dayLeft": 11999,
         "perDay": 12000

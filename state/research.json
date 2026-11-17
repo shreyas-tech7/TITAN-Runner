@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-16T05:59:10.770Z",
+  "lastAttemptAt": "2026-11-17T07:37:31.529Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-16",
-  "lastDigestFile": "state/digests/2026-11-16-research.md",
+  "lastDigestDate": "2026-11-17",
+  "lastDigestFile": "state/digests/2026-11-17-research.md",
   "provider": "groq",
-  "model": "openai/gpt-oss-20b",
+  "model": "qwen/qwen3.8-27b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "**Date: 2026‑11‑16**\n\n---\n\n## 1. free‑tier‑llm‑landscape  \n- **What matters:** Recent cuts to token limits, stricter rate caps, and policy shifts on Groq, Together, OpenRouter, Google Gemini, and Hugging Face free tiers.  \n- **Why it matters:** Lower quotas or sudden policy changes can trigger timeouts, hidden costs, or loss of model availability, breaking continuous agent operation.  \n- **One thing worth verifying:** Current free‑tier token allowance and any required API‑key rotation or usage‑quota enforcement on each provider.\n\n## 2. agent‑safety‑practice  \n- **What matters:** Layered approval tiers, sandboxed execution, prompt‑injection defenses, and comprehensive audit logging.  \n- **Why it matters:** These controls stop runaway code, data leaks, and malicious manipulation, protecting the system and downstream users.  \n- **One thing worth verifying:** Effectiveness of the sandbox in isolating system calls and the retention period of audit logs for compliance.\n\n## 3. actions‑automation  \n- **What matters:** GitHub Actions cron reliability, free‑minute limits per repo, token permission scopes, and supply‑chain hardening features.  \n- **Why it matters:** Scheduling failures or min",
+  "preview": "## free-tier-llm-landscape\n*   **What matters:** Free tiers are increasingly volatile; providers like Groq and Together often rotate model availability or tighten rate limits without long notice, while OpenRouter aggregates these shifts.\n*   **Why it matters:** An agent relying solely on free endpoints faces sudden 429 errors or model deprecation, breaking automation pipelines that assume consistent API access and latency.\n*   **Verify:** Check current rate-limit documentation for your specific provider to confirm if \"free\" now implies strict daily token caps rather than just per-minute limits.\n\n## agent-safety-practice\n*   **What matters:** Best practice now mandates strict sandboxing (e.g., Docker or microVMs) and least-privilege execution, moving beyond simple prompt filters to structural isolation.\n*   **Why it matters:** Autonomous coding agents can be compromised via prompt injection in code comments or dependencies, potentially leading to data exfiltration or destructive system commands.\n*   **Verify:** Ensure your agent’s file-system permissions are strictly scoped to the workspace directory, preventing access to environment variables or credentials outside the sandbox.\n\n##",
   "lastDetail": null
 }
