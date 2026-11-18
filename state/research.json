@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-17T07:37:31.529Z",
+  "lastAttemptAt": "2026-11-18T06:59:21.552Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-17",
-  "lastDigestFile": "state/digests/2026-11-17-research.md",
+  "lastDigestDate": "2026-11-18",
+  "lastDigestFile": "state/digests/2026-11-18-research.md",
   "provider": "groq",
   "model": "qwen/qwen3.8-27b",
   "topicIds": [
@@ -12,6 +12,6 @@
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n*   **What matters:** Free tiers are increasingly volatile; providers like Groq and Together often rotate model availability or tighten rate limits without long notice, while OpenRouter aggregates these shifts.\n*   **Why it matters:** An agent relying solely on free endpoints faces sudden 429 errors or model deprecation, breaking automation pipelines that assume consistent API access and latency.\n*   **Verify:** Check current rate-limit documentation for your specific provider to confirm if \"free\" now implies strict daily token caps rather than just per-minute limits.\n\n## agent-safety-practice\n*   **What matters:** Best practice now mandates strict sandboxing (e.g., Docker or microVMs) and least-privilege execution, moving beyond simple prompt filters to structural isolation.\n*   **Why it matters:** Autonomous coding agents can be compromised via prompt injection in code comments or dependencies, potentially leading to data exfiltration or destructive system commands.\n*   **Verify:** Ensure your agent’s file-system permissions are strictly scoped to the workspace directory, preventing access to environment variables or credentials outside the sandbox.\n\n##",
+  "preview": "## free-tier-llm-landscape\n\n*   **What matters:** Free tiers are volatile; providers frequently adjust rate limits, model availability, or terms without long notice. Specific model deprecations or API key rotations can happen abruptly.\n*   **Why it matters:** An agent relying solely on free endpoints faces high downtime risk. If a primary model is removed or limits tightened, the agent halts unless it has robust fallback logic and dynamic provider switching.\n*   **Verify:** Check the current status page and changelogs for your specific provider accounts to confirm active model lists and remaining daily/minute quotas before deploying new agent logic.\n\n## agent-safety-practice\n\n*   **What matters:** Best practices now emphasize least-privilege execution, mandatory human-in-the-loop for destructive actions, and strict isolation of agent environments from production data.\n*   **Why it matters:** Autonomous coding agents can inadvertently leak secrets or execute malicious code if sandboxing fails. Prompt injection remains a critical vector; without robust input filtering and output validation, agents can be manipulated into exfiltrating data.\n*   **Verify:** Audit your sandbox configura",
   "lastDetail": null
 }
