@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-18T06:59:21.552Z",
+  "lastAttemptAt": "2026-11-19T04:14:00.859Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-18",
-  "lastDigestFile": "state/digests/2026-11-18-research.md",
+  "lastDigestDate": "2026-11-19",
+  "lastDigestFile": "state/digests/2026-11-19-research.md",
   "provider": "groq",
-  "model": "qwen/qwen3.8-27b",
+  "model": "openai/gpt-oss-120b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n\n*   **What matters:** Free tiers are volatile; providers frequently adjust rate limits, model availability, or terms without long notice. Specific model deprecations or API key rotations can happen abruptly.\n*   **Why it matters:** An agent relying solely on free endpoints faces high downtime risk. If a primary model is removed or limits tightened, the agent halts unless it has robust fallback logic and dynamic provider switching.\n*   **Verify:** Check the current status page and changelogs for your specific provider accounts to confirm active model lists and remaining daily/minute quotas before deploying new agent logic.\n\n## agent-safety-practice\n\n*   **What matters:** Best practices now emphasize least-privilege execution, mandatory human-in-the-loop for destructive actions, and strict isolation of agent environments from production data.\n*   **Why it matters:** Autonomous coding agents can inadvertently leak secrets or execute malicious code if sandboxing fails. Prompt injection remains a critical vector; without robust input filtering and output validation, agents can be manipulated into exfiltrating data.\n*   **Verify:** Audit your sandbox configura",
+  "preview": "## free-tier-llm-landscape\n- **What matters:** Recent adjustments to free‑tier quotas (e.g., reduced token caps, added request‑per‑minute limits) and the introduction of newer “free‑only” model variants on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Our autonomous agents rely on uninterrupted access to these models; tighter limits or model deprecations can cause sudden failures or throttling, breaking scheduled workflows.  \n- **One thing worth verifying:** Check each provider’s current free‑tier policy page (or recent blog post) for any changes to token limits, model availability, or usage‑type restrictions introduced after mid‑2024.  \n\n## agent-safety-practice\n- **What matters:** Best‑practice stack: tiered human approval (e.g., low‑risk code auto‑run, medium‑risk review, high‑risk manual sign‑off), container‑based sandboxing, prompt‑injection sanitization, and immutable audit logs with timestamps.  \n- **Why it matters:** Autonomous coding agents can generate harmful or costly code; layered safeguards limit exposure while preserving speed, and audit trails are essential for debugging and compliance on free platforms.  \n- **One thing worth v",
   "lastDetail": null
 }
