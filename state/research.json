@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-19T04:14:00.859Z",
+  "lastAttemptAt": "2026-11-20T02:56:15.270Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-19",
-  "lastDigestFile": "state/digests/2026-11-19-research.md",
+  "lastDigestDate": "2026-11-20",
+  "lastDigestFile": "state/digests/2026-11-20-research.md",
   "provider": "groq",
-  "model": "openai/gpt-oss-120b",
+  "model": "openai/gpt-oss-20b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n- **What matters:** Recent adjustments to free‑tier quotas (e.g., reduced token caps, added request‑per‑minute limits) and the introduction of newer “free‑only” model variants on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Our autonomous agents rely on uninterrupted access to these models; tighter limits or model deprecations can cause sudden failures or throttling, breaking scheduled workflows.  \n- **One thing worth verifying:** Check each provider’s current free‑tier policy page (or recent blog post) for any changes to token limits, model availability, or usage‑type restrictions introduced after mid‑2024.  \n\n## agent-safety-practice\n- **What matters:** Best‑practice stack: tiered human approval (e.g., low‑risk code auto‑run, medium‑risk review, high‑risk manual sign‑off), container‑based sandboxing, prompt‑injection sanitization, and immutable audit logs with timestamps.  \n- **Why it matters:** Autonomous coding agents can generate harmful or costly code; layered safeguards limit exposure while preserving speed, and audit trails are essential for debugging and compliance on free platforms.  \n- **One thing worth v",
+  "preview": "**Daily Research Digest – 2026‑11‑20**\n\n## 1. free‑tier‑llm‑landscape  \n- **What matters:** Free‑tier quotas (API calls, token limits, model availability) and any policy changes that could cut off or throttle the models your agent relies on.  \n- **Why it matters to this system:** The agent’s entire workflow is built on free‑tier access; a sudden quota drop or model deprecation would halt code generation or execution.  \n- **One thing worth verifying:** Check each provider’s current free‑tier limits and the status of the specific models you use (Groq, Together, OpenRouter, Google Gemini, Hugging Face).  \n\n## 2. agent‑safety‑practice  \n- **What matters:** Multi‑layer safeguards—approval tiers, sandboxed execution, prompt‑injection defenses, and comprehensive audit logs.  \n- **Why it matters to this system:** Autonomous coding agents can generate harmful or unintended code; robust safety layers prevent accidental deployment or misuse.  \n- **One thing worth verifying:** Ensure your sandbox truly isolates the runtime (e.g., container or VM isolation) and that logs capture all prompts, responses, and execution events.  \n\n## 3. actions‑automation  \n- **What matters:** GitHub Actions’ free‑",
   "lastDetail": null
 }
