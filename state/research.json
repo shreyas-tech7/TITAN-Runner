@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-20T02:56:15.270Z",
+  "lastAttemptAt": "2026-11-21T00:50:45.324Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-20",
-  "lastDigestFile": "state/digests/2026-11-20-research.md",
+  "lastDigestDate": "2026-11-21",
+  "lastDigestFile": "state/digests/2026-11-21-research.md",
   "provider": "groq",
   "model": "openai/gpt-oss-20b",
   "topicIds": [
@@ -12,6 +12,6 @@
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "**Daily Research Digest – 2026‑11‑20**\n\n## 1. free‑tier‑llm‑landscape  \n- **What matters:** Free‑tier quotas (API calls, token limits, model availability) and any policy changes that could cut off or throttle the models your agent relies on.  \n- **Why it matters to this system:** The agent’s entire workflow is built on free‑tier access; a sudden quota drop or model deprecation would halt code generation or execution.  \n- **One thing worth verifying:** Check each provider’s current free‑tier limits and the status of the specific models you use (Groq, Together, OpenRouter, Google Gemini, Hugging Face).  \n\n## 2. agent‑safety‑practice  \n- **What matters:** Multi‑layer safeguards—approval tiers, sandboxed execution, prompt‑injection defenses, and comprehensive audit logs.  \n- **Why it matters to this system:** Autonomous coding agents can generate harmful or unintended code; robust safety layers prevent accidental deployment or misuse.  \n- **One thing worth verifying:** Ensure your sandbox truly isolates the runtime (e.g., container or VM isolation) and that logs capture all prompts, responses, and execution events.  \n\n## 3. actions‑automation  \n- **What matters:** GitHub Actions’ free‑",
+  "preview": "## free-tier-llm-landscape\n- Free tier quotas may have been reduced or models removed; I lack post‑2024 data.  \n- Reduced limits directly cut the agent’s ability to generate code or queries on budget.  \n- Verify current token limits and model availability on Groq, Together, OpenRouter, Gemini, and Hugging Face.  \n\n## agent-safety-practice\n- Implement multi‑tier approval: code review before deployment, sandbox execution for untrusted output.  \n- Sandboxing ensures the agent cannot access host resources or modify system files.  \n- Verify that audit logs capture prompts, responses, and execution context for compliance.  \n\n## actions-automation\n- GitHub Actions now limits free minutes for public repos and tightens GITHUB_TOKEN scopes.  \n- Cron jobs may experience delays or concurrency limits, affecting scheduled agent tasks.  \n- Verify workflow permissions, token scopes, and free‑minute usage to avoid unexpected failures.",
   "lastDetail": null
 }
