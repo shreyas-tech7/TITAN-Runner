@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-21T08:10:05.255Z",
+  "updatedAt": "2026-11-21T14:50:06.493Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -15,14 +15,14 @@
       "consecutiveFailures": 0,
       "cooldownUntil": null,
       "lastError": null,
-      "model": "openai/gpt-oss-20b",
+      "model": "allam-2-7b",
       "discoveredModels": [
-        "openai/gpt-oss-20b",
-        "qwen/qwen3.8-27b",
         "allam-2-7b",
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-20b",
         "openai/gpt-oss-120b"
       ],
-      "modelsDiscoveredAt": "2026-11-20T15:39:47.494Z",
+      "modelsDiscoveredAt": "2026-11-21T14:50:05.922Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -66,7 +66,6 @@
         "particle-ai/particle-1:free",
         "recursive/flint-v1.0:free",
         "nvidia/nemotron-3.5-super-vl:free",
-        "dots-studio/dots-3-note-preview:free",
         "nvidia/nemotron-3.5-lightning:free",
         "nvidia/nemotron-3-ultra-550b-a55b:free",
         "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
@@ -76,7 +75,7 @@
         "google/lyria-3-clip-preview",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-11-20T15:39:48.227Z",
+      "modelsDiscoveredAt": "2026-11-21T14:50:06.332Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -131,10 +130,9 @@
         "gemini-3.1-pro-preview",
         "gemini-3.1-pro-preview-customtools",
         "nano-banana-pro-preview",
-        "lyria-3-pro-preview",
-        "deep-research-pro-preview-12-2025"
+        "lyria-3-pro-preview"
       ],
-      "modelsDiscoveredAt": "2026-11-20T15:39:48.335Z",
+      "modelsDiscoveredAt": "2026-11-21T14:50:06.492Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -173,7 +171,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
