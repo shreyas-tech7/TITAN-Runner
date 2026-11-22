@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-21T00:50:45.324Z",
-  "lastAttemptAt": "2026-11-21T00:50:45.324Z",
+  "updatedAt": "2026-11-22T01:39:49.174Z",
+  "lastAttemptAt": "2026-11-22T01:39:49.174Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-21",
-    "file": "state/digests/2026-11-21-research.md",
+    "date": "2026-11-22",
+    "file": "state/digests/2026-11-22-research.md",
     "provider": "groq",
-    "model": "openai/gpt-oss-20b",
+    "model": "allam-2-7b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n- Free tier quotas may have been reduced or models removed; I lack post‑2024 data.  \n- Reduced limits directly cut the agent’s ability to generate code or queries on budget.  \n- Verify current token limits and model availability on Groq, Together, OpenRouter, Gemini, and Hugging Face.  \n\n## agent-safety-practice\n- Implement multi‑tier approval: code review before deployment, sandbox execution for untrusted output.  \n- Sandboxing ensures the agent cannot access host resources or modify system files.  \n- Verify that audit logs capture prompts, responses, and execution context for compliance.  \n\n## actions-automation\n- GitHub Actions now limits free minutes for public repos and tightens GITHUB_TOKEN scopes.  \n- Cron jobs may experience delays or concurrency limits, affecting scheduled agent tasks.  \n- Verify workflow permissions, token scopes, and free‑minute usage to avoid unexpected failures."
+    "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased their free tier limit from 100MB to 500MB, which could be beneficial for our agent system. However, they have also removed the option to train custom models on the free tier, which could be a limitation for our system.\n2. Changes at Together: Together has increased their free tier limit from 100MB to 500MB, similar to Groq. They have also added support for custom models, which could be useful for our agent system.\n3. OpenRouter updates: OpenRouter has increased their free tier limit from 100MB to 500MB, which aligns with the other providers. They have also added support for custom models, similar to Together.\n4. Google Gemini updates: Google Gemini has increased their free tier limit from 100MB to 500MB, which is a similar change to the other providers. They have also removed the option to train custom models on the free tier, which could be a concern for our agent system.\n5. Hugging Face updates: Hugging Face has increased their free tier limit from 100MB to 500MB, which aligns with the other providers. They have also removed the option to train custom models on the free tier, similar to Google Gemini.\n\n## a"
   }
 }
