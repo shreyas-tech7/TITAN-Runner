@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-22T01:39:49.174Z",
-  "lastAttemptAt": "2026-11-22T01:39:49.174Z",
+  "updatedAt": "2026-11-23T03:03:10.206Z",
+  "lastAttemptAt": "2026-11-23T03:03:10.206Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-22",
-    "file": "state/digests/2026-11-22-research.md",
+    "date": "2026-11-23",
+    "file": "state/digests/2026-11-23-research.md",
     "provider": "groq",
-    "model": "allam-2-7b",
+    "model": "openai/gpt-oss-120b",
     "topics": [
       "free-tier-llm-landscape",
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased their free tier limit from 100MB to 500MB, which could be beneficial for our agent system. However, they have also removed the option to train custom models on the free tier, which could be a limitation for our system.\n2. Changes at Together: Together has increased their free tier limit from 100MB to 500MB, similar to Groq. They have also added support for custom models, which could be useful for our agent system.\n3. OpenRouter updates: OpenRouter has increased their free tier limit from 100MB to 500MB, which aligns with the other providers. They have also added support for custom models, similar to Together.\n4. Google Gemini updates: Google Gemini has increased their free tier limit from 100MB to 500MB, which is a similar change to the other providers. They have also removed the option to train custom models on the free tier, which could be a concern for our agent system.\n5. Hugging Face updates: Hugging Face has increased their free tier limit from 100MB to 500MB, which aligns with the other providers. They have also removed the option to train custom models on the free tier, similar to Google Gemini.\n\n## a"
+    "preview": "## free-tier-llm-landscape\n- **What matters:** Recent announcements (as of late‑2024) indicate that Groq, Together, OpenRouter, Google Gemini, and Hugging Face have each adjusted free‑tier request caps, model availability, or usage‑policy wording.  \n- **Why it matters:** Our autonomous agents rely on uninterrupted access to specific models (e.g., Gemini‑1.5‑Flash, Llama‑2‑7B on Hugging Face). Any reduction in daily quota or removal of a model can cause task failures or forced fallback to slower, less capable alternatives.  \n- **What to verify:** Pull the current free‑tier limits and model lists from each provider’s documentation/API and compare them to the thresholds our agents currently consume.\n\n## agent-safety-practice\n- **What matters:** Best‑practice patterns now emphasize a three‑tier approval workflow (low‑risk → auto‑run, medium → human‑in‑the‑loop, high → explicit sign‑off), container‑based sandboxing for code execution, prompt‑injection sanitisation, and immutable audit logs stored off‑site.  \n- **Why it matters:** Autonomous coding agents can generate harmful code or leak credentials; layered approvals and sandbox isolation limit damage, while audit trails support post‑m"
   }
 }
