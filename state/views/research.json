@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-23T03:03:10.206Z",
-  "lastAttemptAt": "2026-11-23T03:03:10.206Z",
+  "updatedAt": "2026-11-24T00:42:18.499Z",
+  "lastAttemptAt": "2026-11-24T00:42:18.499Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-23",
-    "file": "state/digests/2026-11-23-research.md",
+    "date": "2026-11-24",
+    "file": "state/digests/2026-11-24-research.md",
     "provider": "groq",
     "model": "openai/gpt-oss-120b",
     "topics": [
@@ -14,6 +14,6 @@
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n- **What matters:** Recent announcements (as of late‑2024) indicate that Groq, Together, OpenRouter, Google Gemini, and Hugging Face have each adjusted free‑tier request caps, model availability, or usage‑policy wording.  \n- **Why it matters:** Our autonomous agents rely on uninterrupted access to specific models (e.g., Gemini‑1.5‑Flash, Llama‑2‑7B on Hugging Face). Any reduction in daily quota or removal of a model can cause task failures or forced fallback to slower, less capable alternatives.  \n- **What to verify:** Pull the current free‑tier limits and model lists from each provider’s documentation/API and compare them to the thresholds our agents currently consume.\n\n## agent-safety-practice\n- **What matters:** Best‑practice patterns now emphasize a three‑tier approval workflow (low‑risk → auto‑run, medium → human‑in‑the‑loop, high → explicit sign‑off), container‑based sandboxing for code execution, prompt‑injection sanitisation, and immutable audit logs stored off‑site.  \n- **Why it matters:** Autonomous coding agents can generate harmful code or leak credentials; layered approvals and sandbox isolation limit damage, while audit trails support post‑m"
+    "preview": "## free-tier-llm-landscape\n- **What matters:** Updated free‑tier quotas (e.g., reduced token caps, tighter request‑per‑minute limits) and the addition or removal of specific models on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Your autonomous agents rely on uninterrupted access to these APIs; a sudden quota drop or model deprecation can cause task failures or force costly model switches.  \n- **Verify:** Check the current free‑tier terms and usage dashboards for each provider to confirm that the models you depend on are still available and that your projected token usage stays within limits.  \n\n## agent-safety-practice\n- **What matters:** Multi‑level approval (human‑in‑the‑loop for code execution), container‑based sandboxing, prompt‑injection filters, and immutable audit logs for every agent action.  \n- **Why it matters:** Autonomous coding agents can generate harmful or resource‑exhaustive code; layered safeguards reduce the risk of runaway execution and make post‑mortem analysis possible.  \n- **Verify:** Run a controlled test where the agent attempts a known injection pattern and confirm that the filter blocks it and logs the attempt.  \n\n#"
   }
 }

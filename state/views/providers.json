@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-23T12:55:28.182Z",
+  "updatedAt": "2026-11-24T00:42:20.016Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 1582 ms; error rate 0%; model openai/gpt-oss-120b",
+      "explain": "groq: breaker closed (healthy); p50 1198 ms; error rate 0%; model openai/gpt-oss-120b",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
+        "usedMinute": 1,
         "usedDay": 1,
         "dayLeft": 11999,
         "perDay": 12000
@@ -33,12 +33,12 @@
       }
     },
     "openrouter": {
-      "breaker": "closed",
+      "breaker": "half-open",
       "until": null,
-      "reason": "healthy",
-      "explain": "openrouter: breaker closed (healthy); p50 5470 ms; error rate 32%; model inclusionai/ling-3.2-flash:free",
-      "status": "ok",
-      "consecutiveFailures": 0,
+      "reason": "cooldown over after 1 failure(s); next call is a probe",
+      "explain": "openrouter: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 5470 ms; error rate 52%; model inclusionai/ling-3.2-flash:free",
+      "status": "rate_limited",
+      "consecutiveFailures": 1,
       "lastFailureClass": null,
       "quota": {
         "usedMinute": 0,
@@ -51,7 +51,7 @@
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "gemini: breaker closed (healthy); p50 539 ms; error rate 1%; model gemini-2.5-flash",
+      "explain": "gemini: breaker closed (healthy); p50 533 ms; error rate 1%; model gemini-2.5-flash",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
