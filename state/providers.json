@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-24T10:28:08.011Z",
+  "updatedAt": "2026-11-24T18:02:14.345Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -18,11 +18,11 @@
       "model": "openai/gpt-oss-120b",
       "discoveredModels": [
         "openai/gpt-oss-120b",
-        "allam-2-7b",
+        "qwen/qwen3.8-27b",
         "openai/gpt-oss-20b",
-        "qwen/qwen3.8-27b"
+        "allam-2-7b"
       ],
-      "modelsDiscoveredAt": "2026-11-23T18:54:00.187Z",
+      "modelsDiscoveredAt": "2026-11-24T18:02:13.788Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -66,7 +66,6 @@
         "particle-ai/particle-1:free",
         "recursive/flint-v1.0:free",
         "nvidia/nemotron-3.5-super-vl:free",
-        "dots-studio/dots-3-note-preview:free",
         "nvidia/nemotron-3.5-lightning:free",
         "nvidia/nemotron-3-ultra-550b-a55b:free",
         "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
@@ -76,7 +75,7 @@
         "google/lyria-3-clip-preview",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-11-23T18:54:01.228Z",
+      "modelsDiscoveredAt": "2026-11-24T18:02:14.200Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -133,7 +132,7 @@
         "nano-banana-pro-preview",
         "lyria-3-pro-preview"
       ],
-      "modelsDiscoveredAt": "2026-11-23T18:54:01.676Z",
+      "modelsDiscoveredAt": "2026-11-24T18:02:14.344Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -172,7 +171,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
