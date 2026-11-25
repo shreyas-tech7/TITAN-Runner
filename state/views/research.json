@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-24T00:42:18.499Z",
-  "lastAttemptAt": "2026-11-24T00:42:18.499Z",
+  "updatedAt": "2026-11-25T04:03:33.725Z",
+  "lastAttemptAt": "2026-11-25T04:03:33.725Z",
   "lastStatus": "written",
   "lastReason": null,
   "digest": {
-    "date": "2026-11-24",
-    "file": "state/digests/2026-11-24-research.md",
+    "date": "2026-11-25",
+    "file": "state/digests/2026-11-25-research.md",
     "provider": "groq",
     "model": "openai/gpt-oss-120b",
     "topics": [
@@ -14,6 +14,6 @@
       "agent-safety-practice",
       "actions-automation"
     ],
-    "preview": "## free-tier-llm-landscape\n- **What matters:** Updated free‑tier quotas (e.g., reduced token caps, tighter request‑per‑minute limits) and the addition or removal of specific models on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Your autonomous agents rely on uninterrupted access to these APIs; a sudden quota drop or model deprecation can cause task failures or force costly model switches.  \n- **Verify:** Check the current free‑tier terms and usage dashboards for each provider to confirm that the models you depend on are still available and that your projected token usage stays within limits.  \n\n## agent-safety-practice\n- **What matters:** Multi‑level approval (human‑in‑the‑loop for code execution), container‑based sandboxing, prompt‑injection filters, and immutable audit logs for every agent action.  \n- **Why it matters:** Autonomous coding agents can generate harmful or resource‑exhaustive code; layered safeguards reduce the risk of runaway execution and make post‑mortem analysis possible.  \n- **Verify:** Run a controlled test where the agent attempts a known injection pattern and confirm that the filter blocks it and logs the attempt.  \n\n#"
+    "preview": "## free-tier-llm-landscape\n- **What matters:** Current free‑tier quotas (tokens per month, request rate caps) and any newly added or deprecated models on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Our autonomous agents depend on uninterrupted access; a sudden drop in quota or removal of a model can cause task failures or force costly migrations.  \n- **One thing worth verifying:** Check each provider’s latest terms‑of‑service or dashboard for updated limits and model availability (especially any recent announcements that may not yet be reflected in public docs).\n\n## agent-safety-practice\n- **What matters:** Layered safety controls such as multi‑level approval for code execution, container‑based sandboxing, prompt‑injection filters, and immutable audit logs.  \n- **Why it matters:** Autonomous coding agents can generate harmful or costly code; robust safeguards reduce risk of runaway execution, data leakage, or billing spikes on free tiers.  \n- **One thing worth verifying:** Run a controlled test where the agent attempts a known injection pattern and confirm that the filter and sandbox prevent execution while logging the attempt.\n\n## actions-a"
   }
 }
