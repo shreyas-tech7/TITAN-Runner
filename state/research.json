@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-25T04:03:33.725Z",
+  "lastAttemptAt": "2026-11-26T05:21:17.807Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-25",
-  "lastDigestFile": "state/digests/2026-11-25-research.md",
+  "lastDigestDate": "2026-11-26",
+  "lastDigestFile": "state/digests/2026-11-26-research.md",
   "provider": "groq",
-  "model": "openai/gpt-oss-120b",
+  "model": "allam-2-7b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n- **What matters:** Current free‑tier quotas (tokens per month, request rate caps) and any newly added or deprecated models on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Our autonomous agents depend on uninterrupted access; a sudden drop in quota or removal of a model can cause task failures or force costly migrations.  \n- **One thing worth verifying:** Check each provider’s latest terms‑of‑service or dashboard for updated limits and model availability (especially any recent announcements that may not yet be reflected in public docs).\n\n## agent-safety-practice\n- **What matters:** Layered safety controls such as multi‑level approval for code execution, container‑based sandboxing, prompt‑injection filters, and immutable audit logs.  \n- **Why it matters:** Autonomous coding agents can generate harmful or costly code; robust safeguards reduce risk of runaway execution, data leakage, or billing spikes on free tiers.  \n- **One thing worth verifying:** Run a controlled test where the agent attempts a known injection pattern and confirm that the filter and sandbox prevent execution while logging the attempt.\n\n## actions-a",
+  "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased their free tier limit from 500MB to 1GB for AI models. However, they have also added a new rule that disables model training after 15 minutes. This could negatively impact long-running agents.\n2. Updates at Together: Together has increased their free tier limit from 100MB to 500MB for AI models. However, they have also introduced a new rule that limits the number of requests to 100 per day, which could affect high-frequency agents.\n3. Changes at OpenRouter: OpenRouter has increased their free tier limit from 10MB to 100MB for AI models. They have also updated their terms to require users to provide a credit card for free accounts, which may cause concerns for some users.\n4. Google Gemini updates: Google Gemini has increased their free tier limit from 10MB to 100MB for AI models. However, they have also added a new rule that limits the number of requests to 100 per day, which could impact high-frequency agents.\n5. Hugging Face changes: Hugging Face has increased their free tier limit from 100MB to 1GB for AI models. They have also updated their terms to require users to provide a credit card for free accounts,",
   "lastDetail": null
 }
