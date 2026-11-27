@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-26T05:21:17.807Z",
+  "lastAttemptAt": "2026-11-27T00:03:01.752Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-26",
-  "lastDigestFile": "state/digests/2026-11-26-research.md",
+  "lastDigestDate": "2026-11-27",
+  "lastDigestFile": "state/digests/2026-11-27-research.md",
   "provider": "groq",
-  "model": "allam-2-7b",
+  "model": "openai/gpt-oss-120b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased their free tier limit from 500MB to 1GB for AI models. However, they have also added a new rule that disables model training after 15 minutes. This could negatively impact long-running agents.\n2. Updates at Together: Together has increased their free tier limit from 100MB to 500MB for AI models. However, they have also introduced a new rule that limits the number of requests to 100 per day, which could affect high-frequency agents.\n3. Changes at OpenRouter: OpenRouter has increased their free tier limit from 10MB to 100MB for AI models. They have also updated their terms to require users to provide a credit card for free accounts, which may cause concerns for some users.\n4. Google Gemini updates: Google Gemini has increased their free tier limit from 10MB to 100MB for AI models. However, they have also added a new rule that limits the number of requests to 100 per day, which could impact high-frequency agents.\n5. Hugging Face changes: Hugging Face has increased their free tier limit from 100MB to 1GB for AI models. They have also updated their terms to require users to provide a credit card for free accounts,",
+  "preview": "## free-tier-llm-landscape\n- **What matters:** Recent adjustments to free‑tier quotas, model availability, and usage terms on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Your autonomous agents depend on uninterrupted access to these models; a lower token cap, removal of a model, or a stricter rate‑limit can cause failures or degraded performance.  \n- **One thing worth verifying:** Check each provider’s current free‑tier documentation (or recent announcement emails) for exact token limits, model list, and any new “fair‑use” clauses that might affect continuous operation.\n\n## agent-safety-practice\n- **What matters:** Recommended safety stack—multi‑level approval (human‑in‑the‑loop for code writes), container‑based sandboxing, prompt‑injection mitigations (e.g., input sanitisation, role‑based prompting), and immutable audit logs.  \n- **Why it matters:** Autonomous coding agents can generate harmful or unintended code; layered controls reduce risk of data leakage, credential abuse, or supply‑chain contamination while keeping the system auditable.  \n- **One thing worth verifying:** Run a controlled test where the agent attempts a known prompt‑inj",
   "lastDetail": null
 }

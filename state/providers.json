@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-26T17:11:01.666Z",
+  "updatedAt": "2026-11-27T00:03:03.388Z",
   "providers": {
     "groq": {
       "id": "groq",
       "configured": true,
       "status": "ok",
-      "lastCheckedAt": "2026-11-26T05:21:18.679Z",
-      "lastSuccessAt": "2026-11-26T05:21:18.679Z",
-      "latencyMs": 868,
-      "p50LatencyMs": 1173,
-      "samples": 58,
+      "lastCheckedAt": "2026-11-27T00:03:03.385Z",
+      "lastSuccessAt": "2026-11-27T00:03:03.385Z",
+      "latencyMs": 1630,
+      "p50LatencyMs": 1402,
+      "samples": 59,
       "errorRate": 0.001,
       "consecutiveFailures": 0,
       "cooldownUntil": null,
@@ -171,7 +171,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
+      "note": "Freebuff has no official public HTTP API for third-party integration.",
       "lastFailureClass": null
     },
     "opencode": {

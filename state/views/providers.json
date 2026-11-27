@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-26T15:39:33.581Z",
+  "updatedAt": "2026-11-27T00:03:03.393Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 1173 ms; error rate 0%; model allam-2-7b",
+      "explain": "groq: breaker closed (healthy); p50 1402 ms; error rate 0%; model openai/gpt-oss-120b",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
       "quota": {
-        "usedMinute": 0,
+        "usedMinute": 1,
         "usedDay": 1,
         "dayLeft": 11999,
         "perDay": 12000
