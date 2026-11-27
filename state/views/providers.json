@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-27T08:41:11.288Z",
+  "updatedAt": "2026-11-27T18:29:10.269Z",
   "providers": {
     "groq": {
       "breaker": "closed",
       "until": null,
       "reason": "healthy",
-      "explain": "groq: breaker closed (healthy); p50 1402 ms; error rate 0%; model openai/gpt-oss-120b",
+      "explain": "groq: breaker closed (healthy); p50 1402 ms; error rate 0%; model allam-2-7b",
       "status": "ok",
       "consecutiveFailures": 0,
       "lastFailureClass": null,
@@ -36,7 +36,7 @@
       "breaker": "half-open",
       "until": null,
       "reason": "cooldown over after 1 failure(s); next call is a probe",
-      "explain": "openrouter: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 5470 ms; error rate 52%; model inclusionai/ling-3.2-flash:free",
+      "explain": "openrouter: breaker half-open (cooldown over after 1 failure(s); next call is a probe); p50 5470 ms; error rate 52%; model baidu/ernie-5.5-flash-preview:free",
       "status": "rate_limited",
       "consecutiveFailures": 1,
       "lastFailureClass": null,
