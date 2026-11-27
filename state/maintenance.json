@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "lastRunAt": "2026-11-26T14:03:59.555Z",
+  "lastRunAt": "2026-11-27T14:01:58.533Z",
   "archived": {
     "runs": 0,
     "eventSummaries": 0,
-    "digests": 0,
+    "digests": 1,
     "reviews": 0
   },
-  "stateFiles": 163,
-  "stateBytes": 269559,
+  "stateFiles": 164,
+  "stateBytes": 270683,
   "validated": true,
   "note": null
 }
