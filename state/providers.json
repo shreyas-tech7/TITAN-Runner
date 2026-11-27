@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-27T08:41:11.284Z",
+  "updatedAt": "2026-11-27T16:53:11.546Z",
   "providers": {
     "groq": {
       "id": "groq",
@@ -15,14 +15,14 @@
       "consecutiveFailures": 0,
       "cooldownUntil": null,
       "lastError": null,
-      "model": "openai/gpt-oss-120b",
+      "model": "allam-2-7b",
       "discoveredModels": [
-        "openai/gpt-oss-120b",
         "allam-2-7b",
-        "qwen/qwen3.8-27b",
-        "openai/gpt-oss-20b"
+        "openai/gpt-oss-20b",
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.8-27b"
       ],
-      "modelsDiscoveredAt": "2026-11-26T17:11:00.796Z",
+      "modelsDiscoveredAt": "2026-11-27T16:53:10.899Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -58,9 +58,8 @@
       "consecutiveFailures": 1,
       "cooldownUntil": "2026-11-23T18:59:01.496Z",
       "lastError": "OpenRouter rate limited (429): Rate limit exceeded: free-models-per-day. Add 10 credits to unlock 1000 free model requests per day: https://openrouter.ai/settings/credits?utm_source=api&utm_campaign=free_daily_limit",
-      "model": "inclusionai/ling-3.2-flash:free",
+      "model": "baidu/ernie-5.5-flash-preview:free",
       "discoveredModels": [
-        "inclusionai/ling-3.2-flash:free",
         "baidu/ernie-5.5-flash-preview:free",
         "liquid/lfm-3-1.7b:free",
         "particle-ai/particle-1:free",
@@ -75,7 +74,7 @@
         "google/lyria-3-clip-preview",
         "openrouter/free"
       ],
-      "modelsDiscoveredAt": "2026-11-26T17:11:01.555Z",
+      "modelsDiscoveredAt": "2026-11-27T16:53:11.440Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -132,7 +131,7 @@
         "nano-banana-pro-preview",
         "lyria-3-pro-preview"
       ],
-      "modelsDiscoveredAt": "2026-11-26T17:11:01.665Z",
+      "modelsDiscoveredAt": "2026-11-27T16:53:11.545Z",
       "note": null,
       "lastFailureClass": null
     },
@@ -171,7 +170,7 @@
       "model": null,
       "discoveredModels": [],
       "modelsDiscoveredAt": null,
-      "note": "Freebuff has no official public HTTP API for third-party integration.",
+      "note": "Freebuff has no official public API for third-party integration. See src/agents/freebuffAgent.js.",
       "lastFailureClass": null
     },
     "opencode": {
