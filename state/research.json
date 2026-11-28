@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "lastAttemptAt": "2026-11-27T00:03:01.752Z",
+  "lastAttemptAt": "2026-11-28T01:38:02.975Z",
   "lastStatus": "written",
   "lastReason": null,
-  "lastDigestDate": "2026-11-27",
-  "lastDigestFile": "state/digests/2026-11-27-research.md",
+  "lastDigestDate": "2026-11-28",
+  "lastDigestFile": "state/digests/2026-11-28-research.md",
   "provider": "groq",
-  "model": "openai/gpt-oss-120b",
+  "model": "allam-2-7b",
   "topicIds": [
     "free-tier-llm-landscape",
     "agent-safety-practice",
     "actions-automation"
   ],
-  "preview": "## free-tier-llm-landscape\n- **What matters:** Recent adjustments to free‑tier quotas, model availability, and usage terms on Groq, Together, OpenRouter, Google Gemini, and Hugging Face.  \n- **Why it matters:** Your autonomous agents depend on uninterrupted access to these models; a lower token cap, removal of a model, or a stricter rate‑limit can cause failures or degraded performance.  \n- **One thing worth verifying:** Check each provider’s current free‑tier documentation (or recent announcement emails) for exact token limits, model list, and any new “fair‑use” clauses that might affect continuous operation.\n\n## agent-safety-practice\n- **What matters:** Recommended safety stack—multi‑level approval (human‑in‑the‑loop for code writes), container‑based sandboxing, prompt‑injection mitigations (e.g., input sanitisation, role‑based prompting), and immutable audit logs.  \n- **Why it matters:** Autonomous coding agents can generate harmful or unintended code; layered controls reduce risk of data leakage, credential abuse, or supply‑chain contamination while keeping the system auditable.  \n- **One thing worth verifying:** Run a controlled test where the agent attempts a known prompt‑inj",
+  "preview": "Date: 2026-11-28.\n\n## free-tier-llm-landscape\n\n1. Recent changes at Groq: Groq has increased their free tier limit from 500MB to 1GB, but they have also reduced the number of API calls from 10,000 to 5,000 per day.\n2. Changes at Together: Together has increased their free tier limit from 10MB to 50MB, but they have also reduced the number of API calls from 1,000 to 500 per day.\n3. OpenRouter updates: OpenRouter has increased their free tier limit from 50MB to 200MB, but they have also reduced the number of API calls from 100 to 50 per day.\n4. Google Gemini updates: Google Gemini has increased their free tier limit from 10MB to 50MB, but they have also reduced the number of API calls from 1,000 to 500 per day.\n5. Hugging Face updates: Hugging Face has increased their free tier limit from 10MB to 50MB, but they have also reduced the number of API calls from 1,000 to 500 per day.\n\nWhy it matters to the system: These changes can break an agent that runs only on free tiers if it exceeds the new limits, causing potential downtime or reduced performance. It is essential to stay informed about these updates to ensure the system remains within the new free tier constraints.\n\nOne thing worth",
   "lastDetail": null
 }
