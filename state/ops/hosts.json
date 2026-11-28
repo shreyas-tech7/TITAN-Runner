@@ -1,25 +1,25 @@
 {
   "contract": "1",
-  "generated_at": "2026-11-27T21:16:26.231Z",
+  "generated_at": "2026-11-28T03:20:18.989Z",
   "hosts": {
     "github_actions": {
       "status": "down",
-      "last_check": "2026-11-27T21:16:26.579Z",
+      "last_check": "2026-11-28T03:20:19.300Z",
       "uptime_24h": 0,
       "uptime_7d": 0,
-      "uptime_30d": 6.9,
-      "last_pulse_at": "2026-11-27T18:29:17.000Z"
+      "uptime_30d": 5.7,
+      "last_pulse_at": "2026-11-28T01:38:09.000Z"
     },
     "github_status": {
       "status": "up",
-      "last_check": "2026-11-27T21:16:26.363Z",
+      "last_check": "2026-11-28T03:20:19.090Z",
       "uptime_24h": 100,
       "uptime_7d": 100,
       "uptime_30d": 100
     },
     "titan_gev": {
       "status": "asleep",
-      "last_check": "2026-11-27T21:16:52.493Z",
+      "last_check": "2026-11-28T03:20:46.295Z",
       "uptime_24h": 100,
       "uptime_7d": 100,
       "uptime_30d": 100
